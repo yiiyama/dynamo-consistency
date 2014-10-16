@@ -1,4 +1,4 @@
-import os, json, zlib
+import os, json, zlib, urllib2, sys
 import compare
 import deco
 from optparse import OptionParser
@@ -11,28 +11,38 @@ BLOCKSIZE=1024*1024*1024
 parser = OptionParser()
 parser.add_option('-T',help='Name of the site. Input is used to find files <site>.json and <site>_tfc.json.',
                   dest='TName',action='store',metavar='<name>')
-parser.add_option('-s',help='Skips checksum calculations and comparison.',action='store_true',dest='skipCksm')
+parser.add_option('--do-checksum',help='Do checksum calculations and comparison.',action='store_true',dest='doCksm')
 
 (opts,args) = parser.parse_args()
 
 mandatories = ['TName']
 for m in mandatories:
     if not opts.__dict__[m]:
-        print "\nMandatory option is missing\n"
+        print '\nMandatory option is missing\n'
         parser.print_help()
         exit(-1)
 
 TName = opts.TName
-skipCksm = opts.skipCksm
+skipCksm = not opts.doCksm
 
-print 'Reading TFC...'
+print 'Getting JSON files from PhEDEx if needed...'
 
-tfcFile = open(TName + "_tfc.json")
+if not os.path.exists(TName + '_tfc.json'):
+    print 'Getting TFC...'
+    os.system('wget --no-check-certificate -O '+TName+'_tfc.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/tfc?node='+TName)
+else:
+    print 'Already have TFC...'
+
+tfcFile = open(TName + '_tfc.json')
 tfcData = json.load(tfcFile, object_hook = deco._decode_dict)
 tfcFile.close()
 
 tfcPath = ''
 tfcName = ''
+
+print tfcData
+
+print 'Converting LFN to PFN...'
 
 for check in tfcData['phedex']['storage-mapping']['array']:
     if check['protocol'] == 'direct' and check['element_name'] == 'lfn-to-pfn':
@@ -46,7 +56,14 @@ else:
     print 'ERROR: Problem with the TFC.'
     exit()
 
-inFile = open(TName + ".json")
+if not os.path.exists(TName + '.json'):
+    print 'Getting file list...'
+    os.system('wget --no-check-certificate -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
+else:
+    print 'Already have the file list...'
+
+print 'Loading file list. Please wait...'
+inFile = open(TName + '.json')
 inData = json.load(inFile, object_hook = deco._decode_dict)
 inFile.close()
 
@@ -79,6 +96,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Starting walk...'
     existsList = []
     for subDir in ['mc','data','generator','results','hidata','himc']:
+        print sys.getsizeof(existsList)
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:
                 print term[0]
@@ -86,7 +104,6 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                 for aFile in term[-1]:
                     fullName = term[0]+'/'+aFile
                     tempFile = open(fullName)
-                    print 'Reading file...'
                     if not skipCksm:
                         asum = 1
                         while True:
