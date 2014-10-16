@@ -1,6 +1,6 @@
 import os, json, zlib, urllib2, sys
-import compare
-import deco
+from time import time
+import compare, deco
 from optparse import OptionParser
 
 def pullAdler(checkString):
@@ -25,6 +25,8 @@ for m in mandatories:
 TName = opts.TName
 skipCksm = not opts.doCksm
 
+startTime = time()
+
 print 'Getting JSON files from PhEDEx if needed...'
 
 if not os.path.exists(TName + '_tfc.json'):
@@ -39,8 +41,6 @@ tfcFile.close()
 
 tfcPath = ''
 tfcName = ''
-
-print tfcData
 
 print 'Converting LFN to PFN...'
 
@@ -71,6 +71,7 @@ if not os.path.exists(TName + '_phedex.json'):
     print 'Skimming PhEDEx output. Please wait...'
     blockList = []
     for block in inData['phedex']['block']:
+        print 'Size of blockList: ' + str(sys.getsizeof(blockList))
         tempBlock=[]
         for repl in block['file']:
             tempBlock.append({'file':preFix + repl['name'],'size':repl['bytes'],'time':repl['time_create'],
@@ -96,18 +97,19 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Starting walk...'
     existsList = []
     for subDir in ['mc','data','generator','results','hidata','himc']:
-        print sys.getsizeof(existsList)
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:
                 print term[0]
                 tempBlock=[]
                 for aFile in term[-1]:
+                    print 'Size of existsList: ' + str(sys.getsizeof(existsList))
                     fullName = term[0]+'/'+aFile
                     tempFile = open(fullName)
                     if not skipCksm:
                         asum = 1
                         while True:
                             buffer = tempFile.read(BLOCKSIZE)
+                            print 'Buffer size: ' + str(sys.getsizeof(buffer))
                             if not buffer:
                                 break
                             asum = zlib.adler32(str(buffer),asum)
@@ -135,3 +137,4 @@ else:
 
 print 'Now comparing the two...'
 compare.finalCheck(TName,skipCksm)
+print 'Elapsed time: ' + str(time() - startTime) + ' seconds'
