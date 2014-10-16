@@ -13,9 +13,11 @@ def finalCheck(TName,skipCksm):
     secondFile.close()
 
     if skipCksm:
+        print 'Report will be in: ' + TName + '_skipCksm_results.txt'
         report = open(TName + '_skipCksm_results.txt','w')
-        report.write('Skipping checksum (Alder32) comparisons! \n')
+        report.write('Skipping Checksum (Alder32) comparisons! \n')
     else:
+        print 'Report will be in: ' + TName + '_results.txt'
         report = open(TName + '_results.txt','w')
     report.write('\nFile missing at site: \n\n')
     for aBlock in firstData:

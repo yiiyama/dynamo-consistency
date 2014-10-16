@@ -25,6 +25,8 @@ for m in mandatories:
 TName = opts.TName
 skipCksm = opts.skipCksm
 
+print 'Reading TFC...'
+
 tfcFile = open(TName + "_tfc.json")
 tfcData = json.load(tfcFile, object_hook = deco._decode_dict)
 tfcFile.close()
@@ -39,6 +41,7 @@ for check in tfcData['phedex']['storage-mapping']['array']:
 
 if tfcPath.split('/')[-2] == tfcName.split('+')[1].split('/')[0]:
     preFix = tfcPath.split('/'+tfcPath.split('/')[-2])[0]
+    print 'Looks good...'
 else:
     print 'ERROR: Problem with the TFC.'
     exit()
@@ -48,6 +51,7 @@ inData = json.load(inFile, object_hook = deco._decode_dict)
 inFile.close()
 
 if not os.path.exists(TName + '_phedex.json'):
+    print 'Skimming PhEDEx output. Please wait...'
     blockList = []
     for block in inData['phedex']['block']:
         tempBlock=[]
@@ -56,18 +60,25 @@ if not os.path.exists(TName + '_phedex.json'):
                               'adler32':pullAdler(repl['checksum'])})
             blockList.append(tempBlock)
 
+    print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
     outParsed.write(json.dumps(blockList))
     outParsed.close()
+    print 'Done with that...'
+else:
+    print 'Using old skimmed file...'
 
 startDir = tfcPath.split('$1')[0]
 
 if skipCksm:
-    print 'Skipping Checksum (Adler32) calculations!'
-if not os.path.exists(TName + '_exists.json'):
+    print 'Skipping Checksum (Adler32) calculations...'
+else:
+    print 'Will calculate Checksum unless old file exists...'
+if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm and not os.path.exists(TName + '_skipCksm_exists.json')):
+    print 'Creating JSON file from your directory...'
+    print 'Starting walk...'
     existsList = []
-    for subDir in ['mc','data']:
-    #for subDir in ['data']:
+    for subDir in ['mc','data','generator','results','hidata','himc']:
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:
                 print term[0]
@@ -94,11 +105,16 @@ if not os.path.exists(TName + '_exists.json'):
                                       'adler32':cksumStr})
                     existsList.append(tempBlock)
                             
+    print 'Creating JSON file from directory...'
     if skipCksm:
         outExists = open(TName + '_skipCksm_exists.json','w')
     else:
         outExists = open(TName + '_exists.json','w')
     outExists.write(json.dumps(existsList))
     outExists.close()
+    print 'Done with that...'
+else:
+    print 'Using old directory JSON file...'
 
+print 'Now comparing the two...'
 compare.finalCheck(TName,skipCksm)

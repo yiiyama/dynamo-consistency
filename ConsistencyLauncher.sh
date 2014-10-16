@@ -12,6 +12,9 @@ if [ ! -f $TName\_tfc.json ]; then
     wget --no-check-certificate -O $TName\_tfc.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/tfc?node=$TName
 fi
 
+echo 'Have all JSON files from PhEDEx.'
+echo 'Starting python script...'
+
 if [ "$Skip" == "doCksm" ]; then 
     python ConsistencyCheck.py -T $TName
 else
