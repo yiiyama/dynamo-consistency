@@ -20,6 +20,8 @@ parser.add_option('-T',help='Name of the site. Input is used to find files <site
                   dest='TName',action='store',metavar='<name>')
 parser.add_option('--do-checksum',help='Do checksum calculations and comparison.',action='store_true',dest='doCksm')
 parser.add_option('--clean',help='Deletes the stray JSON and results files after being stored in tarball.',action='store_true',dest='doClean')
+parser.add_option('-N',help='Will do a new download of PhEDEx files.',action='store_true',dest='newPhedex')
+parser.add_option('-n',help='Will do a fresh parsing of the PhEDEx file and directory walk.',action='store_true',dest='newParse')
 
 (opts,args) = parser.parse_args()
 
@@ -32,15 +34,26 @@ for m in mandatories:
 
 TName = opts.TName
 skipCksm = not opts.doCksm
-doClean = opts.doClean
 
 startTime = time()
 
 print 'Searching for tarball of old files...'
 
-if os.path.exists(TName + '.tar.gz'):
+if opts.newPhedex:
+    opts.newParse = True
+    if os.path.exists(TName + '.json'):
+        print 'Getting new JSON file from PhEDEx...'
+        os.system('rm ' + TName + '.json')
+elif os.path.exists(TName + '.tar.gz'):
     print 'Extracting files from tarball...'
     os.system('tar -xvzf ' + TName + '.tar.gz')
+if opts.newParse:
+    if os.path.exists(TName + '_phedex.json'):
+        print 'Removing parsed file...'
+        os.system('rm ' + TName + '_phedex.json')
+    if os.path.exists(TName + '_exists.json') or os.path.exists(TName + '_skipCksm_exists.json'):
+        print 'Removing stored directory structure...'
+        os.system('rm ' + TName + '*exists.json')
 
 print 'Getting JSON files from PhEDEx if needed...'
 
@@ -94,17 +107,18 @@ if not os.path.exists(TName + '_phedex.json'):
     numFilesParsed = 0
     numDumps = 0
     for block in inData['phedex']['block']:
-        print 'Size of blockList: ' + str(sys.getsizeof(blockList))
         tempBlock = []
         for repl in block['file']:
             numFilesParsed += 1
             tempBlock.append({'file':preFix + repl['name'],'size':repl['bytes'],'time':repl['time_create'],
                               'adler32':pullAdler(repl['checksum'])})
         blockList.append(tempBlock)
+    inData = []
     print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
     outParsed.write(json.dumps(blockList))
     outParsed.close()
+    blockList = []
     print 'Done with that...'
 else:
     print 'Using old skimmed file...'
@@ -126,14 +140,12 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                 print term[0]
                 tempBlock=[]
                 for aFile in term[-1]:
-                    print 'Size of existsList: ' + str(sys.getsizeof(existsList))
                     fullName = term[0]+'/'+aFile
                     if not skipCksm:
                         tempFile = open(fullName)
                         asum = 1
                         while True:
                             buffer = tempFile.read(BLOCKSIZE)
-                            print 'Buffer size: ' + str(sys.getsizeof(buffer))
                             if not buffer:
                                 break
                             asum = zlib.adler32(str(buffer),asum)
@@ -171,7 +183,7 @@ print 'Making tarball for clean storage: ' + TName +'.tar.gz'
 os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
 print 'Everything stored in: ' + TName +'.tar.gz'
 
-if doClean:
+if opts.doClean:
     print 'Cleaning up files... Do not use --clean if you want to leave files out...'
     os.system('rm ' + TName + '*.json ' + TName + '*results.txt')
 
