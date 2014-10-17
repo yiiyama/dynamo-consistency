@@ -161,7 +161,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                         cksumStr = 'Not Checked'
                     tempBlock.append({'file':fullName,'size':os.path.getsize(fullName),'time':os.path.getatime(fullName),
                                       'adler32':cksumStr})
-                    existsList.append(tempBlock)
+                existsList.append(tempBlock)
     if len(existsList) > 0:
         print 'Creating JSON file from directory...'
         if skipCksm:
