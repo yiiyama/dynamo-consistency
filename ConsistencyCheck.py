@@ -96,6 +96,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Creating JSON file from your directory...'
     print 'Starting walk...'
     existsList = []
+    tempBlock=[]
     for subDir in ['mc','data','generator','results','hidata','himc']:
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:
@@ -104,8 +105,8 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                 for aFile in term[-1]:
                     print 'Size of existsList: ' + str(sys.getsizeof(existsList))
                     fullName = term[0]+'/'+aFile
-                    tempFile = open(fullName)
                     if not skipCksm:
+                        tempFile = open(fullName)
                         asum = 1
                         while True:
                             buffer = tempFile.read(BLOCKSIZE)
