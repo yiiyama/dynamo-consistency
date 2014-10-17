@@ -12,6 +12,7 @@ parser = OptionParser()
 parser.add_option('-T',help='Name of the site. Input is used to find files <site>.json and <site>_tfc.json.',
                   dest='TName',action='store',metavar='<name>')
 parser.add_option('--do-checksum',help='Do checksum calculations and comparison.',action='store_true',dest='doCksm')
+parser.add_option('--clean',help='Deletes the stray JSON and results files after being stored in tarball.',action='store_true',dest='doClean')
 
 (opts,args) = parser.parse_args()
 
@@ -24,8 +25,15 @@ for m in mandatories:
 
 TName = opts.TName
 skipCksm = not opts.doCksm
+doClean = opts.doClean
 
 startTime = time()
+
+print 'Searching for tarball of old files...'
+
+if os.path.exists(TName + '.tar.gz'):
+    print 'Extracting files from tarball...'
+    os.system('tar -xvzf ' + TName + '.tar.gz')
 
 print 'Getting JSON files from PhEDEx if needed...'
 
@@ -138,4 +146,12 @@ else:
 
 print 'Now comparing the two...'
 compare.finalCheck(TName,skipCksm)
+print 'Making tarball for clean storage: ' + TName +'.tar.gz'
+os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
+print 'Everything stored in: ' + TName +'.tar.gz'
+
+if doClean:
+    print 'Cleaning up files... Do not use --clean if you want to leave files out...'
+    os.system('rm ' + TName + '*.json ' + TName + '*results.txt')
+
 print 'Elapsed time: ' + str(time() - startTime) + ' seconds'
