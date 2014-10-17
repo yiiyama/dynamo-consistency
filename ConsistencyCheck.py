@@ -51,9 +51,12 @@ if opts.newParse:
     if os.path.exists(TName + '_phedex.json'):
         print 'Removing parsed file...'
         os.system('rm ' + TName + '_phedex.json')
-    if os.path.exists(TName + '_exists.json') or os.path.exists(TName + '_skipCksm_exists.json'):
+    if os.path.exists(TName + '_exists.json') and (not skipCksm):
         print 'Removing stored directory structure...'
-        os.system('rm ' + TName + '*exists.json')
+        os.system('rm ' + TName + '_exists.json')
+    if os.path.exists(TName + '_skipCksm_exists.json') and skipCksm:
+        print 'Removing stored directory structure...'
+        os.system('rm ' + TName + '_skipCksm_exists.json')
 
 print 'Getting JSON files from PhEDEx if needed...'
 
