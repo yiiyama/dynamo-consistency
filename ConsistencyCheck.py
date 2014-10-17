@@ -3,6 +3,13 @@ from time import time
 import compare, deco
 from optparse import OptionParser
 
+def cleanEmpty():
+    for aFile in os.listdir('.'):
+        if aFile.startswith(TName):
+            if os.stat(aFile)[6] < 10:
+                print aFile + ' is empty, so it is being removed...'
+                os.system('rm '+aFile)
+
 def pullAdler(checkString):
     return checkString.split(',')[0].split(':')[1]
 
@@ -43,6 +50,9 @@ if not os.path.exists(TName + '_tfc.json'):
 else:
     print 'Already have TFC...'
 
+print 'Checking for empty files...'
+cleanEmpty()
+
 tfcFile = open(TName + '_tfc.json')
 tfcData = json.load(tfcFile, object_hook = deco._decode_dict)
 tfcFile.close()
@@ -70,22 +80,27 @@ if not os.path.exists(TName + '.json'):
 else:
     print 'Already have the file list...'
 
-print 'Loading file list. Please wait...'
-inFile = open(TName + '.json')
-inData = json.load(inFile, object_hook = deco._decode_dict)
-inFile.close()
-
 if not os.path.exists(TName + '_phedex.json'):
+
+    print 'Loading file list. Please wait...'
+    inFile = open(TName + '.json')
+    inData = json.load(inFile, object_hook = deco._decode_dict)
+    inFile.close()
+    print 'Size of inData: ' + str(sys.getsizeof(inData))
+
     print 'Skimming PhEDEx output. Please wait...'
     blockList = []
+    tempBlock = []
+    numFilesParsed = 0
+    numDumps = 0
     for block in inData['phedex']['block']:
         print 'Size of blockList: ' + str(sys.getsizeof(blockList))
-        tempBlock=[]
+        tempBlock = []
         for repl in block['file']:
+            numFilesParsed += 1
             tempBlock.append({'file':preFix + repl['name'],'size':repl['bytes'],'time':repl['time_create'],
                               'adler32':pullAdler(repl['checksum'])})
-            blockList.append(tempBlock)
-
+        blockList.append(tempBlock)
     print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
     outParsed.write(json.dumps(blockList))
@@ -132,20 +147,26 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                     tempBlock.append({'file':fullName,'size':os.path.getsize(fullName),'time':os.path.getatime(fullName),
                                       'adler32':cksumStr})
                     existsList.append(tempBlock)
-                            
-    print 'Creating JSON file from directory...'
-    if skipCksm:
-        outExists = open(TName + '_skipCksm_exists.json','w')
+    if len(existsList) > 0:
+        print 'Creating JSON file from directory...'
+        if skipCksm:
+            outExists = open(TName + '_skipCksm_exists.json','w')
+        else:
+            outExists = open(TName + '_exists.json','w')
+            outExists.write(json.dumps(existsList))
+            outExists.close()
+        print 'Done with that...'
     else:
-        outExists = open(TName + '_exists.json','w')
-    outExists.write(json.dumps(existsList))
-    outExists.close()
-    print 'Done with that...'
+        print 'Exists list is empty...'
 else:
     print 'Using old directory JSON file...'
 
 print 'Now comparing the two...'
 compare.finalCheck(TName,skipCksm)
+
+print 'Checking for empty files...'
+cleanEmpty()
+
 print 'Making tarball for clean storage: ' + TName +'.tar.gz'
 os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
 print 'Everything stored in: ' + TName +'.tar.gz'

@@ -6,8 +6,14 @@ def finalCheck(TName,skipCksm):
     firstFile.close()
 
     if skipCksm:
+        if not os.path.exists(TName + '_skipCksm_exists.json'):
+            print 'Exists file does not exist. No comparison to make...'
+            exit()
         secondFile = open(TName + '_skipCksm_exists.json')
     else:
+        if not os.path.exists(TName + '_exists.json'):
+            print 'Exists file does not exist. No comparison to make...'
+            exit()
         secondFile = open(TName + '_exists.json')
     secondData = json.load(secondFile)
     secondFile.close()
