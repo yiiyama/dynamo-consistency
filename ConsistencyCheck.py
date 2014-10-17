@@ -165,8 +165,8 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
             outExists = open(TName + '_skipCksm_exists.json','w')
         else:
             outExists = open(TName + '_exists.json','w')
-            outExists.write(json.dumps(existsList))
-            outExists.close()
+        outExists.write(json.dumps(existsList))
+        outExists.close()
         print 'Done with that...'
     else:
         print 'Exists list is empty...'
