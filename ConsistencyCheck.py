@@ -7,7 +7,7 @@ def cleanEmpty():
     for aFile in os.listdir('.'):
         if aFile.startswith(TName):
             if os.stat(aFile)[6] < 10:
-                print aFile + ' is empty, so it is being removed...'
+                print aFile + ' is (almost) empty, so it is being removed...'
                 os.system('rm '+aFile)
 
 def pullAdler(checkString):
@@ -41,22 +41,9 @@ print 'Searching for tarball of old files...'
 
 if opts.newPhedex:
     opts.newParse = True
-    if os.path.exists(TName + '.json'):
-        print 'Getting new JSON file from PhEDEx...'
-        os.system('rm ' + TName + '.json')
 elif os.path.exists(TName + '.tar.gz'):
     print 'Extracting files from tarball...'
     os.system('tar -xvzf ' + TName + '.tar.gz')
-if opts.newParse:
-    if os.path.exists(TName + '_phedex.json'):
-        print 'Removing parsed file...'
-        os.system('rm ' + TName + '_phedex.json')
-    if os.path.exists(TName + '_exists.json') and (not skipCksm):
-        print 'Removing stored directory structure...'
-        os.system('rm ' + TName + '_exists.json')
-    if os.path.exists(TName + '_skipCksm_exists.json') and skipCksm:
-        print 'Removing stored directory structure...'
-        os.system('rm ' + TName + '_skipCksm_exists.json')
 
 print 'Getting JSON files from PhEDEx if needed...'
 
@@ -96,8 +83,7 @@ if not os.path.exists(TName + '.json'):
 else:
     print 'Already have the file list...'
 
-if not os.path.exists(TName + '_phedex.json'):
-
+if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:
     print 'Loading file list. Please wait...'
     inFile = open(TName + '.json')
     inData = json.load(inFile, object_hook = deco._decode_dict)
@@ -132,7 +118,7 @@ if skipCksm:
     print 'Skipping Checksum (Adler32) calculations...'
 else:
     print 'Will calculate Checksum unless old file exists...'
-if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm and not os.path.exists(TName + '_skipCksm_exists.json')):
+if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm and not os.path.exists(TName + '_skipCksm_exists.json')) or opts.newParse:
     print 'Creating JSON file from your directory...'
     print 'Starting walk...'
     existsList = []
