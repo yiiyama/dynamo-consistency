@@ -2,8 +2,10 @@ import json, os
 
 def finalCheck(TName,skipCksm):
     firstFile = open(TName + '_phedex.json')
+    print 'Loading first file...'
     firstData = json.load(firstFile)
     firstFile.close()
+    print 'Loaded...'
 
     if skipCksm:
         if not os.path.exists(TName + '_skipCksm_exists.json'):
@@ -15,8 +17,10 @@ def finalCheck(TName,skipCksm):
             print 'Exists file does not exist. No comparison to make...'
             exit()
         secondFile = open(TName + '_exists.json')
+    print 'Loading second file...'
     secondData = json.load(secondFile)
     secondFile.close()
+    print 'Loaded...'
 
     if skipCksm:
         print 'Report will be in: ' + TName + '_skipCksm_results.txt'
