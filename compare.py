@@ -22,6 +22,7 @@ def finalCheck(TName,skipCksm):
         print 'Report will be in: ' + TName + '_skipCksm_results.txt'
         report = open(TName + '_skipCksm_results.txt','w')
         report.write('Skipping Checksum (Alder32) comparisons! \n')
+        print 'Started writing...'
     else:
         print 'Report will be in: ' + TName + '_results.txt'
         report = open(TName + '_results.txt','w')
