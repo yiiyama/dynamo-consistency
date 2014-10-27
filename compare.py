@@ -37,7 +37,7 @@ def finalCheck(TName,skipCksm):
         for bBlock in secondData:
             if aBlock['directory'] == bBlock['directory']:
                 foundDir = True
-
+                wroteDataSetName = False
                 for aFile in aBlock['files']:
                     found = False
                     aName = aFile['file']
@@ -50,15 +50,33 @@ def finalCheck(TName,skipCksm):
                             if aFile['size'] == bFile['size'] and (skipCksm or aFile['adler32'] == bFile['adler32']):
                                 break
                             else:
+                                if not wroteDataSetName:
+                                    wroteDataSetName = True
+                                    report.write('------------------------------------------------------ \n')
+                                    report.write('Dataset: ' + aBlock['dataset'] + ' \n')
+                                    report.write('------------------------------------------------------ \n')
                                 report.write(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- '+str(aCksm)+' '+str(aSize)+'; Site -- '+str(bCksm)+' '+str(bSize)+' \n')
                                 break
 
                     if not found:
                         if not os.path.exists(aDirectory + aName):
+                            if not wroteDataSetName:
+                                wroteDataSetName = True
+                                report.write('------------------------------------------------------ \n')
+                                report.write('Dataset: ' + aBlock['dataset'] + ' \n')
+                                report.write('------------------------------------------------------ \n')
                             report.write(aDirectory + aName + ' \n')
                         else:
+                            if not wroteDataSetName:
+                                wroteDataSetName = True
+                                report.write('------------------------------------------------------ \n')
+                                report.write('Dataset: ' + aBlock['dataset'] + ' \n')
+                                report.write('------------------------------------------------------ \n')
                             report.write(aDirectory + aName + ' was not in a searched directory. \n')
         if not foundDir:
+            report.write('------------------------------------------------------ \n')
+            report.write('Dataset: ' + aBlock['dataset'] + ' \n')
+            report.write('------------------------------------------------------ \n')
             report.write('No files were found in ' + aDirectory + ' \n')
 
     report.write('\n')

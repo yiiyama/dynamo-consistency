@@ -103,9 +103,12 @@ if not os.path.exists(TName + '_phedex.json') or opts.newParse:
         tempBlock = []
         for repl in block['file']:
             numFilesParsed += 1
-            tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':repl['time_create'],
+            for getTime in repl['replica']:
+                if getTime['node'] == TName:
+                    tempTime = getTime['time_create']
+            tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':tempTime,
                               'adler32':pullAdler(repl['checksum'])})
-        blockList.append({'directory':preFix + stripFile(block['file'][0]['name']),'files':tempBlock})
+        blockList.append({'dataset':block['name'],'directory':preFix + stripFile(block['file'][0]['name']),'files':tempBlock})
     del inData
     print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
