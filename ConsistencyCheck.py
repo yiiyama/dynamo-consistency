@@ -105,20 +105,19 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedexOnly:
     lastBlock = ''
     for block in inData['phedex']['block']:
         for repl in block['file']:
-            if preFix + stripFile(block['file'][0]['name']) != lastDirectory:
+            if preFix + stripFile(repl['name']) != lastDirectory:
                 if len(lastDirectory) > 0:
                     blockList.append({'dataset':lastBlock,'directory':lastDirectory,'files':tempBlock})
                     tempBlock = []
                 lastBlock = block['name']
-                lastDirectory = preFix + stripFile(block['file'][0]['name'])
+                lastDirectory = preFix + stripFile(repl['name'])
             for getTime in repl['replica']:
                 if getTime['node'] == TName:
                     tempTime = getTime['time_create']
             tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':tempTime,
                               'adler32':pullAdler(repl['checksum'])})
-    print 'Last Directory: ' + lastDirectory
-    print 'Writing last directory'
-    blockList.append({'dataset':block['name'],'directory':preFix + stripFile(block['file'][0]['name']),'files':tempBlock})
+    print preFix + stripFile(repl['name']) == lastDirectory
+    blockList.append({'dataset':block['name'],'directory':preFix + stripFile(repl['name']),'files':tempBlock})
     del inData
     print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
