@@ -26,6 +26,7 @@ parser.add_option('--do-checksum',help='Do checksum calculations and comparison.
 parser.add_option('--clean',help='Deletes the stray JSON and results files after being stored in tarball.',action='store_true',dest='doClean')
 parser.add_option('-N',help='Will do a new download of PhEDEx files.',action='store_true',dest='newPhedex')
 parser.add_option('-n',help='Will do a fresh parsing of the PhEDEx file and directory walk.',action='store_true',dest='newParse')
+parser.add_option('-p',help='Will only do a fresh parse of the PhEDEx file.',action='store_true',dest='newPhedexOnly')
 
 (opts,args) = parser.parse_args()
 
@@ -45,6 +46,8 @@ print 'Searching for tarball of old files...'
 
 if opts.newPhedex:
     opts.newParse = True
+if opts.newParse:
+    opts.newPhedexOnly = True
 elif os.path.exists(TName + '.tar.gz'):
     print 'Extracting files from tarball...'
     os.system('tar -xvzf ' + TName + '.tar.gz')
@@ -87,7 +90,7 @@ if not os.path.exists(TName + '.json'):
 else:
     print 'Already have the file list...'
 
-if not os.path.exists(TName + '_phedex.json') or opts.newParse:
+if not os.path.exists(TName + '_phedex.json') or opts.newPhedexOnly:
     print 'Loading file list. Please wait...'
     inFile = open(TName + '.json')
     inData = json.load(inFile, object_hook = deco._decode_dict)
