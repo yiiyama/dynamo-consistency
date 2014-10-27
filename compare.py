@@ -30,7 +30,7 @@ def finalCheck(TName,skipCksm):
     else:
         print 'Report will be in: ' + TName + '_results.txt'
         report = open(TName + '_results.txt','w')
-    report.write('\nFile missing at site: \n\n')
+    report.write('\nFiles missing at site: \n\n')
     for aBlock in firstData:
         foundDir = False
         aDirectory = aBlock['directory']
@@ -55,11 +55,11 @@ def finalCheck(TName,skipCksm):
 
                     if not found:
                         if not os.path.exists(aDirectory + aName):
-                            report.write(aDirectory + aName + ' is missing from the site. \n')
+                            report.write(aDirectory + aName + ' \n')
                         else:
                             report.write(aDirectory + aName + ' was not in a searched directory. \n')
         if not foundDir:
-            report.write('No files were found in ' + aDirectory + '. \n')
+            report.write('No files were found in ' + aDirectory + ' \n')
 
     report.write('\n')
     report.write('File not in PhEDEx: \n\n')
@@ -79,9 +79,8 @@ def finalCheck(TName,skipCksm):
                             found = True
                             break
                 if not found:
-                    print aName + ' was not found?!'
-                    report.write(aDirectory + aName + ' is not in PhEDEx database. \n')
+                    report.write(aDirectory + aName + ' \n')
         else:
-            report.write('PhEDEx expects nothing in ' + aDirectory + '. \n')
+            report.write('PhEDEx expects nothing in ' + aDirectory + ' \n')
     report.write('\n')
     report.close()
