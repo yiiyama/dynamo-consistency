@@ -1,5 +1,12 @@
 import json, os
 
+def writeBlock(dataSet,report):
+    report.write('------------------------------------------------------ \n')
+    report.write('Dataset: ' + dataSet.split('#')[0] + ' \n')
+    report.write('Block  : ' + dataSet.split('#')[1] + ' \n')
+    report.write('------------------------------------------------------ \n')
+
+
 def finalCheck(TName,skipCksm):
     firstFile = open(TName + '_phedex.json')
     print 'Loading first file...'
@@ -52,9 +59,7 @@ def finalCheck(TName,skipCksm):
                             else:
                                 if not wroteDataSetName:
                                     wroteDataSetName = True
-                                    report.write('------------------------------------------------------ \n')
-                                    report.write('Dataset: ' + aBlock['dataset'] + ' \n')
-                                    report.write('------------------------------------------------------ \n')
+                                    writeBlock(aBlock['dataset'],report)
                                 report.write(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- '+str(aCksm)+' '+str(aSize)+'; Site -- '+str(bCksm)+' '+str(bSize)+' \n')
                                 break
 
@@ -62,21 +67,15 @@ def finalCheck(TName,skipCksm):
                         if not os.path.exists(aDirectory + aName):
                             if not wroteDataSetName:
                                 wroteDataSetName = True
-                                report.write('------------------------------------------------------ \n')
-                                report.write('Dataset: ' + aBlock['dataset'] + ' \n')
-                                report.write('------------------------------------------------------ \n')
+                                writeBlock(aBlock['dataset'],report)
                             report.write(aDirectory + aName + ' \n')
                         else:
                             if not wroteDataSetName:
                                 wroteDataSetName = True
-                                report.write('------------------------------------------------------ \n')
-                                report.write('Dataset: ' + aBlock['dataset'] + ' \n')
-                                report.write('------------------------------------------------------ \n')
+                                writeBlock(aBlock['dataset'],report)
                             report.write(aDirectory + aName + ' was not in a searched directory. \n')
         if not foundDir:
-            report.write('------------------------------------------------------ \n')
-            report.write('Dataset: ' + aBlock['dataset'] + ' \n')
-            report.write('------------------------------------------------------ \n')
+            writeBlock(aBlock['dataset'],report)
             report.write('No files were found in ' + aDirectory + ' \n')
 
     report.write('\n')
