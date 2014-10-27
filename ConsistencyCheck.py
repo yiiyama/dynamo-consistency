@@ -70,7 +70,7 @@ tfcName = ''
 print 'Converting LFN to PFN...'
 
 for check in tfcData['phedex']['storage-mapping']['array']:
-    if check['protocol'] == 'direct' and check['element_name'] == 'lfn-to-pfn' and check['path-match'].endswith('store/(.*)'):
+    if check['protocol'] == 'direct' and check['element_name'] == 'lfn-to-pfn' and check['path-match'].endswith('+store/(.*)'):
         tfcPath = check['result']
         tfcName = check['path-match']
 
