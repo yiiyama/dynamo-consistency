@@ -10,6 +10,10 @@ def cleanEmpty():
                 print aFile + ' is (almost) empty, so it is being removed...'
                 os.system('rm '+aFile)
 
+def stripFile(fullName):
+    fileName = fullName.split('/')[-1]
+    return fullName[:len(fullName)-len(fileName)]
+
 def pullAdler(checkString):
     return checkString.split(',')[0].split(':')[1]
 
@@ -83,7 +87,7 @@ if not os.path.exists(TName + '.json'):
 else:
     print 'Already have the file list...'
 
-if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:
+if not os.path.exists(TName + '_phedex.json') or opts.newParse:
     print 'Loading file list. Please wait...'
     inFile = open(TName + '.json')
     inData = json.load(inFile, object_hook = deco._decode_dict)
@@ -99,15 +103,15 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:
         tempBlock = []
         for repl in block['file']:
             numFilesParsed += 1
-            tempBlock.append({'file':preFix + repl['name'],'size':repl['bytes'],'time':repl['time_create'],
+            tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':repl['time_create'],
                               'adler32':pullAdler(repl['checksum'])})
-        blockList.append(tempBlock)
-    inData = []
+        blockList.append({'directory':preFix + stripFile(block['file'][0]['name']),'files':tempBlock})
+    del inData
     print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
     outParsed.write(json.dumps(blockList))
     outParsed.close()
-    blockList = []
+    del blockList
     print 'Done with that...'
 else:
     print 'Using old skimmed file...'
@@ -123,7 +127,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Starting walk...'
     existsList = []
     tempBlock=[]
-    for subDir in ['mc','data','generator','results','hidata','himc']:
+    for subDir in ['mc','data','generator','results','hidata','himc','backfill']:
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:
                 print term[0]
@@ -145,9 +149,9 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                         print 'Got checksum...'
                     else:
                         cksumStr = 'Not Checked'
-                    tempBlock.append({'file':fullName,'size':os.path.getsize(fullName),'time':os.path.getatime(fullName),
+                    tempBlock.append({'file':aFile,'size':os.path.getsize(fullName),'time':os.path.getatime(fullName),
                                       'adler32':cksumStr})
-                existsList.append(tempBlock)
+                existsList.append({'directory':term[0]+'/','files':tempBlock})
     if len(existsList) > 0:
         print 'Creating JSON file from directory...'
         if skipCksm:
@@ -156,7 +160,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
             outExists = open(TName + '_exists.json','w')
         outExists.write(json.dumps(existsList))
         outExists.close()
-        existsList = []
+        del existsList
         print 'Done with that...'
     else:
         print 'Exists list is empty...'

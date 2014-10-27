@@ -32,47 +32,56 @@ def finalCheck(TName,skipCksm):
         report = open(TName + '_results.txt','w')
     report.write('\nFile missing at site: \n\n')
     for aBlock in firstData:
-        for aFile in aBlock:
-            found = False
-            aName = aFile['file']
-            aSize = aFile['size']
-            aCksm = aFile['adler32']
-            for bBlock in secondData:
-                for bFile in bBlock:
-                    bName = bFile['file']
-                    bSize = bFile['size']
-                    bCksm = bFile['adler32']
+        foundDir = False
+        aDirectory = aBlock['directory']
+        for bBlock in secondData:
+            if aBlock['directory'] == bBlock['directory']:
+                foundDir = True
 
-                    if aName == bName:
-                        found = True
-                        if aSize == bSize and (skipCksm or aCksm == bCksm):
-                            break
+                for aFile in aBlock['files']:
+                    found = False
+                    aName = aFile['file']
+                    aSize = aFile['size']
+                    aCksm = aFile['adler32']
+                    for bFile in bBlock['files']:
+
+                        if aFile['file'] == bFile['file']:
+                            found = True
+                            if aFile['size'] == bFile['size'] and (skipCksm or aFile['adler32'] == bFile['adler32']):
+                                break
+                            else:
+                                report.write(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- '+str(aCksm)+' '+str(aSize)+'; Site -- '+str(bCksm)+' '+str(bSize)+' \n')
+                                break
+
+                    if not found:
+                        if not os.path.exists(aDirectory + aName):
+                            report.write(aDirectory + aName + ' is missing from the site. \n')
                         else:
-                            report.write(aName + ' has incorrect size or checksum: PhEDEx -- '+str(aCksm)+' '+str(aSize)+'; Site -- '+str(bCksm)+' '+str(bSize)+' \n')
-                            break
-                if found:
-                    break
-            if not found:
-                if not os.path.exists(aName):
-                    report.write(aName + ' is missing from the site. \n')
-                else:
-                    report.write(aName + ' was not in a searched directory. \n')
+                            report.write(aDirectory + aName + ' was not in a searched directory. \n')
+        if not foundDir:
+            report.write('No files were found in ' + aDirectory + '. \n')
+
     report.write('\n')
     report.write('File not in PhEDEx: \n\n')
     for aBlock in secondData:
-        for aFile in aBlock:
-            found = False
-            aName = aFile['file']
-            for bBlock in firstData:
-                for bFile in bBlock:
-                    bName = bFile['file']
-
-                    if aName == bName:
-                        found = True
-                        break
-                if found:
-                    break
-            if not found:
-                report.write(aName + ' is not in PhEDEx database. \n')
+        aDirectory = aBlock['directory']
+        bDirectoryList = []
+        for bBlock in firstData:
+            if aBlock['directory'] == bBlock['directory']:
+                bDirectoryList.append(bBlock)
+        if len(bDirectoryList) > 0:
+            for aFile in aBlock['files']:
+                found = False
+                aName = aFile['file']
+                for bBlock0 in bDirectoryList:
+                    for bFile in bBlock0['files']:
+                        if aFile['file'] == bFile['file']:
+                            found = True
+                            break
+                if not found:
+                    print aName + ' was not found?!'
+                    report.write(aDirectory + aName + ' is not in PhEDEx database. \n')
+        else:
+            report.write('PhEDEx expects nothing in ' + aDirectory + '. \n')
     report.write('\n')
     report.close()
