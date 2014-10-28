@@ -80,6 +80,10 @@ def finalCheck(TName,skipCksm):
 
     report.write('\n')
     report.write('File not in PhEDEx: \n\n')
+    bashScript = open(TName + '_clean.sh','w')
+    bashScript.write('#! /bin/bash \n\n')
+    bashScript.write('# This script will clear your site of files that the Consistency Check identified \n')
+    bashScript.write('# as not being tracked by PhEDEx. i.e. PhEDEx does not know they are here. \n\n')
     for aBlock in secondData:
         aDirectory = aBlock['directory']
         bDirectoryList = []
@@ -97,7 +101,10 @@ def finalCheck(TName,skipCksm):
                             break
                 if not found:
                     report.write(aDirectory + aName + ' \n')
+                    bashScript.write('rm ' + aDirectory + aName + ' \n')
         else:
             report.write('PhEDEx expects nothing in ' + aDirectory + ' \n')
+            bashScript.write('bash clearDirectory.sh ' + aDirectory + ' \n')
     report.write('\n')
     report.close()
+    bashScript.close()
