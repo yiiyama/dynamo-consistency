@@ -1,5 +1,6 @@
-import os, select, sys
+import os, sys
 from optparse import OptionParser
+from time import sleep
 
 parser = OptionParser()
 
@@ -27,26 +28,28 @@ else:
 
 startedOrphan = False
 for line in listOfFiles.readlines():
-    if startedOrphan:
-        if line.endswith('.root \n'):
-            os.remove(line.split()[0])
+    if startedOrphan and len(line) > 2:
+        if line.split()[0] != 'PhEDEx':
+            if os.path.isfile(os.remove(line.split()[0])):
+                os.remove(line.split()[0])
         if line.startswith('PhEDEx expects nothing in '):
             directory = line.split()[4]
             print 'Removing directory'
             print '******************************************************************************'
             print directory
             print '******************************************************************************'
-            print 'Hit <Enter> or wait 5 seconds to continue'
+            print 'Pausing for 2 seconds before deleting.'
             print 'Hit Ctrl-C to interrupt.'
-            x, y, z = select.select([sys.stdin],[],[],5)
+            sleep(2)
             presentFiles = os.listdir(directory)
             for aFile in presentFiles:
                 if os.path.isfile(directory + aFile):
                     os.remove(directory + aFile)
             while True:
                 if not os.listdir(directory):
+                    print directory
                     os.rmdir(directory)
-                    directory = directory.split(directory.split('/')[-1])[0]
+                    directory = directory.split(directory.split('/')[-2])[0]
                 else:
                     break
     if line == 'File not in PhEDEx: \n':

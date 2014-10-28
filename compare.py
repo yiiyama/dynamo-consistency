@@ -98,7 +98,6 @@ def finalCheck(TName,skipCksm):
                             break
                 if not found:
                     report.write(aDirectory + aName + ' \n')
-                    bashScript.write('rm ' + aDirectory + aName + ' \n')
         else:
             clearList.append(aDirectory)
             report.write('PhEDEx expects nothing in ' + aDirectory + ' \n')
