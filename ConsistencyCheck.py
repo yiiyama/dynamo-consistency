@@ -140,60 +140,61 @@ else:
 if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm and not os.path.exists(TName + '_skipCksm_exists.json')) or opts.newWalk:
     print 'Creating JSON file from your directory...'
     print 'Starting walk...'
-    existsList = []
-    tempBlock=[]
-    for subDir in ['mc','data','generator','results','hidata','himc','backfill']:
+    existsList = []                    # This will be the list of directories, each with a list of files inside
+    tempBlock=[]                       # Temp list to store the list of files
+    for subDir in ['mc','data','generator','results','hidata','himc','backfill']:      # This is the list of directories walked through
         for term in os.walk(startDir + subDir):
-            if len(term[-1]) > 0:
+            if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
                 print term[0]
-                tempBlock=[]
-                for aFile in term[-1]:
+                tempBlock=[]                                        # Reset directory contents
+                for aFile in term[-1]: 
                     fullName = term[0]+'/'+aFile
                     if not skipCksm:
-                        tempFile = open(fullName)
+                        tempFile = open(fullName)                   # Open file only if calculating checksum
                         asum = 1
                         while True:
-                            buffer = tempFile.read(BLOCKSIZE)
-                            if not buffer:
+                            buffer = tempFile.read(BLOCKSIZE)       # BLOCKSIZE is how much of the file is read at a time, keep this smallish
+                            if not buffer:                          # Go until the file is ended
                                 break
-                            asum = zlib.adler32(str(buffer),asum)
+                            asum = zlib.adler32(str(buffer),asum)   # This calculates the checksum of the buffer
                             if asum < 0:
                                 asum += 2**32
                         tempFile.close()
-                        cksumStr = str(hex(asum))[2:10]
+                        cksumStr = str(hex(asum))[2:10]             # Convert to format given by PhEDEx
                         print 'Got checksum...'
                     else:
-                        cksumStr = 'Not Checked'
+                        cksumStr = 'Not Checked'                    # If not calculated, still give something to the output file
                     tempBlock.append({'file':aFile,'size':os.path.getsize(fullName),'time':os.path.getatime(fullName),
                                       'adler32':cksumStr})
-                existsList.append({'directory':term[0]+'/','files':tempBlock})
-    if len(existsList) > 0:
+                existsList.append({'directory':term[0]+'/','files':tempBlock})         # Each directory is added to the full list
+    if len(existsList) > 0:                                         # Only do this if the directories wheren't completely empty
         print 'Creating JSON file from directory...'
         if skipCksm:
             outExists = open(TName + '_skipCksm_exists.json','w')
         else:
             outExists = open(TName + '_exists.json','w')
-        outExists.write(json.dumps(existsList))
+        outExists.write(json.dumps(existsList))                     # Save the list just made to a file
         outExists.close()
         del existsList
         print 'Done with that...'
     else:
-        print 'Exists list is empty...'
-else:
+        print 'Exists list is empty...'                             # If the list is empty, something went wrong
+        exit()                                                      # Kill python
+else:                                  # If the walk isn't asked for or needed, don't do it
     print 'Using old directory JSON file...'
 
 print 'Now comparing the two...'
-compare.finalCheck(TName,skipCksm)
+compare.finalCheck(TName,skipCksm)     # Compares the parsed PhEDEx file and the walk file. See compare.py
 
 print 'Checking for empty files...'
-cleanEmpty()
+cleanEmpty()                           # Clears out any empty or very small files again
 
-print 'Making tarball for clean storage: ' + TName +'.tar.gz'
+print 'Making tarball for clean storage: ' + TName +'.tar.gz'      # Make tarball for compressed storage
 os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
 print 'Everything stored in: ' + TName +'.tar.gz'
 
-if opts.doClean:
+if opts.doClean:                       # If option specified, clean up output files that were put in tarball
     print 'Cleaning up files... Do not use --clean if you want to leave files out...'
     os.system('rm ' + TName + '*.json ' + TName + '*results.txt')
 
-print 'Elapsed time: ' + str(time() - startTime) + ' seconds'
+print 'Elapsed time: ' + str(time() - startTime) + ' seconds'      # Output elapsed time
