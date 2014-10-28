@@ -1,4 +1,4 @@
-import os
+import os, select, sys
 from optparse import OptionParser
 
 parser = OptionParser()
@@ -32,6 +32,13 @@ for line in listOfFiles.readlines():
             os.remove(line.split()[0])
         if line.startswith('PhEDEx expects nothing in '):
             directory = line.split()[4]
+            print 'Removing directory'
+            print '******************************************************************************'
+            print directory
+            print '******************************************************************************'
+            print 'Hit <Enter> or wait 5 seconds to continue'
+            print 'Hit Ctrl-C to interrupt.'
+            x, y, z = select.select([sys.stdin],[],[],5)
             presentFiles = os.listdir(directory)
             for aFile in presentFiles:
                 if os.path.isfile(directory + aFile):
