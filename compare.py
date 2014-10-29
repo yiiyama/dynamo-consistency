@@ -28,7 +28,7 @@ def finalCheck(TName,skipCksm):
     secondFile.close()
     print 'Loaded...'
 
-    if skipCksm:           f                              # Everything will be stored differently when skipping checksum calculations
+    if skipCksm:                                          # Everything will be stored differently when skipping checksum calculations
         print 'Report will be in: ' + TName + '_skipCksm_results.txt'
         report = open(TName + '_skipCksm_results.txt','w')
         report.write('Skipping Checksum (Alder32) comparisons! \n')
@@ -114,13 +114,12 @@ def finalCheck(TName,skipCksm):
     report.write('python ClearSite.py -T ' + TName + ' \n')
     report.write('You will clear ' + str(float(clearSize)/2**30) + ' GB of space. \n')
     report.write('****************************************************************************** \n')
-    report.write('Run the following command to not pause for every directory:  \n')
-    report.write('python ClearSite.py --fast -T ' + TName ' \n')
+    report.write('Run the following command to not pause for every directory:  \n\n')
+    report.write('python ClearSite.py --fast -T ' + TName + ' \n\n')
     report.write('Run the following command to just give output of what will be deleted, \n')
-    report.write('witout actually removing anything:  \n')
-    report.write('python ClearSite.py --safe -T ' + TName ' \n')
-    report.write('or:  \n')
-    report.write('python ClearSite.py --safe --fast -T ' + TName ' \n')
-
+    report.write('witout actually removing anything:  \n\n')
+    report.write('python ClearSite.py --safe -T ' + TName + ' \n')
+    report.write('              -- or --  \n')
+    report.write('python ClearSite.py --safe --fast -T ' + TName + ' \n')
     report.close()
     return clearSize

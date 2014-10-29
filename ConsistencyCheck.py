@@ -203,10 +203,3 @@ print 'If you run the following command: '
 print 'python ClearSite.py -T ' + TName
 print 'You will clear ' + str(float(clearSize)/2**30) + ' GB of space.'
 print '******************************************************************************'
-print 'Run the following command to not pause for every directory: '
-print 'python ClearSite.py --fast -T ' + TName
-print 'Run the following command to just give output of what will be deleted,'
-print 'witout actually removing anything: '
-print 'python ClearSite.py --safe -T ' + TName
-print 'or: '
-print 'python ClearSite.py --safe --fast -T ' + TName
