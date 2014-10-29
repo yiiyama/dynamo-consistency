@@ -4,7 +4,6 @@ def writeBlock(dataSet,report):
     report.write('------------------------------------------------------ \n')
     report.write('Dataset: ' + dataSet.split('#')[0] + ' \n')
     report.write('Block  : ' + dataSet.split('#')[1] + ' \n')
-    report.write('------------------------------------------------------ \n')
 
 
 def finalCheck(TName,skipCksm):
@@ -85,6 +84,7 @@ def finalCheck(TName,skipCksm):
         aDirectory = aBlock['directory']
         bDirectoryList = []
         for bBlock in firstData:
+            wroteDataSetName = False
             if aBlock['directory'] == bBlock['directory']:
                 bDirectoryList.append(bBlock)
         if len(bDirectoryList) > 0:
@@ -97,6 +97,9 @@ def finalCheck(TName,skipCksm):
                             found = True
                             break
                 if not found:
+                    if not wroteDataSetName:
+                        wroteDataSetName = True
+                        writeBlock(bBlock['dataset'],report)
                     report.write(aDirectory + aName + ' \n')
         else:
             clearList.append(aDirectory)

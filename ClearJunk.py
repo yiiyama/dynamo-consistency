@@ -29,8 +29,9 @@ else:
 startedOrphan = False
 for line in listOfFiles.readlines():
     if startedOrphan and len(line) > 2:
-        if line.split()[0] != 'PhEDEx':
+        if len(line.split('.')) > 1:
             if os.path.isfile(os.remove(line.split()[0])):
+                print 'Removing file ' + line.split()[0]
                 os.remove(line.split()[0])
         if line.startswith('PhEDEx expects nothing in '):
             directory = line.split()[4]
@@ -44,10 +45,12 @@ for line in listOfFiles.readlines():
             presentFiles = os.listdir(directory)
             for aFile in presentFiles:
                 if os.path.isfile(directory + aFile):
+                    print 'Removing file ' + directory + aFile
                     os.remove(directory + aFile)
             while True:
                 if not os.listdir(directory):
                     print directory
+                    print 'Removing directory ' + directory
                     os.rmdir(directory)
                     directory = directory.split(directory.split('/')[-2])[0]
                 else:
