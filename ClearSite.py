@@ -33,7 +33,7 @@ startedOrphan = False
 for line in listOfFiles.readlines():
     if startedOrphan and len(line) > 2:
         if len(line.split('.')) > 1:
-            if os.path.isfile(os.remove(line.split()[0])):
+            if os.path.isfile(line.split()[0]):
                 print 'Removing file ' + line.split()[0]
                 if remove:
                     os.remove(line.split()[0])
