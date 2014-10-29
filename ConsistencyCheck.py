@@ -175,7 +175,6 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
             outExists = open(TName + '_exists.json','w')
         outExists.write(json.dumps(existsList))                     # Save the list just made to a file
         outExists.close()
-        del existsList
         print 'Done with that...'
     else:
         print 'Exists list is empty...'                             # If the list is empty, something went wrong
@@ -184,7 +183,7 @@ else:                                  # If the walk isn't asked for or needed, 
     print 'Using old directory JSON file...'
 
 print 'Now comparing the two...'
-compare.finalCheck(TName,skipCksm)     # Compares the parsed PhEDEx file and the walk file. See compare.py
+clearSize = compare.finalCheck(TName,skipCksm)     # Compares the parsed PhEDEx file and the walk file. See compare.py
 
 print 'Checking for empty files...'
 cleanEmpty()                           # Clears out any empty or very small files again
@@ -198,3 +197,9 @@ if opts.doClean:                       # If option specified, clean up output fi
     os.system('rm ' + TName + '*.json ' + TName + '*results.txt')
 
 print 'Elapsed time: ' + str(time() - startTime) + ' seconds'      # Output elapsed time
+
+print '******************************************************************************'
+print 'If you run the following command: '
+print 'python ClearSite.py -T ' + TName
+print 'You will clear ' + str(clearSize/10**30) + ' GB of space.'
+print '******************************************************************************'

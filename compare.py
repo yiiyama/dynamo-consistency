@@ -79,6 +79,7 @@ def finalCheck(TName,skipCksm):
 
     report.write('\n')
     report.write('File not in PhEDEx: \n\n')
+    clearSize = 0
     clearList = []
     for aBlock in secondData:
         aDirectory = aBlock['directory']
@@ -101,8 +102,17 @@ def finalCheck(TName,skipCksm):
                         wroteDataSetName = True
                         writeBlock(bBlock['dataset'],report)
                     report.write(aDirectory + aName + ' \n')
+                    clearSize = clearSize + aFile['size']
         else:
             clearList.append(aDirectory)
             report.write('PhEDEx expects nothing in ' + aDirectory + ' \n')
+            for aFile in aBlock['files']:
+                clearSize = clearSize + aFile['size']
     report.write('\n')
+    report.write('****************************************************************************** \n')
+    report.write('If you run the following command:  \n')
+    report.write('python ClearSite.py -T ' + TName + ' \n')
+    report.write('You will clear ' + str(clearSize/10**30) + ' GB of space. \n')
+    report.write('****************************************************************************** \n')
     report.close()
+    return clearSize

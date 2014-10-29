@@ -8,6 +8,8 @@ parser.add_option('-T',help='Name of the site. Input is used to find files <site
                   dest='TName',action='store',metavar='<name>')
 parser.add_option('--safe',help='Does not try to remove the files. Just prints out results instead.',
                   dest='safe',action='store_true')
+parser.add_option('--fast',help='Does not wait for two second for each directory. Only use if you trust me.',
+                  dest='fast',action='store_true')
 
 (opts,args) = parser.parse_args()
 
@@ -32,6 +34,9 @@ else:
 startedOrphan = False
 for line in listOfFiles.readlines():
     if startedOrphan and len(line) > 2:
+        if line.startswith('********'):
+            startedOrphan = False
+            print 'Clearing files ended'
         if len(line.split('.')) > 1:
             if os.path.isfile(line.split()[0]):
                 print 'Removing file ' + line.split()[0]
@@ -43,22 +48,26 @@ for line in listOfFiles.readlines():
             print 'Removing directory'
             print directory
             print '******************************************************************************'
-            print 'Pausing for 2 seconds before deleting.'
-            print 'Hit Ctrl-C to interrupt.'
-            sleep(2)
-            presentFiles = os.listdir(directory)
-            for aFile in presentFiles:
-                if os.path.isfile(directory + aFile):
-                    print 'Removing file ' + directory + aFile
-                    if remove:
-                        os.remove(directory + aFile)
-            while True:
-                if (not os.listdir(directory)) or ((not remove) and len(os.listdir(directory)) == 1):
-                    print 'Removing directory ' + directory
-                    if remove:
-                        os.rmdir(directory)
-                    directory = directory.split(directory.split('/')[-2])[0]
-                else:
-                    break
+            if not opts.fast:
+                print 'Pausing for 2 seconds before deleting.'
+                print 'Hit Ctrl-C to interrupt.'
+                sleep(2)
+            if os.path.isdir(directory):
+                presentFiles = os.listdir(directory)
+                for aFile in presentFiles:
+                    if os.path.isfile(directory + aFile):
+                        print 'Removing file ' + directory + aFile
+                        if remove:
+                            os.remove(directory + aFile)
+                while True:
+                    if (not os.listdir(directory)) or ((not remove) and len(os.listdir(directory)) == 1):
+                        print 'Removing directory ' + directory
+                        if remove:
+                            os.rmdir(directory)
+                        directory = directory.split(directory.split('/')[-2])[0]
+                    else:
+                        break
+            else:
+                print 'Directory has already been removed.'
     if line == 'File not in PhEDEx: \n':
         startedOrphan = True
