@@ -40,10 +40,7 @@ for line in listOfFiles.readlines():
         if line.startswith('********'):                  # Stars are only at the end of the file list
             startedOrphan = False                        # Ignore any other lines
             print 'Clearing files ended'
-        if os.path.isfile(line.split()[0]):              # If the line is a file remove it
-            print 'Removing file ' + line.split()[0]
-            if remove:
-                os.remove(line.split()[0])
+            break
         if line.startswith('PhEDEx expects nothing in '):         # This is in results if whole directory should be removed
             directory = line.split()[4]
             print '******************************************************************************'
@@ -71,5 +68,9 @@ for line in listOfFiles.readlines():
                         break
             else:                      # If the directory is not there, skip it. Possibly results file hasn't been updated
                 print 'Directory has already been removed.'
+        elif os.path.isfile(line.split()[0]):            # If the line is not a directory, but it is a file, remove it
+            print 'Removing file ' + line.split()[0]
+            if remove:
+                os.remove(line.split()[0])
     if line == 'File not in PhEDEx: \n':                 # This is the flag to start listing files that should be removed
         startedOrphan = True
