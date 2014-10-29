@@ -10,6 +10,8 @@ parser.add_option('--safe',help='Does not try to remove the files. Just prints o
                   dest='safe',action='store_true')
 parser.add_option('--fast',help='Does not wait for two second for each directory. Only use if you trust me.',
                   dest='fast',action='store_true')
+parser.add_option('-e',help='Uses the exceptions list to try to remove directories again.',
+                  dest='exceptions',action='store_true')
 
 (opts,args) = parser.parse_args()
 
@@ -23,18 +25,26 @@ for m in mandatories:                  # If the name of the site is not specifie
 TName = opts.TName                     # Name of the site is stored here
 remove = not opts.safe                 # Remove files if not run in safe mode
 
-if os.path.exists(TName + '_skipCksm_results.txt'):      # Here, I am looking for a results file
-    listOfFiles = open(TName + '_skipCksm_results.txt')  # to read from. Skipping checksum is the 
-elif os.path.exists(TName + '_results.txt'):             # default, but otherwise is okay.
-    listOfFiles = open(TName + '_results.txt')
-elif os.path.exists(TName + '.tar.gz'):                  # It's possible for results to be in the tarball
-    print 'Extracting files from tarball...'
-    os.system('tar -xvzf ' + TName + '.tar.gz')
+if opts.exceptions:
+    if os.path.exists(TName + '_exceptions.txt'):            # Here, pull out the exceptions list
+        listOfFiles = open(TName + '_exceptions.txt')
+    else:
+        print 'Missing exceptions file... exiting.'          # If no results, give up
+        exit()
 else:
-    print 'Missing results file... exiting.'             # If no results, give up
-    exit()
+    if os.path.exists(TName + '_skipCksm_results.txt'):      # Here, I am looking for a results file
+        listOfFiles = open(TName + '_skipCksm_results.txt')  # to read from. Skipping checksum is the 
+    elif os.path.exists(TName + '_results.txt'):             # default, but otherwise is okay.
+        listOfFiles = open(TName + '_results.txt')
+    elif os.path.exists(TName + '.tar.gz'):                  # It's possible for results to be in the tarball
+        print 'Extracting files from tarball...'
+        os.system('tar -xvzf ' + TName + '.tar.gz')
+    else:
+        print 'Missing results file... exiting.'             # If no results, give up
+        exit()
 
 startedOrphan = False                  # First part of results is of missing files. Ignore those entries
+exceptionList = []                    # Initialize a list to store exceptions from trying to delete things
 for line in listOfFiles.readlines():
     if startedOrphan and len(line) > 2:
         if line.startswith('********'):                  # Stars are only at the end of the file list
@@ -57,12 +67,24 @@ for line in listOfFiles.readlines():
                     if os.path.isfile(directory + aFile):
                         print 'Removing file ' + directory + aFile
                         if remove:
-                            os.remove(directory + aFile)
+                            try:
+                                os.remove(directory + aFile)
+                            except:
+                                print '*********************************************'
+                                print '*    Exception thrown, file not removed     *'
+                                print '*********************************************'
+                                exceptionList.append(line)
                 while True:                              # Then iteratively remove empty directories left behind
                     if (not os.listdir(directory)) or ((not remove) and len(os.listdir(directory)) == 1):
                         print 'Removing directory ' + directory
                         if remove:
-                            os.rmdir(directory)
+                            try:
+                                os.rmdir(directory)
+                            except:
+                                print '*********************************************'
+                                print '*  Exception thrown, directory not removed  *'
+                                print '*********************************************'
+                                exceptionList.append(line)
                         directory = directory.split(directory.split('/')[-2])[0]
                     else:                                # Stop if you reach a not empty directory
                         break
@@ -71,6 +93,28 @@ for line in listOfFiles.readlines():
         elif os.path.isfile(line.split()[0]):            # If the line is not a directory, but it is a file, remove it
             print 'Removing file ' + line.split()[0]
             if remove:
-                os.remove(line.split()[0])
+                try:
+                    os.remove(line.split()[0])
+                except:
+                    print '*********************************************'
+                    print '*    Exception thrown, file not removed     *'
+                    print '*********************************************'
+                    exceptionList.append(line)
     if line == 'File not in PhEDEx: \n':                 # This is the flag to start listing files that should be removed
         startedOrphan = True
+
+if len(exceptionList) > 0:             # If exceptions were thrown, write an exceptions file
+    exceptionsFile = open(TName + '_exceptions.txt','w')
+    exceptionsFile.write('File not in PhEDEx: \n')       # Basically just copies the format of the results file
+    for line in exceptionList:                           # But it should be much smaller
+        exceptionsFile.write(line)
+    exceptionsFile.close()
+    print '****************************************************************************************'
+    print 'Exceptions were thrown during operation, preventing removal of all files.'
+    print 'Inspect ' + TName + '_exceptions.txt to ensure that you want to remove those files.'
+    print 'If you are sure you want to remove those files, run the following command:'
+    print ''
+    print 'sudo python ClearSite.py -e -T ' + TName
+    print ''
+    print 'Or you could just run with the -e option as root.'
+    print '****************************************************************************************'
