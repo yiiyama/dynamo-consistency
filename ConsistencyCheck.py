@@ -201,5 +201,5 @@ print 'Elapsed time: ' + str(time() - startTime) + ' seconds'      # Output elap
 print '******************************************************************************'
 print 'If you run the following command: '
 print 'python ClearSite.py -T ' + TName
-print 'You will clear ' + str(clearSize/10**30) + ' GB of space.'
+print 'You will clear ' + str(float(clearSize)/2**30) + ' GB of space.'
 print '******************************************************************************'
