@@ -37,11 +37,10 @@ for line in listOfFiles.readlines():
         if line.startswith('********'):
             startedOrphan = False
             print 'Clearing files ended'
-        if len(line.split('.')) > 1:
-            if os.path.isfile(line.split()[0]):
-                print 'Removing file ' + line.split()[0]
-                if remove:
-                    os.remove(line.split()[0])
+        if os.path.isfile(line.split()[0]):
+            print 'Removing file ' + line.split()[0]
+            if remove:
+                os.remove(line.split()[0])
         if line.startswith('PhEDEx expects nothing in '):
             directory = line.split()[4]
             print '******************************************************************************'
