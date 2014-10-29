@@ -140,8 +140,8 @@ else:
 if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm and not os.path.exists(TName + '_skipCksm_exists.json')) or opts.newWalk:
     print 'Creating JSON file from your directory...'
     print 'Starting walk...'
-    existsList = []                    # This will be the list of directories, each with a list of files inside
-    tempBlock=[]                       # Temp list to store the list of files
+    existsList = []                                                 # This will be the list of directories, each with a list of files inside
+    tempBlock=[]                                                    # Temp list to store the list of files
     for subDir in ['mc','data','generator','results','hidata','himc','backfill']:      # This is the list of directories walked through
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
@@ -179,20 +179,20 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     else:
         print 'Exists list is empty...'                             # If the list is empty, something went wrong
         exit()                                                      # Kill python
-else:                                  # If the walk isn't asked for or needed, don't do it
+else:                                              # If the walk isn't asked for or needed, don't do it
     print 'Using old directory JSON file...'
 
 print 'Now comparing the two...'
 clearSize = compare.finalCheck(TName,skipCksm)     # Compares the parsed PhEDEx file and the walk file. See compare.py
 
 print 'Checking for empty files...'
-cleanEmpty()                           # Clears out any empty or very small files again
+cleanEmpty()                                       # Clears out any empty or very small files again
 
 print 'Making tarball for clean storage: ' + TName +'.tar.gz'      # Make tarball for compressed storage
 os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
 print 'Everything stored in: ' + TName +'.tar.gz'
 
-if opts.doClean:                       # If option specified, clean up output files that were put in tarball
+if opts.doClean:                                   # If option specified, clean up output files that were put in tarball
     print 'Cleaning up files... Do not use --clean if you want to leave files out...'
     os.system('rm ' + TName + '*.json ' + TName + '*results.txt')
 
@@ -203,3 +203,10 @@ print 'If you run the following command: '
 print 'python ClearSite.py -T ' + TName
 print 'You will clear ' + str(float(clearSize)/2**30) + ' GB of space.'
 print '******************************************************************************'
+print 'Run the following command to not pause for every directory: '
+print 'python ClearSite.py --fast -T ' + TName
+print 'Run the following command to just give output of what will be deleted,'
+print 'witout actually removing anything: '
+print 'python ClearSite.py --safe -T ' + TName
+print 'or: '
+print 'python ClearSite.py --safe --fast -T ' + TName
