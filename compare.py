@@ -1,4 +1,5 @@
 import json, os
+from time import time
 
 def writeBlock(dataSet,report):                           # Quickly writes the dataset and block name in the output
     report.write('------------------------------------------------------ \n')
@@ -7,6 +8,8 @@ def writeBlock(dataSet,report):                           # Quickly writes the d
 
 
 def finalCheck(TName,skipCksm):
+    currentTime = time()
+    cutTime = 1512000                                     # Ignore files that are less than 2.5 weeks old
     firstFile = open(TName + '_phedex.json')              # Loads the JSON file of parsed PhEDEx
     print 'Loading first file...'
     firstData = json.load(firstFile)
@@ -80,6 +83,9 @@ def finalCheck(TName,skipCksm):
     report.write('File not in PhEDEx: \n\n')              # Switching to files that are at site, but not in PhEDEx
     clearSize = 0                                         # Store how much space would be cleared by deleting these files
     for aBlock in secondData:                             # Again, look for directory matching
+        if (currentTime - aBlock['time']) < cutTime:      # If the directory is less than 2.5 weeks old, skip it
+            print 'Skipping the directory ' + aBlock['directory'] + ' because it is new.'
+            continue
         aDirectory = aBlock['directory']
         bDirectoryList = []                               # It's possible to have duplicate directories in PhEDEx file
         for bBlock in firstData:                          # if the same block switches back and forth between directories
@@ -88,6 +94,9 @@ def finalCheck(TName,skipCksm):
                bDirectoryList.append(bBlock)
         if len(bDirectoryList) > 0:                       # If there are directories that match, search for individual file matches
             for aFile in aBlock['files']:
+                if (currentTime - aFile['time']) < cutTime:     # If the file is less than 2.5 weeks old, skip it
+                    print 'Skipping the file ' + aDirectory + aFile['file'] + ' because it is new.'
+                    continue
                 found = False
                 aName = aFile['file']
                 for bBlock0 in bDirectoryList:

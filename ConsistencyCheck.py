@@ -47,8 +47,19 @@ TName = opts.TName                     # Name of the site is stored here
 skipCksm = not opts.doCksm             # Skipping checksums became the default
 
 startTime = time()                     # Start timing for a final readout of the run time
+oldTime = 604800                       # If the PhEDEx file hasn't been downloaded for a week, redownload everything
 
-print 'Searching for tarball of old files...'
+isOld = False
+if os.path.exists(TName + '.tar.gz'):
+    if startTime - os.path.getctime(TName + '.tar.gz') > oldTime:
+        isOld = True
+if os.path.exists(TName + '.json'):
+    if startTime - os.path.getctime(TName + '.json') > oldTime:
+        isOld = True
+if isOld:
+    print 'It has been a while since you did this...'
+    print 'Redownloading PhEDEx files...'
+    opts.newDownload = True
 
 if opts.newDownload:                   # If your starting fresh enough for a new download, walk the PhEDEx file and directory again
     opts.newWalk = True
@@ -164,9 +175,10 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                         print 'Got checksum...'
                     else:
                         cksumStr = 'Not Checked'                    # If not calculated, still give something to the output file
-                    tempBlock.append({'file':aFile,'size':os.path.getsize(fullName),'time':os.path.getatime(fullName),
+                    tempBlock.append({'file':aFile,'size':os.path.getsize(fullName),'time':os.path.getctime(fullName),
                                       'adler32':cksumStr})
-                existsList.append({'directory':term[0]+'/','files':tempBlock})         # Each directory is added to the full list
+                existsList.append({'directory':term[0]+'/','time':os.path.getctime(term[0]),
+                                   'files':tempBlock})              # Each directory is added to the full list
     if len(existsList) > 0:                                         # Only do this if the directories wheren't completely empty
         print 'Creating JSON file from directory...'
         if skipCksm:
