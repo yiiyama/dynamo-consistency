@@ -78,6 +78,8 @@ def finalCheck(TName,skipCksm):
         if not foundDir:                                  # If there's no match for the entire directory, note that in report
             writeBlock(aBlock['dataset'],report)
             report.write('No files were found in ' + aDirectory + ' \n')
+            for aFile in aBlock['files']:
+                report.write(aDirectory + aFile['file'] + ' \n')            
 
     report.write('\n')
     report.write('File not in PhEDEx: \n\n')              # Switching to files that are at site, but not in PhEDEx
