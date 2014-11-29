@@ -37,17 +37,17 @@ parser.add_option('-p',help='Will only do a fresh parse of the PhEDEx file.',act
 (opts,args) = parser.parse_args()
 
 mandatories = ['TName']
-for m in mandatories:                  # If the name of the site is not specified, end the program.
+for m in mandatories:                                               # If the name of the site is not specified, end the program.
     if not opts.__dict__[m]:
         print '\nMandatory option is missing\n'
         parser.print_help()
         exit(-1)
 
-TName = opts.TName                     # Name of the site is stored here
-skipCksm = not opts.doCksm             # Skipping checksums became the default
+TName = opts.TName                                                  # Name of the site is stored here
+skipCksm = not opts.doCksm                                          # Skipping checksums became the default
 
-startTime = time()                     # Start timing for a final readout of the run time
-oldTime = 604800                       # If the PhEDEx file hasn't been downloaded for a week, redownload everything
+startTime = time()                                                  # Start timing for a final readout of the run time
+oldTime = 604800                                                    # If the PhEDEx file hasn't been downloaded for a week, redownload everything
 
 isOld = False
 if os.path.exists(TName + '.tar.gz'):
@@ -61,15 +61,15 @@ if isOld:
     print 'Redownloading PhEDEx files...'
     opts.newDownload = True
 
-if opts.newDownload:                   # If your starting fresh enough for a new download, walk the PhEDEx file and directory again
+if opts.newDownload:                                                # If your starting fresh enough for a new download, walk the PhEDEx file and directory again
     opts.newWalk = True
 elif os.path.exists(TName + '.tar.gz'):                             # If you're not downloading again, pull files from the tarball
     print 'Extracting files from tarball...'
     os.system('tar -xvzf ' + TName + '.tar.gz')
-if opts.newWalk:                       # If walking the directory, parse the PhEDEx JSON file again
-    opts.newPhedex = True              # (Again, this is probably used for debugging reasons and some format was changed)
+if opts.newWalk:                                                    # If walking the directory, parse the PhEDEx JSON file again
+    opts.newPhedex = True                                           # (Again, this is probably used for debugging reasons and some format was changed)
 
-print 'Checking for empty files...'    # If anything from the tarball is empty or almost empty, remove it so that things are rerun
+print 'Checking for empty files...'                                 # If anything from the tarball is empty or almost empty, remove it so that things are rerun
 cleanEmpty()
 
 if not os.path.exists(TName + '_tfc.json') or opts.newDownload:     # Download TFC if needed or asked for
@@ -116,33 +116,36 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
     print 'Skimming PhEDEx output. Please wait...'
     blockList = []
     tempBlock = []
-    lastDirectory = ''                 # Okay, so I want to keep track of every time there's a directory change and make
-    lastBlock = ''                     # a new list entry of the directory. (There are some duplicate directories, but that's fine)
+    lastDirectory = ''                                              # Okay, so I want to keep track of every time there's a directory change and make
+    lastBlock = ''                                                  # a new list entry of the directory. (There are some duplicate directories, but that's fine)
     for block in inData['phedex']['block']:
         for repl in block['file']:
             if preFix + stripFile(repl['name']) != lastDirectory:   # This is where I spot the directory change
                 if len(lastDirectory) > 0:                          # If it's not the first directory, I append the old directory info and reset
-                    blockList.append({'dataset':lastBlock,'directory':lastDirectory,'files':tempBlock})  # Information for each directory
+                    blockList.append({'dataset':lastBlock,'directory':lastDirectory,'files':tempBlock})           # Information for each directory
                     tempBlock = []
                 lastBlock = block['name']                           # After adding, I update the block
                 lastDirectory = preFix + stripFile(repl['name'])    # and directory information
             for getTime in repl['replica']:                         # Getting creation time of the replica. Give the way our request is
                 if getTime['node'] == TName:                        # done, this step might be unnecessary, but it doesn't take too long
-                    tempTime = getTime['time_create']
-            tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':tempTime,   # Information for each file
-                              'adler32':pullAdler(repl['checksum'])})                                    # is stored here
-    blockList.append({'dataset':block['name'],'directory':preFix + stripFile(repl['name']),'files':tempBlock})  # Don't forget the last directory
-    del inData                         # This is an attempt to free memory. I'm not convinced it's working...
+                    try:                                            # If there is no time stored in PhEDEx
+                        tempTime = float(getTime['time_create'])    # Store default time of 0.0, so code will check if file is present
+                    except:
+                        tempTime = 0.0
+            tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':tempTime,            # Information for each file
+                              'adler32':pullAdler(repl['checksum'])})                                             # is stored here
+    blockList.append({'dataset':block['name'],'directory':preFix + stripFile(repl['name']),'files':tempBlock})    # Don't forget the last directory
+    del inData                                                      # This is an attempt to free memory. I'm not convinced it's working...
     print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
     outParsed.write(json.dumps(blockList))
     outParsed.close()
-    del blockList                      # This is an attempt to free memory. I'm not convinced it's working...
+    del blockList                                                   # This is an attempt to free memory. I'm not convinced it's working...
     print 'Done with that...'
-else:                                  # If not parsing the JSON file, let the user know
+else:                                                               # If not parsing the JSON file, let the user know
     print 'Using old skimmed file...'
 
-startDir = tfcPath.split('$1')[0]      # This is will be the starting location of the walk through the site's existing files
+startDir = tfcPath.split('$1')[0]                                   # This is will be the starting location of the walk through the site's existing files
 
 if skipCksm:
     print 'Skipping Checksum (Adler32) calculations...'
@@ -153,7 +156,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Starting walk...'
     existsList = []                                                 # This will be the list of directories, each with a list of files inside
     tempBlock=[]                                                    # Temp list to store the list of files
-    for subDir in ['mc','data','generator','results','hidata','himc','backfill']:      # This is the list of directories walked through
+    for subDir in ['mc','data','generator','results','hidata','himc','backfill']:                                 # This is the list of directories walked through
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
                 print term[0]
@@ -175,7 +178,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                         print 'Got checksum...'
                     else:
                         cksumStr = 'Not Checked'                    # If not calculated, still give something to the output file
-                    tempBlock.append({'file':aFile,'size':os.path.getsize(fullName),'time':os.path.getctime(fullName),
+                    tempBlock.append({'file':aFile,'size':os.path.getsize(fullName),'time':os.path.getmtime(fullName),
                                       'adler32':cksumStr})
                 existsList.append({'directory':term[0]+'/','time':os.path.getctime(term[0]),
                                    'files':tempBlock})              # Each directory is added to the full list
@@ -191,24 +194,24 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     else:
         print 'Exists list is empty...'                             # If the list is empty, something went wrong
         exit()                                                      # Kill python
-else:                                              # If the walk isn't asked for or needed, don't do it
+else:                                                               # If the walk isn't asked for or needed, don't do it
     print 'Using old directory JSON file...'
 
 print 'Now comparing the two...'
-clearSize = compare.finalCheck(TName,skipCksm)     # Compares the parsed PhEDEx file and the walk file. See compare.py
+clearSize = compare.finalCheck(TName,skipCksm)                      # Compares the parsed PhEDEx file and the walk file. See compare.py
 
 print 'Checking for empty files...'
-cleanEmpty()                                       # Clears out any empty or very small files again
+cleanEmpty()                                                        # Clears out any empty or very small files again
 
-print 'Making tarball for clean storage: ' + TName +'.tar.gz'      # Make tarball for compressed storage
+print 'Making tarball for clean storage: ' + TName +'.tar.gz'       # Make tarball for compressed storage
 os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
 print 'Everything stored in: ' + TName +'.tar.gz'
 
-if opts.doClean:                                   # If option specified, clean up output files that were put in tarball
+if opts.doClean:                                                    # If option specified, clean up output files that were put in tarball
     print 'Cleaning up files... Do not use --clean if you want to leave files out...'
     os.system('rm ' + TName + '*.json ' + TName + '*results.txt')
 
-print 'Elapsed time: ' + str(time() - startTime) + ' seconds'      # Output elapsed time
+print 'Elapsed time: ' + str(time() - startTime) + ' seconds'       # Output elapsed time
 
 print '******************************************************************************'
 print 'If you run the following command: '
