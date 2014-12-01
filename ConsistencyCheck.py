@@ -53,7 +53,7 @@ if not opts.__dict__['configName']:                                 # User must 
 else:                                                               # If a configuration file is given
     config = ConfigParser.RawConfigParser()                         # Overwrite or set all other options
     config.read(opts.configName)
-    opts.TName       = config.get('ConsistencyCheck','SiteName')
+    opts.TName       = config.get('General','SiteName')
     opts.doCksm      = config.getboolean('ConsistencyCheck','doChecksum')
     opts.newDownload = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
     opts.newWalk     = config.getboolean('ConsistencyCheck','ParsePhEDExAndDir')
@@ -63,7 +63,7 @@ TName = opts.TName                                                  # Name of th
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
 
 startTime = time()                                                  # Start timing for a final readout of the run time
-oldTime = 6048000                                                   # If the PhEDEx file hasn't been downloaded for a week, redownload everything
+oldTime = 604800                                                    # If the PhEDEx file hasn't been downloaded for a week, redownload everything
 
 isOld = False
 if os.path.exists(TName + '.tar.gz'):

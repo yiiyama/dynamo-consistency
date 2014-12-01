@@ -1,9 +1,12 @@
 import os, sys
 from optparse import OptionParser
 from time import sleep
+import ConfigParser
 
 parser = OptionParser()
 
+parser.add_option('-c',help='Names a configuration file. If configuration file is present, all other options are ignored.',
+                  dest='configName',action='store',metavar='<name>')
 parser.add_option('-T',help='Name of the site. Input is used to find files <site>.json and <site>_tfc.json.',
                   dest='TName',action='store',metavar='<name>')
 parser.add_option('--safe',help='Does not try to remove the files. Just prints out results instead.',
@@ -15,12 +18,25 @@ parser.add_option('-e',help='Uses the exceptions list to try to remove directori
 
 (opts,args) = parser.parse_args()
 
-mandatories = ['TName']
-for m in mandatories:                  # If the name of the site is not specified, end the program.
-    if not opts.__dict__[m]:
-        print '\nMandatory option is missing\n'
-        parser.print_help()
+if not opts.__dict__['configName']:                                 # User must specify a configuration file
+    if not opts.__dict__['TName']:                                  # or give a site name
+        print ''
+        parser.print_help()                                         # Otherwise exit the program
+        print ''
+        print '******************************************************************'
+        print ''
+        print 'You did not give a site name or specify a configuration file!'
+        print 'Give a site name with -T or configuration file with -c'
+        print ''
+        print '******************************************************************'
         exit(-1)
+else:                                                               # If a configuration file is given
+    config = ConfigParser.RawConfigParser()                         # Overwrite or set all other options
+    config.read(opts.configName)
+    opts.TName      = config.get('General','SiteName')
+    opts.safe       = config.getboolean('ClearSite','DontRemoveFiles')
+    opts.fast       = config.getboolean('ClearSite','NoPausing')
+    opts.exceptions = config.getboolean('ClearSite','UseExceptionsList')
 
 TName = opts.TName                     # Name of the site is stored here
 remove = not opts.safe                 # Remove files if not run in safe mode
