@@ -2,6 +2,7 @@ import os, json, zlib, urllib2, sys
 from time import time
 import compare, deco
 from optparse import OptionParser
+import ConfigParser
 
 def cleanEmpty():
     for aFile in os.listdir('.'):
@@ -26,28 +27,43 @@ parser = OptionParser()
 # nicely for later storage. In addition, there are options for checksums, cleaning up after itself
 # and various levels of redoing sections. (Honestly though, those last options were mostly only
 # useful for speeding up the debugging process.)
+parser.add_option('-c',help='Names a configuration file. If configuration file is present, all other options are ignored.',
+                  dest='configName',action='store',metavar='<name>')
 parser.add_option('-T',help='Name of the site. Input is used to find files <site>.json and <site>_tfc.json.',
                   dest='TName',action='store',metavar='<name>')
 parser.add_option('--do-checksum',help='Do checksum calculations and comparison.',action='store_true',dest='doCksm')
-parser.add_option('--clean',help='Deletes the stray JSON and results files after being stored in tarball.',action='store_true',dest='doClean')
 parser.add_option('-N',help='Will do a new download of PhEDEx files.',action='store_true',dest='newDownload')
 parser.add_option('-n',help='Will do a fresh parsing of the PhEDEx file and directory walk.',action='store_true',dest='newWalk')
 parser.add_option('-p',help='Will only do a fresh parse of the PhEDEx file.',action='store_true',dest='newPhedex')
 
 (opts,args) = parser.parse_args()
 
-mandatories = ['TName']
-for m in mandatories:                                               # If the name of the site is not specified, end the program.
-    if not opts.__dict__[m]:
-        print '\nMandatory option is missing\n'
-        parser.print_help()
+if not opts.__dict__['configName']:                                 # User must specify a configuration file
+    if not opts.__dict__['TName']:                                  # or give a site name
+        print ''
+        parser.print_help()                                         # Otherwise exit the program
+        print ''
+        print '******************************************************************'
+        print ''
+        print 'You did not give a site name or specify a configuration file!'
+        print 'Give a site name with -T or configuration file with -c'
+        print ''
+        print '******************************************************************'
         exit(-1)
+else:                                                               # If a configuration file is given
+    config = ConfigParser.RawConfigParser()                         # Overwrite or set all other options
+    config.read(opts.configName)
+    opts.TName       = config.get('ConsistencyCheck','SiteName')
+    opts.doCksm      = config.getboolean('ConsistencyCheck','doChecksum')
+    opts.newDownload = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
+    opts.newWalk     = config.getboolean('ConsistencyCheck','ParsePhEDExAndDir')
+    opts.newPhedex   = config.getboolean('ConsistencyCheck','ParsePhEDEx')
 
 TName = opts.TName                                                  # Name of the site is stored here
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
 
 startTime = time()                                                  # Start timing for a final readout of the run time
-oldTime = 604800                                                    # If the PhEDEx file hasn't been downloaded for a week, redownload everything
+oldTime = 6048000                                                   # If the PhEDEx file hasn't been downloaded for a week, redownload everything
 
 isOld = False
 if os.path.exists(TName + '.tar.gz'):
@@ -203,13 +219,9 @@ clearSize = compare.finalCheck(TName,skipCksm)                      # Compares t
 print 'Checking for empty files...'
 cleanEmpty()                                                        # Clears out any empty or very small files again
 
-print 'Making tarball for clean storage: ' + TName +'.tar.gz'       # Make tarball for compressed storage
+print 'Making tarball for storage: ' + TName +'.tar.gz'       # Make tarball for compressed storage
 os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
 print 'Everything stored in: ' + TName +'.tar.gz'
-
-if opts.doClean:                                                    # If option specified, clean up output files that were put in tarball
-    print 'Cleaning up files... Do not use --clean if you want to leave files out...'
-    os.system('rm ' + TName + '*.json ' + TName + '*results.txt')
 
 print 'Elapsed time: ' + str(time() - startTime) + ' seconds'       # Output elapsed time
 
