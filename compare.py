@@ -95,10 +95,16 @@ def finalCheck(TName,skipCksm):
                                 writeBlock(aBlock['dataset'],report)
                             report.write(aDirectory + aName + ' was not in a searched directory. \n')
         if not foundDir:                                                       # If there's no match for the entire directory, note that in report
-            writeBlock(aBlock['dataset'],report)
-            report.write('No files were found in ' + aDirectory + ' \n')
-            for aFile in aBlock['files']:
-                report.write(aDirectory + aFile['file'] + ' \n')            
+            wasSearched = True                                                 # First check that the directory is one that was searched by ConsistencyCheck
+            if os.path.exists(aDirectory):                                     # If there's a directory there, then there might be no problem
+                wasSearched = False                                            # It just wasn't checked
+            writeBlock(aBlock['dataset'],report)                               # Either way, note the block name
+            if wasSearched:
+                report.write('No files were found in ' + aDirectory + ' \n')   # If there is no directory where there should be, this might be a problem
+                for aFile in aBlock['files']:                                  # List the files that should be included
+                    report.write(aDirectory + aFile['file'] + ' \n')            
+            else:
+                print 'Did not search ' + aDirectory                           # Otherwise, just state that the directory had not been searched
 
     print '*********************************************'
     print ' Checking if all present files are in PhEDEx '
