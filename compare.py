@@ -104,7 +104,7 @@ def finalCheck(TName,skipCksm):
                 for aFile in aBlock['files']:                                  # List the files that should be included
                     report.write(aDirectory + aFile['file'] + ' \n')            
             else:
-                print 'Did not search ' + aDirectory                           # Otherwise, just state that the directory had not been searched
+                report.write('Did not search ' + aDirectory + ' \n')           # Otherwise, just state that the directory had not been searched
 
     print '*********************************************'
     print ' Checking if all present files are in PhEDEx '
