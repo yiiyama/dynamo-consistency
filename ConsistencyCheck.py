@@ -172,7 +172,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Starting walk...'
     existsList = []                                                 # This will be the list of directories, each with a list of files inside
     tempBlock=[]                                                    # Temp list to store the list of files
-    for subDir in ['mc','data','generator','results','hidata','himc','backfill']:                                 # This is the list of directories walked through
+    for subDir in ['mc','data','generator','results','hidata','himc']:                                 # This is the list of directories walked through
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
                 print term[0]
