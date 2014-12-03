@@ -39,6 +39,7 @@ parser.add_option('-p',help='Will only do a fresh parse of the PhEDEx file.',act
 (opts,args) = parser.parse_args()
 
 if not opts.__dict__['configName']:                                 # User must specify a configuration file
+    subDirs = ['mc','data','generator','results','hidata','himc']
     if not opts.__dict__['TName']:                                  # or give a site name
         print ''
         parser.print_help()                                         # Otherwise exit the program
@@ -54,6 +55,7 @@ else:                                                               # If a confi
     config = ConfigParser.RawConfigParser()                         # Overwrite or set all other options
     config.read(opts.configName)
     opts.TName       = config.get('General','SiteName')
+    subDir           = config.get('ConsistencyCheck','Directories')
     opts.doCksm      = config.getboolean('ConsistencyCheck','doChecksum')
     opts.newDownload = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
     opts.newWalk     = config.getboolean('ConsistencyCheck','ParsePhEDExAndDir')
@@ -153,7 +155,7 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
     blockList.append({'dataset':block['name'],'directory':preFix + stripFile(repl['name']),'files':tempBlock})    # Don't forget the last directory
     del inData                                                      # This is an attempt to free memory. I'm not convinced it's working...
     print 'Writing skimmed file...'
-    outParsed = open(TName + '_phedex.json','w')
+    outParsed = open(TName + '_phedpex.json','w')
     outParsed.write(json.dumps(blockList))
     outParsed.close()
     del blockList                                                   # This is an attempt to free memory. I'm not convinced it's working...
@@ -172,7 +174,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Starting walk...'
     existsList = []                                                 # This will be the list of directories, each with a list of files inside
     tempBlock=[]                                                    # Temp list to store the list of files
-    for subDir in ['mc','data','generator','results','hidata','himc']:                                 # This is the list of directories walked through
+    for subDir in subDirs:                                          # This is the list of directories walked through
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
                 print term[0]
