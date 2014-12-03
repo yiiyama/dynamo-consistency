@@ -97,7 +97,8 @@ def finalCheck(TName,skipCksm):
         if not foundDir:                                                       # If there's no match for the entire directory, note that in report
             wasSearched = True                                                 # First check that the directory is one that was searched by ConsistencyCheck
             if os.path.exists(aDirectory):                                     # If there's a directory there, then there might be no problem
-                wasSearched = False                                            # It just wasn't checked
+                if len(os.listdir(aDirectory)) > 0:                            # Check to see if directory is empty
+                    wasSearched = False                                        # Directory wasn't searched
             if wasSearched:
                 writeBlock(aBlock['dataset'],report)                           # Note the block name
                 report.write('No files were found in ' + aDirectory + ' \n')   # If there is no directory where there should be, this might be a problem
