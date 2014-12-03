@@ -55,7 +55,7 @@ else:                                                               # If a confi
     config = ConfigParser.RawConfigParser()                         # Overwrite or set all other options
     config.read(opts.configName)
     opts.TName       = config.get('General','SiteName')
-    subDir           = config.get('ConsistencyCheck','Directories')
+    subDirs          = config.get('ConsistencyCheck','Directories')
     opts.doCksm      = config.getboolean('ConsistencyCheck','doChecksum')
     opts.newDownload = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
     opts.newWalk     = config.getboolean('ConsistencyCheck','ParsePhEDExAndDir')
