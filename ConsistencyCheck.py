@@ -33,8 +33,9 @@ parser.add_option('-T',help='Name of the site. Input is used to find files <site
                   dest='TName',action='store',metavar='<name>')
 parser.add_option('--do-checksum',help='Do checksum calculations and comparison.',action='store_true',dest='doCksm')
 parser.add_option('-N',help='Will do a new download of PhEDEx files.',action='store_true',dest='newDownload')
-parser.add_option('-n',help='Will do a fresh parsing of the PhEDEx file and directory walk.',action='store_true',dest='newWalk')
+parser.add_option('-n',help='Will do a fresh parsing of the PhEDEx file and directory walk.',action='store_true',dest='newPhedexAndWalk')
 parser.add_option('-p',help='Will only do a fresh parse of the PhEDEx file.',action='store_true',dest='newPhedex')
+parser.add_option('-d',help='Will only do a fresh directory walk.',action='store_true',dest='newWalk')
 
 (opts,args) = parser.parse_args()
 
@@ -55,11 +56,12 @@ else:                                                               # If a confi
     config = ConfigParser.RawConfigParser()                         # Overwrite or set all other options
     config.read(opts.configName)
     opts.TName       = config.get('General','SiteName')
-    subDirs          = config.get('ConsistencyCheck','Directories')
-    opts.doCksm      = config.getboolean('ConsistencyCheck','doChecksum')
-    opts.newDownload = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
-    opts.newWalk     = config.getboolean('ConsistencyCheck','ParsePhEDExAndDir')
-    opts.newPhedex   = config.getboolean('ConsistencyCheck','ParsePhEDEx')
+    subDirs          = (config.get('ConsistencyCheck','Directories')).split(',')
+    opts.doCksm            = config.getboolean('ConsistencyCheck','doChecksum')
+    opts.newDownload       = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
+    opts.newPhedexAndWalk  = config.getboolean('Debugging','ParsePhEDExAndDir')
+    opts.newPhedex         = config.getboolean('Debugging','ParsePhEDEx')
+    opts.newWalk           = config.getboolean('Debugging','ParseDir')
 
 TName = opts.TName                                                  # Name of the site is stored here
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
@@ -80,12 +82,13 @@ if isOld:
     opts.newDownload = True
 
 if opts.newDownload:                                                # If your starting fresh enough for a new download, walk the PhEDEx file and directory again
-    opts.newWalk = True
+    opts.newPhedexAndWalk = True
 elif os.path.exists(TName + '.tar.gz'):                             # If you're not downloading again, pull files from the tarball
     print 'Extracting files from tarball...'
     os.system('tar -xvzf ' + TName + '.tar.gz')
-if opts.newWalk:                                                    # If walking the directory, parse the PhEDEx JSON file again
-    opts.newPhedex = True                                           # (Again, this is probably used for debugging reasons and some format was changed)
+if opts.newPhedexAndWalk:                                           
+    opts.newWalk   = True
+    opts.newPhedex = True
 
 print 'Checking for empty files...'                                 # If anything from the tarball is empty or almost empty, remove it so that things are rerun
 cleanEmpty()
@@ -175,6 +178,8 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     existsList = []                                                 # This will be the list of directories, each with a list of files inside
     tempBlock=[]                                                    # Temp list to store the list of files
     for subDir in subDirs:                                          # This is the list of directories walked through
+        print subDirs
+        print subDir
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
                 print term[0]
