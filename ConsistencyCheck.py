@@ -55,13 +55,13 @@ if not opts.__dict__['configName']:                                 # User must 
 else:                                                               # If a configuration file is given
     config = ConfigParser.RawConfigParser()                         # Overwrite or set all other options
     config.read(opts.configName)
-    opts.TName       = config.get('General','SiteName')
-    subDirs          = (config.get('ConsistencyCheck','Directories')).strip(' ').split(',')
+    opts.TName             = config.get('General','SiteName')
+    subDirs                = (config.get('ConsistencyCheck','Directories')).strip(' ').split(',')
     opts.doCksm            = config.getboolean('ConsistencyCheck','doChecksum')
     opts.newDownload       = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
-    opts.newPhedexAndWalk = config.getboolean('Debugging','ParsePhEDExAndDir')
-    opts.newPhedex = config.getboolean('Debugging','ParsePhEDEx')
-    opts.newWalk = config.getboolean('Debugging','ParseDir')
+    opts.newPhedexAndWalk  = config.getboolean('UseCache','ParsePhEDExAndDir')
+    opts.newPhedex         = config.getboolean('UseCache','ParsePhEDEx')
+    opts.newWalk           = config.getboolean('UseCache','ParseDir')
 
 TName = opts.TName                                                  # Name of the site is stored here
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
