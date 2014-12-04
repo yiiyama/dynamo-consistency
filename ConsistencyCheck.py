@@ -158,7 +158,7 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
     blockList.append({'dataset':block['name'],'directory':preFix + stripFile(repl['name']),'files':tempBlock})    # Don't forget the last directory
     del inData                                                      # This is an attempt to free memory. I'm not convinced it's working...
     print 'Writing skimmed file...'
-    outParsed = open(TName + '_phedpex.json','w')
+    outParsed = open(TName + '_phedex.json','w')
     outParsed.write(json.dumps(blockList))
     outParsed.close()
     del blockList                                                   # This is an attempt to free memory. I'm not convinced it's working...
