@@ -59,6 +59,9 @@ else:                                                               # If a confi
     subDirs          = (config.get('ConsistencyCheck','Directories')).strip(' ').split(',')
     opts.doCksm            = config.getboolean('ConsistencyCheck','doChecksum')
     opts.newDownload       = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
+    opts.newPhedexAndWalk = config.getboolean('Debugging','ParsePhEDExAndDir')
+    opts.newPhedex = config.getboolean('Debugging','ParsePhEDEx')
+    opts.newWalk = config.getboolean('Debugging','ParseDir')
 
 TName = opts.TName                                                  # Name of the site is stored here
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
