@@ -225,7 +225,7 @@ clearSize = compare.finalCheck(TName,skipCksm)                      # Compares t
 print 'Checking for empty files...'
 cleanEmpty()                                                        # Clears out any empty or very small files again
 
-print 'Making tarball for storage: ' + TName +'.tar.gz'       # Make tarball for compressed storage
+print 'Making tarball for storage: ' + TName +'.tar.gz'             # Make tarball for compressed storage
 os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
 print 'Everything stored in: ' + TName +'.tar.gz'
 
