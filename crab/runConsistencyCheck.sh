@@ -21,7 +21,7 @@ ls -lhrt
 echo "env:"
 env
 
-python ConsistencyCheck.py -c ConsistencyConfig.cfg
+python ConsistencyCheck.py -c tempConfig.cfg
 
 #
 echo ""
