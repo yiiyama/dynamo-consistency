@@ -26,18 +26,18 @@ echo "###########################################"
 echo "ls -lhrt:"
 echo "###########################################"
 ls -lhrt
-if [ -d "/mnt/hadoop/" ]
-    then
-    echo "###########################################"
-    echo "ls -lhrt /mnt/hadoop/*:"
-    echo "###########################################"
-    ls -lhrt /mnt/hadoop/*
-fi
+echo "###########################################"
+echo "ls -lhrt /mnt/hadoop/*:"
+echo "###########################################"
+ls -lhrt /mnt/hadoop/*
+ls -lhrt /mnt/hadoop/*/*
+ls -lhrt /mnt/hadoop/*/*/*
 echo "###########################################"
 echo "env:"
 echo "###########################################"
 env
 
+tar -xvzf myStuff.tar.gz
 python ConsistencyCheck.py -c tempConfig.cfg
 
 echo "###########################################"

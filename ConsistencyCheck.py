@@ -225,6 +225,11 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
         print 'Done with that...'
     else:
         print 'Exists list is empty...'                             # If the list is empty, something went wrong
+        print 'Checking for empty files...'
+        cleanEmpty()                                                # Clears out any empty or very small files again
+        print 'Making tarball for storage: ' + TName +'.tar.gz'     # Make tarball for compressed storage
+        os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
+        print 'Everything stored in: ' + TName +'.tar.gz'
         exit()                                                      # Kill python
 else:                                                               # If the walk isn't asked for or needed, don't do it
     print 'Using old directory JSON file...'
