@@ -1,6 +1,6 @@
 import os, json, zlib, urllib2, sys
 from time import time
-import compare, deco
+import compare, deco, TFCConverter
 from optparse import OptionParser
 import ConfigParser
 
@@ -63,6 +63,9 @@ else:                                                               # If a confi
     opts.newPhedex         = config.getboolean('UseCache','ParsePhEDEx')
     opts.newWalk           = config.getboolean('UseCache','ParseDir')
 
+for subDir in subDirs:                                              # For the walk some TFC files don't have /store/ at the end
+    subDirs.append('store/'+subDir)                                 # Adding these doesn't hurt
+
 TName = opts.TName                                                  # Name of the site is stored here
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
 
@@ -100,36 +103,9 @@ if not os.path.exists(TName + '_tfc.json') or opts.newDownload:     # Download T
 else:
     print 'Already have TFC...'
 
-tfcFile = open(TName + '_tfc.json')
-tfcData = json.load(tfcFile, object_hook = deco._decode_dict)       # This converts the unicode to ASCII strings (see deco.py)
-tfcFile.close()
-
-tfcPath = ''
-tfcName = ''
-
-print 'Converting LFN to PFN...'
-
-for check in tfcData['phedex']['storage-mapping']['array']:         # This is basically just checking that the TFC has an entry I understand
-    print check
-    if check['protocol'] == 'direct' and check['element_name'] == 'lfn-to-pfn':
-        tfcPath = check['result']
-        tfcName = check['path-match']
-        print "tfcPath:"
-        print tfcPath
-        print "tfcName:"
-        print tfcName
-
-if tfcPath.split('$')[-1] == '1':                                   # If the format matches, it'll have a /somestuff/$1 at the end
-    remove = tfcName.split('+')[-1].split('(.*)')[0]                # which I can just take off and add to the front of the LFN
-    if(len(remove) > 0):
-        preFix = tfcPath.split(remove+'$')[0:-1]
-    else:
-        preFix = tfcPath.split('$')[0:-1]
-    print 'Looks good...'
-    print preFix
-else:
-    print 'ERROR: Problem with the TFC.'                            # If the format is unexpected, I give up
-    exit()
+TFCInfo = TFCConverter.GetPrefix(TName)                             # Get the file prefix using the TFC file
+prefix  = TFCInfo[0]
+tfcPath = TFCInfo[1]
 
 if not os.path.exists(TName + '.json') or opts.newDownload:         # Download JSON file list from PhEDEx if needed or asked for
     print 'Getting file list...'
@@ -151,12 +127,12 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
     lastBlock = ''                                                  # a new list entry of the directory. (There are some duplicate directories, but that's fine)
     for block in inData['phedex']['block']:
         for repl in block['file']:
-            if preFix[0] + stripFile(repl['name']) != lastDirectory:    # This is where I spot the directory change
-                if len(lastDirectory) > 0:                              # If it's not the first directory, I append the old directory info and reset
+            if prefix + stripFile(repl['name']) != lastDirectory:   # This is where I spot the directory change
+                if len(lastDirectory) > 0:                          # If it's not the first directory, I append the old directory info and reset
                     blockList.append({'dataset':lastBlock,'directory':lastDirectory,'files':tempBlock})           # Information for each directory
                     tempBlock = []
                 lastBlock = block['name']                           # After adding, I update the block
-                lastDirectory = preFix[0] + stripFile(repl['name']) # and directory information
+                lastDirectory = prefix + stripFile(repl['name'])    # and directory information
             for getTime in repl['replica']:                         # Getting creation time of the replica. Give the way our request is
                 if getTime['node'] == TName:                        # done, this step might be unnecessary, but it doesn't take too long
                     try:                                            # If there is no time stored in PhEDEx
@@ -165,7 +141,7 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
                         tempTime = 0.0
             tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':tempTime,            # Information for each file
                               'adler32':pullAdler(repl['checksum'])})                                             # is stored here
-    blockList.append({'dataset':block['name'],'directory':preFix[0] + stripFile(repl['name']),'files':tempBlock}) # Don't forget the last directory
+    blockList.append({'dataset':block['name'],'directory':prefix + stripFile(repl['name']),'files':tempBlock})    # Don't forget the last directory
     del inData                                                      # This is an attempt to free memory. I'm not convinced it's working...
     print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
@@ -176,7 +152,9 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
 else:                                                               # If not parsing the JSON file, let the user know
     print 'Using old skimmed file...'
 
+print tfcPath
 startDir = tfcPath.split('$1')[0]                                   # This is will be the starting location of the walk through the site's existing files
+print startDir
 
 if skipCksm:
     print 'Skipping Checksum (Adler32) calculations...'
@@ -189,6 +167,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     tempBlock=[]                                                    # Temp list to store the list of files
     for subDir in subDirs:                                          # This is the list of directories walked through
         subDir = subDir.strip(' ')                                  # If people put spaces in their configuration file, they shouldn't be punished
+        print startDir + subDir
         for term in os.walk(startDir + subDir):
             if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
                 print term[0]
