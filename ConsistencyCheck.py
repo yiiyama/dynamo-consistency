@@ -110,13 +110,23 @@ tfcName = ''
 print 'Converting LFN to PFN...'
 
 for check in tfcData['phedex']['storage-mapping']['array']:         # This is basically just checking that the TFC has an entry I understand
-    if check['protocol'] == 'direct' and check['element_name'] == 'lfn-to-pfn' and check['path-match'].endswith('+store/(.*)'):
+    print check
+    if check['protocol'] == 'direct' and check['element_name'] == 'lfn-to-pfn':
         tfcPath = check['result']
         tfcName = check['path-match']
+        print "tfcPath:"
+        print tfcPath
+        print "tfcName:"
+        print tfcName
 
-if tfcPath.split('/')[-2] == tfcName.split('+')[1].split('/')[0]:   # If the format matches, it'll have a /store/$1 at the end
-    preFix = tfcPath.split('/'+tfcPath.split('/')[-2])[0]           # which I can just take off and add to the front of the LFN
+if tfcPath.split('$')[-1] == '1':                                   # If the format matches, it'll have a /somestuff/$1 at the end
+    remove = tfcName.split('+')[-1].split('(.*)')[0]                # which I can just take off and add to the front of the LFN
+    if(len(remove) > 0):
+        preFix = tfcPath.split(remove)[0:-1]
+    else:
+        preFix = tfcPath.split('$')[0:-1]
     print 'Looks good...'
+    print preFix
 else:
     print 'ERROR: Problem with the TFC.'                            # If the format is unexpected, I give up
     exit()
@@ -127,7 +137,7 @@ if not os.path.exists(TName + '.json') or opts.newDownload:         # Download J
 else:
     print 'Already have the file list...'
 
-if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the JSON file if need to asked for to make a new format
+if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the JSON file if needed to make a new format
     print 'Loading file list. Please wait...'
     inFile = open(TName + '.json')
     inData = json.load(inFile, object_hook = deco._decode_dict)     # This step takes a while
