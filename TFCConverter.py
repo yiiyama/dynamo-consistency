@@ -33,4 +33,4 @@ def GetPrefix(TName):
         print 'ERROR: Problem with the TFC.'                            # If the format is unexpected, I give up
         exit()
 
-    return [preFix[0],tfcPath]
+    return [preFix[0],preFix[0]+'/store']

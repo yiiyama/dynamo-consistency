@@ -103,9 +103,9 @@ if not os.path.exists(TName + '_tfc.json') or opts.newDownload:     # Download T
 else:
     print 'Already have TFC...'
 
-TFCInfo = TFCConverter.GetPrefix(TName)                             # Get the file prefix using the TFC file
-prefix  = TFCInfo[0]
-tfcPath = TFCInfo[1]
+TFCInfo  = TFCConverter.GetPrefix(TName)                            # Get the file prefix using the TFC file
+prefix   = TFCInfo[0]
+startDir = TFCInfo[1]
 
 if not os.path.exists(TName + '.json') or opts.newDownload:         # Download JSON file list from PhEDEx if needed or asked for
     print 'Getting file list...'
@@ -152,10 +152,6 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
 else:                                                               # If not parsing the JSON file, let the user know
     print 'Using old skimmed file...'
 
-print tfcPath
-startDir = tfcPath.split('$1')[0]                                   # This is will be the starting location of the walk through the site's existing files
-print startDir
-
 if skipCksm:
     print 'Skipping Checksum (Adler32) calculations...'
 else:
@@ -165,6 +161,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Starting walk...'
     existsList = []                                                 # This will be the list of directories, each with a list of files inside
     tempBlock=[]                                                    # Temp list to store the list of files
+    print startDir
     for subDir in subDirs:                                          # This is the list of directories walked through
         subDir = subDir.strip(' ')                                  # If people put spaces in their configuration file, they shouldn't be punished
         print startDir + subDir
