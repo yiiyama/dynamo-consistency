@@ -122,7 +122,7 @@ for check in tfcData['phedex']['storage-mapping']['array']:         # This is ba
 if tfcPath.split('$')[-1] == '1':                                   # If the format matches, it'll have a /somestuff/$1 at the end
     remove = tfcName.split('+')[-1].split('(.*)')[0]                # which I can just take off and add to the front of the LFN
     if(len(remove) > 0):
-        preFix = tfcPath.split(remove)[0:-1]
+        preFix = tfcPath.split(remove+'$')[0:-1]
     else:
         preFix = tfcPath.split('$')[0:-1]
     print 'Looks good...'
@@ -151,12 +151,12 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
     lastBlock = ''                                                  # a new list entry of the directory. (There are some duplicate directories, but that's fine)
     for block in inData['phedex']['block']:
         for repl in block['file']:
-            if preFix + stripFile(repl['name']) != lastDirectory:   # This is where I spot the directory change
-                if len(lastDirectory) > 0:                          # If it's not the first directory, I append the old directory info and reset
+            if preFix[0] + stripFile(repl['name']) != lastDirectory:    # This is where I spot the directory change
+                if len(lastDirectory) > 0:                              # If it's not the first directory, I append the old directory info and reset
                     blockList.append({'dataset':lastBlock,'directory':lastDirectory,'files':tempBlock})           # Information for each directory
                     tempBlock = []
                 lastBlock = block['name']                           # After adding, I update the block
-                lastDirectory = preFix + stripFile(repl['name'])    # and directory information
+                lastDirectory = preFix[0] + stripFile(repl['name']) # and directory information
             for getTime in repl['replica']:                         # Getting creation time of the replica. Give the way our request is
                 if getTime['node'] == TName:                        # done, this step might be unnecessary, but it doesn't take too long
                     try:                                            # If there is no time stored in PhEDEx
@@ -165,7 +165,7 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
                         tempTime = 0.0
             tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':tempTime,            # Information for each file
                               'adler32':pullAdler(repl['checksum'])})                                             # is stored here
-    blockList.append({'dataset':block['name'],'directory':preFix + stripFile(repl['name']),'files':tempBlock})    # Don't forget the last directory
+    blockList.append({'dataset':block['name'],'directory':preFix[0] + stripFile(repl['name']),'files':tempBlock}) # Don't forget the last directory
     del inData                                                      # This is an attempt to free memory. I'm not convinced it's working...
     print 'Writing skimmed file...'
     outParsed = open(TName + '_phedex.json','w')
