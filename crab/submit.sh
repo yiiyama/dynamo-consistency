@@ -1,12 +1,9 @@
 #!/bin/bash
 
 SITENAME="$1"
-TASKNAME="$2"
+TASKNUMB="$2"
 
-if [ -z "$TASKNAME" ]
-then
-    TASKNAME=$SITENAME
-fi
+TASKNAME=$SITENAME"-"$TASKNUMB
 
 if [ -d "$TASKNAME" ]
 then
@@ -17,7 +14,7 @@ else
   crab -create -USER.ui_working_dir $TASKNAME
   if [ "$?" == "0" ]
   then
-    crab -submit -c $TASKNAME -GRID.se_white_list=T2_US_MIT
+    crab -submit -c $TASKNAME -GRID.se_white_list=$SITENAME
   else
     echo " Task creation failed, look at crab output. Log ($TASKNAME/log/crab.log) has more info."
     exit 1

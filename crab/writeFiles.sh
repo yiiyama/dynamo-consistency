@@ -12,7 +12,7 @@ echo "[CMSSW]"                                            >> $crabConfFile
 echo "datasetpath               = None"                   >> $crabConfFile
 echo "pset                      = cmssw.py"               >> $crabConfFile
 echo "total_number_of_events    = 100000"                 >> $crabConfFile
-echo "output_file               = "$SITENAME              >> $crabConfFile
+echo "output_file               = "$SITENAME".tar.gz"     >> $crabConfFile
 echo "number_of_jobs            = 1"                      >> $crabConfFile
 echo ""                                                   >> $crabConfFile
 echo "[USER]"                                             >> $crabConfFile
@@ -28,7 +28,7 @@ echo "maxtarballsize            = 3000"                   >> $crabConfFile
 
 ConsistencyConfigFile="tempConfig.cfg"
 
-echo "[General]"                   >> $ConsistencyConfigFile
+echo "[General]"                    > $ConsistencyConfigFile
 echo "# Name of the computing site being checked; Needed to download file list from PhEDEx"                                      >> $ConsistencyConfigFile
 echo "SiteName = "$SITENAME        >> $ConsistencyConfigFile
 echo ""                            >> $ConsistencyConfigFile
