@@ -100,9 +100,8 @@ if not os.path.exists(TName + '_tfc.json') or opts.newDownload:     # Download T
 else:
     print 'Already have TFC...'
 
-TFCInfo  = TFCConverter.GetPrefix(TName)                            # Get the file prefix using the TFC file
-prefix   = TFCInfo[0]
-startDir = TFCInfo[1]
+prefix   = TFCConverter.GetPrefix(TName)                            # Get the file prefix using the TFC file
+startDir = prefix + '/store/'
 
 if not os.path.exists(TName + '.json') or opts.newDownload:         # Download JSON file list from PhEDEx if needed or asked for
     print 'Getting file list...'
@@ -201,7 +200,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
         print 'Checking for empty files...'
         cleanEmpty()                                                # Clears out any empty or very small files again
         print 'Making tarball for storage: ' + TName +'.tar.gz'     # Make tarball for compressed storage
-        os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
+        os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json')
         print 'Everything stored in: ' + TName +'.tar.gz'
         exit()                                                      # Kill python
 else:                                                               # If the walk isn't asked for or needed, don't do it

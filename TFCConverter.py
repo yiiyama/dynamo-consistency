@@ -1,36 +1,64 @@
-import json
+import os,json
 import deco
 
+def CheckDir(tempPrefix,prefix):
+    if os.path.isdir(tempPrefix+'/store'):                      # Check that this prefix directory exists
+        if len(os.listdir(tempPrefix+'/store')) > 0:            # Check that it is not empty
+            print 'Contents of Prefix + /store'
+            print os.listdir(tempPrefix+'/store')
+            if prefix != tempPrefix:
+                if prefix != '':
+                    print prefix + ' changing to ' + tempPrefix
+                    print 'I hope that\'s right...'
+                ##
+                return True
+    ##
+    return False
+                    
 def GetPrefix(TName):
     tfcFile = open(TName + '_tfc.json')
     tfcData = json.load(tfcFile, object_hook = deco._decode_dict)       # This converts the unicode to ASCII strings (see deco.py)
     tfcFile.close()
 
-    tfcPath = ''
-    tfcName = ''
+    tfcPaths = []
+    tfcNames = []
 
     print 'Converting LFN to PFN...'
 
     for check in tfcData['phedex']['storage-mapping']['array']:         # This is basically just checking that the TFC has an entry I understand
         print check
         if check['protocol'] == 'direct' and check['element_name'] == 'lfn-to-pfn':
-            tfcPath = check['result']
-            tfcName = check['path-match']
-            print "tfcPath:"
-            print tfcPath
-            print "tfcName:"
-            print tfcName
-
-    if tfcPath.split('$')[-1] == '1':                                   # If the format matches, it'll have a /somestuff/$1 at the end
-        remove = tfcName.split('+')[-1].split('(.*)')[0]                # which I can just take off and add to the front of the LFN
-        if(len(remove) > 0):
-            preFix = tfcPath.split('/'+remove+'$')[0:-1]
-        else:
-            preFix = tfcPath.split('/$')[0:-1]
-        print 'Looks good...'
-        print preFix[0]
-    else:
-        print 'ERROR: Problem with the TFC.'                            # If the format is unexpected, I give up
+            tfcPaths.append(check['result'])
+            tfcNames.append(check['path-match'])
+            print "tfcPaths:"
+            print tfcPaths
+            print "tfcNames:"
+            print tfcNames
+    ##
+    prefix = ''
+    for i0 in range(len(tfcNames)):
+        tempPrefix = ''
+        if len(tfcNames[i0].split('store')) > 1:                        # First, we check the case where the direct path-match is /+store/(.*) or /store/(.*)
+            if tfcNames[i0].split('store')[1].split('(.*')[0] == '/':   # The latter happens in things that are not hadoop...
+                tempPrefix = tfcPaths[i0].split('/store')[0]
+                if CheckDir(tempPrefix,prefix):                         # Check if the directory seems appropriate
+                    prefix = tempPrefix                                 # Set it then
+            ##
+            elif tfcNames[i0].split('(')[1].split('/.*')[0] == 'store':
+                tempPrefix = tfcPaths[i0].split('$1')[0]
+                if CheckDir(tempPrefix,prefix):                         # Check if the directory seems appropriate
+                    prefix = tempPrefix                                 # Set it then
+    ##
+    if prefix == '':                                                    # If looking for store in the path-match was unsuccessful
+        for i0 in range(len(tfcNames)):                                 # Look for the generic file path-match
+            tempPrefix = ''
+            if tfcNames[i0] == '/+(.*)' or tfcNames[i0] == '/(.*)':     # These are /+(.*) and perhaps /(.*), I think
+                tempPrefix = tfcPaths[i0].split('/$1')[0]
+                if CheckDir(tempPrefix):                                # Check if the directory seems appropriate
+                    prefix = tempPrefix
+    ##
+    if prefix == '':
+        print 'ERROR: Problem with the TFC.'                            # If not found yet, I give up
         exit()
-
-    return [preFix[0],preFix[0]+'/store/']
+    ##
+    return prefix
