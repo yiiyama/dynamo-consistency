@@ -63,9 +63,6 @@ else:                                                               # If a confi
     opts.newPhedex         = config.getboolean('UseCache','ParsePhEDEx')
     opts.newWalk           = config.getboolean('UseCache','ParseDir')
 
-for subDir in subDirs:                                              # For the walk some TFC files don't have /store/ at the end
-    subDirs.append('store/'+subDir)                                 # Adding these doesn't hurt
-
 TName = opts.TName                                                  # Name of the site is stored here
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
 
