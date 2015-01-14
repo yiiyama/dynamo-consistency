@@ -1,0 +1,8 @@
+Submit your test job
+
+  ./submit.sh test-00
+
+Check the status amd download the output
+
+  ./check.sh  test-00
+
