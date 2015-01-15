@@ -80,6 +80,8 @@ def finalCheck(TName,skipCksm):
                                 if not wroteDataSetName:                       # If dataset name hasn't been written yet, write it in report
                                     wroteDataSetName = True                    # This prevents spamming report with same dataset name
                                     writeBlock(aBlock['dataset'],report)
+                                bSize = bFile['size']
+                                bCksm = bFile['adler32']
                                 report.write(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- '+str(aCksm)+' '+str(aSize)+'; Site -- '+str(bCksm)+' '+str(bSize)+' \n')
                                 break
 
