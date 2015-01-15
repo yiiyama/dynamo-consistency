@@ -9,7 +9,7 @@ def writeBlock(dataSet,report):                                                #
 
 def finalCheck(TName,skipCksm):
     currentTime = time()
-    cutTime = 10                                                          # Ignore files that are less than 2.5 weeks old
+    cutTime = 1512000                                                          # Ignore files that are less than 2.5 weeks old
     timeTolerance = 3600                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
     firstFile = open(TName + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
     print 'Loading first file...'
