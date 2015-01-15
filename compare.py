@@ -82,7 +82,7 @@ def finalCheck(TName,skipCksm):
                                     writeBlock(aBlock['dataset'],report)
                                 bSize = bFile['size']
                                 bCksm = bFile['adler32']
-                                report.write(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- '+str(aCksm)+' '+str(aSize)+'; Site -- '+str(bCksm)+' '+str(bSize)+' \n')
+                                report.write(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
                                 break
 
                     if not found:                                              # If file is not found after looping through exists directory write it in report
