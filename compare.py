@@ -9,7 +9,7 @@ def writeBlock(dataSet,report):                                                #
 
 def finalCheck(TName,skipCksm):
     currentTime = time()
-    cutTime = 1512000                                                          # Ignore files that are less than 2.5 weeks old
+    cutTime = 10                                                          # Ignore files that are less than 2.5 weeks old
     timeTolerance = 3600                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
     firstFile = open(TName + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
     print 'Loading first file...'
@@ -141,11 +141,18 @@ def finalCheck(TName,skipCksm):
                         wroteDataSetName = True
                         writeBlock(bDirectoryList[0]['dataset'],report)        # Note this assumes all files in same directory are from same block
                     report.write(aDirectory + aName + ' \n')
-                    clearSize = clearSize + int(aFile['size'])                 # Add to the space that would be cleared out
+                    try:
+                        clearSize = clearSize + int(aFile['size'])             # Add to the space that would be cleared out
+                    except:                                                    # If there's an error, it will be given in the final results
+                        print aDirectory + aName + ' does not have a size'     # So there does not need to be a big deal here
         else:                                                                  # If entire directory is not matched, note this in report
             report.write('PhEDEx expects no files in ' + aDirectory + ' \n')   # This is the flag the files in directory should be removed
             for aFile in aBlock['files']:                                      # Find the space that would be cleared out for the whole directory
-                clearSize = clearSize + int(aFile['size'])
+                try:
+                    clearSize = clearSize + int(aFile['size'])                 # Add to the space that would be cleared out
+                except:                                                        # If there's an error, it will be given in the final results
+                    print aDirectory + aName + ' does not have a size'         # So there does not need to be a big deal here
+
     report.write('\n')
     # Stick some useful instructions at the end of the report
     report.write('****************************************************************************** \n')
