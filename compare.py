@@ -143,7 +143,7 @@ def finalCheck(TName,skipCksm):
                     report.write(aDirectory + aName + ' \n')
                     clearSize = clearSize + aFile['size']                      # Add to the space that would be cleared out
         else:                                                                  # If entire directory is not matched, note this in report
-            report.write('PhEDEx expects nothing in ' + aDirectory + ' \n')    # This is the flag the whole directory should be removed
+            report.write('PhEDEx expects no files in ' + aDirectory + ' \n')   # This is the flag the files in directory should be removed
             for aFile in aBlock['files']:                                      # Find the space that would be cleared out for the whole directory
                 clearSize = clearSize + aFile['size']
     report.write('\n')

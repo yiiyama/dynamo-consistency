@@ -182,8 +182,13 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                         print 'Got checksum...'
                     else:
                         cksumStr = 'Not Checked'                    # If not calculated, still give something to the output file
-                    tempBlock.append({'file':aFile,'size':os.path.getsize(fullName),'time':os.path.getmtime(fullName),
-                                      'adler32':cksumStr})
+                    try:
+                        aSize = os.path.getsize(fullName)           # There's no real reason I could expect this to be a problem
+                        aTime = os.path.getmtime(fullName)          # But apparently it can throw an error...
+                    except:
+                        aSize = 'ERROR ACCESSING'
+                        aTiem = 'ERROR ACCESSING'
+                    tempBlock.append({'file':aFile,'size':aSize,'time':aTime,'adler32':cksumStr})
                 existsList.append({'directory':term[0]+'/','time':os.path.getctime(term[0]),
                                    'files':tempBlock})              # Each directory is added to the full list
     if len(existsList) > 0:                                         # Only do this if the directories wheren't completely empty

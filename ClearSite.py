@@ -67,8 +67,8 @@ for line in listOfFiles.readlines():
             startedOrphan = False                        # Ignore any other lines
             print 'Clearing files ended'
             break
-        if line.startswith('PhEDEx expects nothing in '):         # This is in results if whole directory should be removed
-            directory = line.split()[4]
+        if line.startswith('PhEDEx expects no files in '):         # This is in results if whole directory should be removed
+            directory = line.split()[5]
             print '******************************************************************************'
             print 'Removing directory'
             print directory
