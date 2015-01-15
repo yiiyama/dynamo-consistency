@@ -187,7 +187,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                         aTime = os.path.getmtime(fullName)          # But apparently it can throw an error...
                     except:
                         aSize = 'ERROR ACCESSING'
-                        aTiem = 'ERROR ACCESSING'
+                        aTime = 'ERROR ACCESSING'
                     tempBlock.append({'file':aFile,'size':aSize,'time':aTime,'adler32':cksumStr})
                 existsList.append({'directory':term[0]+'/','time':os.path.getctime(term[0]),
                                    'files':tempBlock})              # Each directory is added to the full list
