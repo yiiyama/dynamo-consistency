@@ -141,11 +141,11 @@ def finalCheck(TName,skipCksm):
                         wroteDataSetName = True
                         writeBlock(bDirectoryList[0]['dataset'],report)        # Note this assumes all files in same directory are from same block
                     report.write(aDirectory + aName + ' \n')
-                    clearSize = clearSize + aFile['size']                      # Add to the space that would be cleared out
+                    clearSize = clearSize + int(aFile['size'])                 # Add to the space that would be cleared out
         else:                                                                  # If entire directory is not matched, note this in report
             report.write('PhEDEx expects no files in ' + aDirectory + ' \n')   # This is the flag the files in directory should be removed
             for aFile in aBlock['files']:                                      # Find the space that would be cleared out for the whole directory
-                clearSize = clearSize + aFile['size']
+                clearSize = clearSize + int(aFile['size'])
     report.write('\n')
     # Stick some useful instructions at the end of the report
     report.write('****************************************************************************** \n')
