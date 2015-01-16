@@ -28,6 +28,7 @@ for SITE in "${SITES[@]}";do
                 mkdir $SERVERDIR/$SITE
                 # Put in some commands here that updates the webpage too!
             fi
+            chmod 644 $SITE*results.txt                          # Allow file to be read by people outside the server
             cp $SITE*results.txt $SERVERDIR/$SITE/.              # Put results on the server
             rm $SITE*.json $SITE*.txt                            # Clean up the stuff from tar
             mv $SITE-* $STOREDIR/.                               # Now store that stuff
