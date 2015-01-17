@@ -1,8 +1,13 @@
 Submit your test job
 
-  ./submit.sh test-00
+  ./submit.sh test 00
 
 Check the status amd download the output
 
   ./check.sh  test-00
 
+Note the distinct presence or lack of a hyphen.
+
+I have this nice script that does everything for me though.
+
+  ./update.sh
