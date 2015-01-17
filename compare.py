@@ -175,8 +175,8 @@ def finalCheck(TName,skipCksm):
     report.write('\n')
     # Stick some useful instructions at the end of the report
     report.write('****************************************************************************** \n')
-    report.write('Space used in searched areas:         ' + str(float(shouldBeSpace)/2**30) + ' GB. \n')
-    report.write('According to PhEDEx, should be using: ' + str(float(isUsed)/2**30) + ' GB. \n')
+    report.write('Space used in searched areas:         ' + str(float(isUsed)/2**30) + ' GB. \n')
+    report.write('According to PhEDEx, should be using: ' + str(float(shouldBeSpace)/2**30) + ' GB. \n')
     report.write('****************************************************************************** \n')
     report.write('You are missing ' + str(float(missingSize)/2**30) + ' GB worth of files. \n')
     report.write('****************************************************************************** \n')
