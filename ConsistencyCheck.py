@@ -212,17 +212,26 @@ else:                                                               # If the wal
     print 'Using old directory JSON file...'
 
 print 'Now comparing the two...'
-clearSize = compare.finalCheck(TName,skipCksm)                      # Compares the parsed PhEDEx file and the walk file. See compare.py
+sizes =  compare.finalCheck(TName,skipCksm)                        # Compares the parsed PhEDEx file and the walk file. See compare.py
+missingSize = sizes[0]
+clearSize = sizes[1]
 
 print 'Checking for empty files...'
 cleanEmpty()                                                        # Clears out any empty or very small files again
 
 print 'Making tarball for storage: ' + TName +'.tar.gz'             # Make tarball for compressed storage
-os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*results.txt')
+os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*.txt')
 print 'Everything stored in: ' + TName +'.tar.gz'
 
 print 'Elapsed time: ' + str(time() - startTime) + ' seconds'       # Output elapsed time
 
+print '******************************************************************************'
+print 'Space used in searched areas:             ' + str(float(sizes[2])/2**30) + ' GB.'
+print 'That should be used, according to PhEDEx: ' + str(float(sizes[3])/2**30) + ' GB.'
+print 'If there are no inconsistencies, differences may be caused by new files'
+print 'that have not been properly recorded yet.'
+print '******************************************************************************'
+print 'You are missing ' + str(float(missingSize)/2**30) + ' GB worth of files.'
 print '******************************************************************************'
 print 'If you run the following command: '
 print 'python ClearSite.py -T ' + TName

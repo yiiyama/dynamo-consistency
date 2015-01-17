@@ -63,8 +63,8 @@ startedOrphan = False                  # First part of results is of missing fil
 exceptionList = []                    # Initialize a list to store exceptions from trying to delete things
 for line in listOfFiles.readlines():
     if startedOrphan and len(line) > 2:
-        if line.startswith('********'):                  # Stars are only at the end of the file list
-            startedOrphan = False                        # Ignore any other lines
+        if line.startswith('********'):                      # Stars are only at the end of the file list
+            startedOrphan = False                            # Ignore any other lines
             print 'Clearing files ended'
             break
         if line.startswith('PhEDEx expects no files in '):         # This is in results if whole directory should be removed
@@ -77,8 +77,8 @@ for line in listOfFiles.readlines():
                 print 'Pausing for 2 seconds before deleting.'
                 print 'Hit Ctrl-C to interrupt.'
                 sleep(2)
-            if os.path.isdir(directory):                 # Make sure directory exists
-                presentFiles = os.listdir(directory)     # Remove the files one at a time
+            if os.path.isdir(directory):                     # Make sure directory exists
+                presentFiles = os.listdir(directory)         # Remove the files one at a time
                 for aFile in presentFiles:
                     if os.path.isfile(directory + aFile):
                         print 'Removing file ' + directory + aFile
@@ -102,11 +102,11 @@ for line in listOfFiles.readlines():
                                 print '*********************************************'
                                 exceptionList.append(line)
                         directory = directory.split(directory.split('/')[-2])[0]
-                    else:                                # Stop if you reach a not empty directory
+                    else:                                    # Stop if you reach a not empty directory
                         break
             else:                      # If the directory is not there, skip it. Possibly results file hasn't been updated
                 print 'Directory has already been removed.'
-        elif os.path.isfile(line.split()[0]):            # If the line is not a directory, but it is a file, remove it
+        elif os.path.isfile(line.split()[0]):                # If the line is not a directory, but it is a file, remove it
             print 'Removing file ' + line.split()[0]
             if remove:
                 try:
@@ -116,13 +116,13 @@ for line in listOfFiles.readlines():
                     print '*    Exception thrown, file not removed     *'
                     print '*********************************************'
                     exceptionList.append(line)
-    if line == 'File not in PhEDEx: \n':                 # This is the flag to start listing files that should be removed
+    if line == 'Files not in PhEDEx: \n':                    # This is the flag to start listing files that should be removed
         startedOrphan = True
 
 if len(exceptionList) > 0:             # If exceptions were thrown, write an exceptions file
     exceptionsFile = open(TName + '_exceptions.txt','w')
-    exceptionsFile.write('File not in PhEDEx: \n')       # Basically just copies the format of the results file
-    for line in exceptionList:                           # But it should be much smaller
+    exceptionsFile.write('Files not in PhEDEx: \n')          # Basically just copies the format of the results file
+    for line in exceptionList:                               # But it should be much smaller
         exceptionsFile.write(line)
     exceptionsFile.close()
     print '****************************************************************************************'

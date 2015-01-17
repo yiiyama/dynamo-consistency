@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# This is a nice little script that submits jobs for me and cleans up my space and website
+# This is a nice little script that submits jobs for me, cleans up my space, and updates the website
 
 # This is where I am keeping all of the output:
 STOREDIR='/scratch/dabercro/ConsistencyCheck/crabRuns'
@@ -26,10 +26,10 @@ for SITE in "${SITES[@]}";do
                 echo "It looks like it's the first time for $SITE."
                 echo "Making a new folder!"                      # If not there, then make it
                 mkdir $SERVERDIR/$SITE
-                # Put in some commands here that updates the webpage too!
             fi
             chmod 644 $SITE*results.txt                          # Allow file to be read by people outside the server
             cp $SITE*results.txt $SERVERDIR/$SITE/.              # Put results on the server
+            cp $SITE*summary.txt $SERVERDIR/$SITE/.              # Put summary on server to be read
             rm $SITE*.json $SITE*.txt                            # Clean up the stuff from tar
             mv $SITE-* $STOREDIR/.                               # Now store that stuff
         elif [ "$ISTAR" -eq "0" ]; then                          # If there's no tar, check to see if the job finished
@@ -51,6 +51,8 @@ for SITE in "${SITES[@]}";do
         fi
         NOW=`date +"%Y-%m-%d-%T"`                                # Otherwise, there is no directory for a site
         echo ./submit.sh $SITE $NOW                              # It's easy to make a directory though
-#        ./submit.sh $SITE $NOW                                   # Cheers!
+        ./submit.sh $SITE $NOW                                   # Submits a job here
     fi
 done
+
+python updateList.py -D $SERVERDIR                               # Updates the site list used by the website
