@@ -16,9 +16,8 @@ To list the actions of other options do:
 
  > python ConsistencyCheck.py -h
 
-For the most part, these options control whether or not
-you use cached files, which you won't have at the beginning
-anyway.
+For the most part, these options control whether or not you use 
+cached files, which you won't have at the beginning anyway.
 
 Alternatively, you can use the configuration file:
 
@@ -32,7 +31,11 @@ hopefully it makes sense.
 
 Also, the configuration file can be used to clear the site
 after the ConsistencyCheck.py has been run. Again, those fields
-have plenty of comments. Without using the configuration file
+have plenty of comments:
+
+ > python ClearSite.py -c example.cfg
+
+ Without using the configuration file
 though, you would use the following syntax:
 
  > python ClearSite.py -T [SITE NAME]
