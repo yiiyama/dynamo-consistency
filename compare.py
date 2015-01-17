@@ -112,6 +112,7 @@ def finalCheck(TName,skipCksm):
                 report.write('No files were found in ' + aDirectory + ' \n')   # If there is no directory where there should be, this might be a problem
                 for aFile in aBlock['files']:                                  # List the files that should be included
                     report.write(aDirectory + aFile['file'] + ' \n')            
+                    aSize = aFile['size']
                     missingSize = missingSize + int(aSize)                     # File is missing
 
     print '*********************************************'
@@ -203,7 +204,7 @@ def finalCheck(TName,skipCksm):
     summary.write('Amount of space PhEDEx expects to be using:    ' + str(float(shouldBeSpace)/2**30) + ' GB \n')
     if (clearSize == 0) and (missingSize == 0) and (isUsed != shouldBeSpace):
         summary.write('** Differences between space used and space expected to be used is caused by \n')
-        summary.write('** inconsistencies in newer files. PhEDEx should update this soon. \n')
+        summary.write('** inconsistencies in newer files or directories that were not searched. \n')
     localtime = time.strftime("%a %d %b %H:%M:%S",time.gmtime(time.time()))
     summary.write('This summary was generated at: ' + localtime + ' UTC \n')
     summary.close()

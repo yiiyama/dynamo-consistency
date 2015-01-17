@@ -228,8 +228,6 @@ print 'Elapsed time: ' + str(time() - startTime) + ' seconds'       # Output ela
 print '******************************************************************************'
 print 'Space used in searched areas:             ' + str(float(sizes[2])/2**30) + ' GB.'
 print 'That should be used, according to PhEDEx: ' + str(float(sizes[3])/2**30) + ' GB.'
-print 'If there are no inconsistencies, differences may be caused by new files'
-print 'that have not been properly recorded yet.'
 print '******************************************************************************'
 print 'You are missing ' + str(float(missingSize)/2**30) + ' GB worth of files.'
 print '******************************************************************************'

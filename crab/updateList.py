@@ -1,5 +1,4 @@
 import os
-from time import time
 from optparse import OptionParser
 
 parser = OptionParser()
