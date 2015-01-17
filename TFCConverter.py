@@ -53,8 +53,9 @@ def GetPrefix(TName):
         for i0 in range(len(tfcNames)):                                 # Look for the generic file path-match
             tempPrefix = ''
             if tfcNames[i0] == '/+(.*)' or tfcNames[i0] == '/(.*)':     # These are /+(.*) and perhaps /(.*), I think
-                tempPrefix = tfcPaths[i0].split('/$1')[0]
-                if CheckDir(tempPrefix):                                # Check if the directory seems appropriate
+                tempPrefix = tfcPaths[i0].split('$1')[0]
+                tempPrefix.rstrip('/')                                  # Most sites have this slash, except the T1_FNAL_Disk...
+                if CheckDir(tempPrefix,prefix):                         # Check if the directory seems appropriate
                     prefix = tempPrefix
     ##
     if prefix == '':
