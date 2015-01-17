@@ -4,10 +4,10 @@
 
 # This is where I am keeping all of the output:
 STOREDIR='/scratch/dabercro/ConsistencyCheck/crabRuns'
-FAILDIR='/home/dabercro/FailedCheck'
+FAILDIR='/home/dabercro/ConsistencyCheck/FailedCheck'
 SERVERDIR='/home/cmsprod/public_html/ConsistencyChecks'
 
-# "T2_US_Nebraska"
+# "T2_US_Nebraska" is not working, because they are naughty. i.e. not my fault, apparently.
 declare -a SITES=("T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
 
 for SITE in "${SITES[@]}";do
@@ -21,16 +21,17 @@ for SITE in "${SITES[@]}";do
         fi
         ISTAR=`ls $DIRNAME/res/$SITE.tar*.gz | wc -l`            # Look for the tarred output
         if [ "$ISTAR" -eq "1" ]; then                            # If it's there, update the website
-            tar -xzvf $DIRNAME/res/$SITE.tar*.gz                 # Getting tar stuff out
+            cd $DIRNAME/res                                      # cd into the .tar directory
+            tar -xzvf $SITE.tar*.gz                              # Getting tar stuff out
             if [ ! -d "$SERVERDIR/$SITE" ]; then                 # Make sure the right folder is there
                 echo "It looks like it's the first time for $SITE."
                 echo "Making a new folder!"                      # If not there, then make it
                 mkdir $SERVERDIR/$SITE
             fi
-            chmod 644 $SITE*results.txt                          # Allow file to be read by people outside the server
             cp $SITE*results.txt $SERVERDIR/$SITE/.              # Put results on the server
             cp $SITE*summary.txt $SERVERDIR/$SITE/.              # Put summary on server to be read
             rm $SITE*.json $SITE*.txt                            # Clean up the stuff from tar
+            cd -                                                 # Now cd back
             mv $SITE-* $STOREDIR/.                               # Now store that stuff
         elif [ "$ISTAR" -eq "0" ]; then                          # If there's no tar, check to see if the job finished
             if [ -f $DIRNAME/res/CMSSW_1.stdout ]; then          # If it did (with no tar) then there must have been an error
@@ -56,3 +57,6 @@ for SITE in "${SITES[@]}";do
 done
 
 python updateList.py -D $SERVERDIR                               # Updates the site list used by the website
+cd $SERVERDIR
+chmod 644 */*.txt                                                # Allow all files to be read by people outside the server
+cd -
