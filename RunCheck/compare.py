@@ -198,10 +198,10 @@ def finalCheck(TName,skipCksm):
     else:
         print 'Putting summary in: ' + TName + '_summary.txt'
         summary = open(TName + '_summary.txt','w')
-    summary.write('Amount of space that can be cleared:           ' + str(float(clearSize)/2**30) + ' GB \n')
-    summary.write('Estimated size of files that are missing:      ' + str(float(missingSize)/2**30) + ' GB \n')
-    summary.write('Amount of space used in searched directories:  ' + str(float(isUsed)/2**30) + ' GB \n')
-    summary.write('Amount of space PhEDEx expects to be using:    ' + str(float(shouldBeSpace)/2**30) + ' GB \n')
+    summary.write('Amount of space that can be cleared:           ' + str(float("{0:.2f}".format(float(clearSize)/2**30))) + ' GB \n')
+    summary.write('Estimated size of files that are missing:      ' + str(float("{0:.2f}".format(float(missingSize)/2**30))) + ' GB \n')
+    summary.write('Amount of space used in searched directories:  ' + str(float("{0:.3f}".format(float(isUsed)/2**40))) + ' TB \n')
+    summary.write('Amount of space PhEDEx expects to be using:    ' + str(float("{0:.3f}".format(float(shouldBeSpace)/2**40))) + ' TB \n')
     if (clearSize == 0) and (missingSize == 0) and (isUsed != shouldBeSpace):
         summary.write('** Differences between space used and space expected to be used is caused by \n')
         summary.write('** inconsistencies in newer files or directories that were not searched. \n')

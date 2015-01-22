@@ -3,13 +3,22 @@ import deco
 
 def CheckDir(tempPrefix,prefix):
     print 'Checking out ' + tempPrefix
+    tempCheck = ''
+    for term in tempPrefix.split('/'):
+        tempCheck = tempCheck.rstrip('/') + '/' + term
+        print tempCheck
+        if os.path.isdir(tempCheck):
+            print os.listdir(tempCheck)
+    if os.path.isdir(tempPrefix):
+        print tempPrefix
+        print os.listdir(tempPrefix)
     if os.path.isdir(tempPrefix+'/store'):                      # Check that this prefix directory exists
         if len(os.listdir(tempPrefix+'/store')) > 0:            # Check that it is not empty
             print 'Contents of Prefix + /store'
             print os.listdir(tempPrefix+'/store')
             perhaps = False
             for term in os.listdir(tempPrefix+'/store'):
-                if term == 'mc' or term == 'data':
+                if term == 'mc' or term == 'data' or term == 'generator' or term == 'results' or term == 'hidata' or term =='himc':
                     print 'This looks promising...'
                     perhaps = True
             if prefix != tempPrefix and perhaps:
@@ -36,8 +45,8 @@ def GetPrefix(TName):
             print check
             tfcPaths.append(check['result'])
 #            tfcNames.append(check['path-match'])
-        print "tfcPaths:"
-        print tfcPaths
+    print "tfcPaths:"
+    print tfcPaths
     ##
     prefix = ''
     for tfcPath in tfcPaths:
