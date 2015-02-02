@@ -1,5 +1,7 @@
 #! /bin/bash
 
+TEST=$1
+
 # This is a nice little script that submits jobs for me, cleans up my space, and updates the website
 
 # This is where I am keeping all of the output:
@@ -8,7 +10,9 @@ FAILDIR='/home/dabercro/ConsistencyCheck/FailedCheck'
 SERVERDIR='/home/cmsprod/public_html/ConsistencyChecks'
 
 # "T2_US_Nebraska" is not working, because they are naughty. i.e. not my fault, apparently.
-declare -a SITES=("T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
+# "T2_FR_CCIN2P3" also seems to have an incorrect TFC
+#declare -a SITES=("T1_US_FNAL_Disk" "T1_US_FNAL_MSS" "T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
+declare -a SITES=("T2_US_Caltech" "T2_US_MIT")
 
 for SITE in "${SITES[@]}";do
     COUNTDIR=`ls -d $SITE-* | wc -l`
@@ -33,26 +37,44 @@ for SITE in "${SITES[@]}";do
             rm $SITE*.json $SITE*.txt                            # Clean up the stuff from tar
             cd -                                                 # Now cd back
             mv $SITE-* $STOREDIR/.                               # Now store that stuff
+            COUNTDIR2=`ls -d $SITE-* | wc -l`                    # Check if it's still there, some log file causes this often
+            if [ "$COUNTDIR2" -eq "1" ]; then                    # If it's there, remove it 
+                rm -rf $DIRNAME
+            fi
         elif [ "$ISTAR" -eq "0" ]; then                          # If there's no tar, check to see if the job finished
             if [ -f $DIRNAME/res/CMSSW_1.stdout ]; then          # If it did (with no tar) then there must have been an error
                 echo "Looks like the job failed... Check that out later."
                 cp -r $DIRNAME $STOREDIR/.                       # Store for long term
                 mv $DIRNAME $FAILDIR/.                           # Also store in a place specfically for debugging
+                COUNTDIR2=`ls -d $SITE-* | wc -l`                # Check if it's still there, some log file causes this often
+                if [ "$COUNTDIR2" -eq "1" ]; then                # If it's there, remove it 
+                    rm -rf $DIRNAME
+                fi
             fi
         else
             echo "How did I get more tars??"                     # This would be a rather weird thing to happen
             echo "I'll just hide those and start over!"
             mv $DIRNAME $STOREDIR/.                              # But no need to throw it out
+            COUNTDIR2=`ls -d $SITE-* | wc -l`                    # Check if it's still there, some log file causes this often
+            if [ "$COUNTDIR2" -eq "1" ]; then                    # If it's there, remove it 
+                rm -rf $DIRNAME
+            fi
         fi
     else
         if [ "$COUNTDIR" -gt "1" ]; then                         # If more than one directory for a site
             echo "There are too many directories from $SITE!!"   # Something odd happened
             echo "I'll just hide those and start over!"          # I don't want to worry about that right now
             mv $SITE-* $STOREDIR/.
+            COUNTDIR2=`ls -d $SITE-* | wc -l`                    # Check if it's still there, some log file causes this often
+            if [ "$COUNTDIR2" -eq "1" ]; then                    # If it's there, remove it 
+                rm -rf $DIRNAME
+            fi
         fi
         NOW=`date +"%Y-%m-%d-%T"`                                # Otherwise, there is no directory for a site
         echo ./submit.sh $SITE $NOW                              # It's easy to make a directory though
-        ./submit.sh $SITE $NOW                                   # Submits a job here
+        if [ "$TEST" == "submit" ]; then                         # If specified
+            ./submit.sh $SITE $NOW                               # Submits a job here
+        fi
     fi
 done
 
