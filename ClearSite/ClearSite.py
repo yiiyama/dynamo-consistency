@@ -60,10 +60,10 @@ else:
         exit()
 
 startedOrphan = False                  # First part of results is of missing files. Ignore those entries
-exceptionList = []                    # Initialize a list to store exceptions from trying to delete things
+exceptionList = []                     # Initialize a list to store exceptions from trying to delete things
 for line in listOfFiles.readlines():
     if startedOrphan and len(line) > 2:
-        if line.startswith('********'):                      # Stars are only at the end of the file list
+        if line.startswith('********'):                      # Stars occur at the end of the file list
             startedOrphan = False                            # Ignore any other lines
             print 'Clearing files ended'
             break
@@ -124,6 +124,7 @@ if len(exceptionList) > 0:             # If exceptions were thrown, write an exc
     exceptionsFile.write('Files not in PhEDEx: \n')          # Basically just copies the format of the results file
     for line in exceptionList:                               # But it should be much smaller
         exceptionsFile.write(line)
+    exceptionsFile.write('****************************************************************************** \n')
     exceptionsFile.close()
     print '****************************************************************************************'
     print 'Exceptions were thrown during operation, preventing removal of all files.'

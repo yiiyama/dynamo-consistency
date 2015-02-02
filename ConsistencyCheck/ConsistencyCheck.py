@@ -96,7 +96,7 @@ cleanEmpty()
 if not os.path.exists(TName + '_tfc.json') or opts.newDownload:     # Download TFC if needed or asked for
     print 'Getting JSON files from PhEDEx...'
     print 'Getting TFC...'
-    os.system('wget --no-check-certificate -O '+TName+'_tfc.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/tfc?node='+TName)
+    os.system('wget --no-check-certificate -q -O '+TName+'_tfc.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/tfc?node='+TName)
 else:
     print 'Already have TFC...'
 
@@ -105,15 +105,20 @@ startDir = prefix + '/store/'
 
 if not os.path.exists(TName + '.json') or opts.newDownload:         # Download JSON file list from PhEDEx if needed or asked for
     print 'Getting file list...'
-    os.system('wget --no-check-certificate -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
+    os.system('wget --no-check-certificate -q -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
 else:
     print 'Already have the file list...'
 
 if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the JSON file if needed to make a new format
     print 'Loading file list. Please wait...'
-    inFile = open(TName + '.json')
-    inData = json.load(inFile, object_hook = deco._decode_dict)     # This step takes a while
-    inFile.close()
+    try:
+        inFile = open(TName + '.json')
+        inData = json.load(inFile, object_hook = deco._decode_dict) # This step takes a while
+        inFile.close()
+    except:
+        print 'File list wasn\'t successfully downloaded.'          # I get a 502 Error sometimes
+        print 'Exitting...'
+        exit()
     print 'Size of inData: ' + str(sys.getsizeof(inData))
 
     print 'Skimming PhEDEx output. Please wait...'
@@ -226,8 +231,9 @@ print 'Everything stored in: ' + TName +'.tar.gz'
 print 'Elapsed time: ' + str(time() - startTime) + ' seconds'       # Output elapsed time
 
 print '******************************************************************************'
-print 'Space used in searched areas:             ' + str(float(sizes[2])/2**30) + ' GB.'
-print 'That should be used, according to PhEDEx: ' + str(float(sizes[3])/2**30) + ' GB.'
+fmt1 = '{0:<42} {1:>13}'
+print 'Space used in searched areas:',str(float(sizes[2])/2**40) + ' TB.'
+print 'That should be used, according to PhEDEx:',str(float(sizes[3])/2**40) + ' TB.'
 print '******************************************************************************'
 print 'You are missing ' + str(float(missingSize)/2**30) + ' GB worth of files.'
 print '******************************************************************************'
