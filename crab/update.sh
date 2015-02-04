@@ -11,8 +11,7 @@ SERVERDIR='/home/cmsprod/public_html/ConsistencyChecks'
 
 # "T2_US_Nebraska" is not working, because they are naughty. i.e. not my fault, apparently.
 # "T2_FR_CCIN2P3" also seems to have an incorrect TFC
-#declare -a SITES=("T1_US_FNAL_Disk" "T1_US_FNAL_MSS" "T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
-declare -a SITES=("T2_US_Caltech" "T2_US_MIT")
+declare -a SITES=("T1_US_FNAL_Disk" "T1_US_FNAL_MSS" "T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
 
 for SITE in "${SITES[@]}";do
     COUNTDIR=`ls -d $SITE-* | wc -l`

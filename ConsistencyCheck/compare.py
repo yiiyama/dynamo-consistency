@@ -1,9 +1,9 @@
 import json, os,time
 
-def writeBlock(dataSet,report):                                                # Quickly writes the dataset and block name in the output
-    report.write('------------------------------------------------------ \n')
-    report.write('Dataset: ' + dataSet.split('#')[0] + ' \n')
-    report.write('Block  : ' + dataSet.split('#')[1] + ' \n')
+def writeBlock(dataSet,store):                                                # Quickly writes the dataset and block name in the output
+    store.append('------------------------------------------------------ \n')
+    store.append('Dataset: ' + dataSet.split('#')[0] + ' \n')
+    store.append('Block  : ' + dataSet.split('#')[1] + ' \n')
 
 
 def finalCheck(TName,skipCksm):
@@ -83,7 +83,7 @@ def finalCheck(TName,skipCksm):
                             else:
                                 if not wroteDataSetName:                       # If dataset name hasn't been written yet, write it in report
                                     wroteDataSetName = True                    # This prevents spamming report with same dataset name
-                                    writeBlock(aBlock['dataset'],report)
+                                    writeBlock(aBlock['dataset'],store)
                                 bSize = bFile['size']
                                 bCksm = bFile['adler32']
                                 store.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
@@ -94,13 +94,13 @@ def finalCheck(TName,skipCksm):
                         if not os.path.exists(aDirectory + aName):
                             if not wroteDataSetName:
                                 wroteDataSetName = True
-                                writeBlock(aBlock['dataset'],report)
+                                writeBlock(aBlock['dataset'],store)
                             store.append(aDirectory + aName + ' \n')
                             missingSize = missingSize + int(aSize)             # File is missing
                         else:                                                  # If file was not in exists list, but does exist, I didn't search everywhere
                             if not wroteDataSetName:
                                 wroteDataSetName = True
-                                writeBlock(aBlock['dataset'],report)
+                                writeBlock(aBlock['dataset'],store)
                             store.append(aDirectory + aName + ' was not in a searched directory. \n')
         if not foundDir:                                                       # If there's no match for the entire directory, note that in report
             wasSearched = True                                                 # First check that the directory is one that was searched by ConsistencyCheck
@@ -108,7 +108,7 @@ def finalCheck(TName,skipCksm):
                 if len(os.listdir(aDirectory)) > 0:                            # Check to see if directory is empty
                     wasSearched = False                                        # Directory wasn't searched
             if wasSearched:
-                writeBlock(aBlock['dataset'],report)                           # Note the block name
+                writeBlock(aBlock['dataset'],store)                           # Note the block name
                 store.append('No files were found in ' + aDirectory + ' \n')   # If there is no directory where there should be, this might be a problem
                 for aFile in aBlock['files']:                                  # List the files that should be included
                     store.append(aDirectory + aFile['file'] + ' \n')            
@@ -157,7 +157,7 @@ def finalCheck(TName,skipCksm):
                 if not found:                                                   # If there was no match for the file, note in the report
                     if not wroteDataSetName:                                    # Can write the dataset name for matching directories
                         wroteDataSetName = True
-                        writeBlock(bDirectoryList[0]['dataset'],report)         # Note this assumes all files in same directory are from same block
+                        writeBlock(bDirectoryList[0]['dataset'],store)         # Note this assumes all files in same directory are from same block
                     store.append(aDirectory + aName + ' \n')
                     try:
                         clearSize = clearSize + int(aFile['size'])              # Add to the space that would be cleared out
