@@ -208,4 +208,4 @@ def finalCheck(TName,skipCksm):
     localtime = time.strftime("%a %d %b %H:%M:%S",time.gmtime(time.time()))
     summary.write('This summary was generated at: ' + localtime + ' UTC \n')
     summary.close()
-    return [missingSize,clearSize,shouldBeSpace,isUsed]
+    return [missingSize,clearSize,isUsed,shouldBeSpace]
