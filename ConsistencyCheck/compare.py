@@ -1,9 +1,10 @@
 import json, os,time
 
 def writeBlock(dataSet,store):                                                # Quickly writes the dataset and block name in the output
-    store.append('------------------------------------------------------ \n')
-    store.append('Dataset: ' + dataSet.split('#')[0] + ' \n')
-    store.append('Block  : ' + dataSet.split('#')[1] + ' \n')
+    store.append('+----------------------------------------------------- \n')
+    store.append('| Dataset: ' + dataSet.split('#')[0] + ' \n')
+    store.append('| Block  : ' + dataSet.split('#')[1] + ' \n')
+    store.append('+----------------------------------------------------- \n')
 
 
 def finalCheck(TName,skipCksm):
@@ -30,21 +31,16 @@ def finalCheck(TName,skipCksm):
     secondData = json.load(secondFile)
     secondFile.close()
     print 'Loaded...'
-    store = []                                                                 # Store all of the things I want to write after the instructions
-    if skipCksm:                                                               # Everything will be stored differently when skipping checksum calculations
-        print 'Report will be in: ' + TName + '_skipCksm_results.txt'
-        report = open(TName + '_skipCksm_results.txt','w')
-        store.append('Skipping Checksum (Alder32) comparisons! \n')
-    else:
-        print 'Report will be in: ' + TName + '_results.txt'
-        report = open(TName + '_results.txt','w')
+    missing = []                                                               # Store all of the things I want to write after the instructions
     shouldBeSpace = 0                                                          # This where we store how much memory should be used
     missingSize = 0                                                            # This is where we store how much memory we are missing
     newBlocks = []                                                             # Get ready to store new blocks that should be skipped
     print '***************************************************'
     print ' Checking if all PhEDEx-recorded files are present '
     print '***************************************************'
-    store.append('\nFiles missing at site: \n\n')                              # First list files that PhEDEx thinks should be there that aren't
+    missing.append('\n###########################\n')
+    missing.append('# Files missing at site: \n')                                # First list files that PhEDEx thinks should be there that aren't
+    missing.append('###########################\n\n')
     for aBlock in firstData:                                                   # For every directory in the parsed list
         newDir = False
         for aFile in aBlock['files']:                                          # For every file in the directory
@@ -52,7 +48,7 @@ def finalCheck(TName,skipCksm):
                 shouldBeSpace = shouldBeSpace + int(aFile['size'])             # Calculate how much space should be used according to PhEDEx
             except:
                 print "Missing file size for " + aFile['file']
-            if (currentTime - aFile['time']) < cutTime:                        # If any file is less than 2.5 weeks old, skip the block for now
+            if (currentTime - float(aFile['time'])) < cutTime:                 # If any file is less than 2.5 weeks old, skip the block for now
                 newDir = True
         if newDir:
             newBlocks.append(aBlock['dataset'])                                # Store the block name for future skipping
@@ -83,10 +79,10 @@ def finalCheck(TName,skipCksm):
                             else:
                                 if not wroteDataSetName:                       # If dataset name hasn't been written yet, write it in report
                                     wroteDataSetName = True                    # This prevents spamming report with same dataset name
-                                    writeBlock(aBlock['dataset'],store)
+                                    writeBlock(aBlock['dataset'],missing)
                                 bSize = bFile['size']
                                 bCksm = bFile['adler32']
-                                store.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
+                                missing.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
                                 missingSize = missingSize + int(aSize)         # If the checksum is wrong, that means the file should basically be replaced
                                 break
 
@@ -94,35 +90,38 @@ def finalCheck(TName,skipCksm):
                         if not os.path.exists(aDirectory + aName):
                             if not wroteDataSetName:
                                 wroteDataSetName = True
-                                writeBlock(aBlock['dataset'],store)
-                            store.append(aDirectory + aName + ' \n')
+                                writeBlock(aBlock['dataset'],missing)
+                            missing.append(aDirectory + aName + ' \n')
                             missingSize = missingSize + int(aSize)             # File is missing
                         else:                                                  # If file was not in exists list, but does exist, I didn't search everywhere
                             if not wroteDataSetName:
                                 wroteDataSetName = True
-                                writeBlock(aBlock['dataset'],store)
-                            store.append(aDirectory + aName + ' was not in a searched directory. \n')
+                                writeBlock(aBlock['dataset'],missing)
+                            missing.append(aDirectory + aName + ' was not in a searched directory. \n')
         if not foundDir:                                                       # If there's no match for the entire directory, note that in report
             wasSearched = True                                                 # First check that the directory is one that was searched by ConsistencyCheck
             if os.path.exists(aDirectory):                                     # If there's a directory there, then there might be no problem
                 if len(os.listdir(aDirectory)) > 0:                            # Check to see if directory is empty
                     wasSearched = False                                        # Directory wasn't searched
             if wasSearched:
-                writeBlock(aBlock['dataset'],store)                           # Note the block name
-                store.append('No files were found in ' + aDirectory + ' \n')   # If there is no directory where there should be, this might be a problem
+                writeBlock(aBlock['dataset'],missing)                           # Note the block name
+                missing.append('No files were found in ' + aDirectory + ' \n')   # If there is no directory where there should be, this might be a problem
                 for aFile in aBlock['files']:                                  # List the files that should be included
-                    store.append(aDirectory + aFile['file'] + ' \n')            
+                    missing.append(aDirectory + aFile['file'] + ' \n')            
                     aSize = aFile['size']
                     missingSize = missingSize + int(aSize)                     # File is missing
 
     print '*********************************************'
     print ' Checking if all present files are in PhEDEx '
     print '*********************************************'
-    store.append('\nFiles not in PhEDEx: \n\n')                                 # Switching to files that are at site, but not in PhEDEx
+    exists = []
+    exists.append('\n###########################\n')
+    exists.append('# Files not in PhEDEx (to be removed): \n')                  # Switching to files that are at site, but not in PhEDEx
+    exists.append('###########################\n\n')
     isUsed = 0                                                                  # Store how much space is used
     clearSize = 0                                                               # Store how much space would be cleared by deleting these files
     for aBlock in secondData:                                                   # Again, look for directory matching
-        if (currentTime - aBlock['time']) < cutTime:                            # If the directory is less than 2.5 weeks old, skip it
+        if (currentTime - float(aBlock['time'])) < cutTime:                     # If the directory is less than 2.5 weeks old, skip it
             print 'Skipping the directory ' + aBlock['directory'] + ' because it is new.'
             for aFile in aBlock['files']:
                 try:
@@ -142,7 +141,7 @@ def finalCheck(TName,skipCksm):
                     isUsed = isUsed + int(aFile['size'])                        # Add to the space that is being used
                 except:
                     print "Missing file size for " + aFile['file']
-                if (currentTime - aFile['time']) < cutTime:                     # If the file is less than 2.5 weeks old, skip it
+                if (currentTime - float(aFile['time'])) < cutTime:              # If the file is less than 2.5 weeks old, skip it
                     print 'Skipping the file ' + aDirectory + aFile['file'] + ' because it is new.'
                     continue
                 found = False
@@ -157,14 +156,13 @@ def finalCheck(TName,skipCksm):
                 if not found:                                                   # If there was no match for the file, note in the report
                     if not wroteDataSetName:                                    # Can write the dataset name for matching directories
                         wroteDataSetName = True
-                        writeBlock(bDirectoryList[0]['dataset'],store)         # Note this assumes all files in same directory are from same block
-                    store.append(aDirectory + aName + ' \n')
+                    exists.append(aDirectory + aName + ' \n')
                     try:
                         clearSize = clearSize + int(aFile['size'])              # Add to the space that would be cleared out
                     except:                                                     # If there's an error, it will be given in the final results
                         print aDirectory + aName + ' does not have a size'      # So there does not need to be a big deal here
         else:                                                                   # If entire directory is not matched, note this in report
-            store.append('PhEDEx expects no files in ' + aDirectory + ' \n')    # This is the flag the files in directory should be removed
+            exists.append(aDirectory + ' \n')                                   # This is the flag the files in directory should be removed
             for aFile in aBlock['files']:                                       # Find the space that would be cleared out for the whole directory
                 try:
                     isUsed = isUsed + int(aFile['size'])                        # Add to the space that is being used
@@ -172,25 +170,40 @@ def finalCheck(TName,skipCksm):
                 except:                                                         # If there's an error, it will be given in the final results
                     print aDirectory + aName + ' does not have a size'          # So there does not need to be a big deal here
 
-    store.append('\n')
+    exists.append('\n')
+
+    if skipCksm:                                                               # Everything will be stored differently when skipping checksum calculations
+        print 'Missing report will be in: ' + TName + '_skipCksm_missing.txt'
+        reportMissing = open(TName + '_skipCksm_missing.txt','w')
+        missing.append('Skipping Checksum (Alder32) comparisons! \n')
+        print 'Clear list will be in: ' + TName + '_skipCksm_removable.txt'
+        reportClear = open(TName + '_skipCksm_removable.txt','w')
+    else:
+        print 'Report will be in: ' + TName + '_missing.txt'
+        reportMissing = open(TName + '_missing.txt','w')
+        print 'Clear list will be in: ' + TName + '_removable.txt'
+        reportClear = open(TName + '_removable.txt','w')
     # Stick some useful instructions at the beginning of the report
     fmt1 = "{0:>10}"
-    report.write('****************************************************************************** \n')
-    report.write('Space used in searched areas:         ' + fmt1.format(str(float("{0:.2f}".format(float(isUsed)/2**40)))) + ' TB. \n')
-    report.write('According to PhEDEx, should be using: ' + fmt1.format(str(float("{0:.2f}".format(float(shouldBeSpace)/2**40)))) + ' TB. \n')
-    report.write('****************************************************************************** \n')
-    report.write('You are missing ' + str(float("{0:.2f}".format(float(missingSize)/2**30))) + ' GB worth of files. \n')
-    report.write('****************************************************************************** \n')
-    report.write('If you run the following command:  \n')
-    report.write('bash ClearSite.sh ' + TName + ' \n')
-    report.write('You will clear ' + str(float("{0:.2f}".format(float(clearSize)/2**30))) + ' GB of space. \n')
-    report.write('****************************************************************************** \n')
-    report.write('Please pay close attention to the options given to you when you run ClearSite.sh \n')
+    reportMissing.write('****************************************************************************** \n')
+    reportMissing.write('Space used in searched areas:         ' + fmt1.format(str(float("{0:.2f}".format(float(isUsed)/2**40)))) + ' TB. \n')
+    reportMissing.write('According to PhEDEx, should be using: ' + fmt1.format(str(float("{0:.2f}".format(float(shouldBeSpace)/2**40)))) + ' TB. \n')
+    reportMissing.write('****************************************************************************** \n')
+    reportMissing.write('You are missing ' + str(float("{0:.2f}".format(float(missingSize)/2**30))) + ' GB worth of files. \n')
+    reportMissing.write('****************************************************************************** \n')
+    reportClear.write('If you run the following command:  \n')
+    reportClear.write('bash ClearSite.sh ' + TName + ' \n')
+    reportClear.write('You will clear ' + str(float("{0:.2f}".format(float(clearSize)/2**30))) + ' GB of space. \n')
+    reportClear.write('****************************************************************************** \n')
+    reportClear.write('Please pay close attention to the options given to you when you run ClearSite.sh \n')
     # Write the output in store into the report
-    for line in store:
-        report.write(line)
-    report.write('****************************************************************************** \n')
-    report.close()
+    for line in missing:
+        reportMissing.write(line)
+    for line in exists:
+        reportClear.write(line)
+    reportClear.write('****************************************************************************** \n')
+    reportMissing.close()
+    reportClear.close()
     if skipCksm:                                                               # Everything will be stored differently when skipping checksum calculations
         print 'Putting summary in: ' + TName + '_skipCksm_summary.txt'
         summary = open(TName + '_skipCksm_summary.txt','w')
@@ -208,4 +221,5 @@ def finalCheck(TName,skipCksm):
     localtime = time.strftime("%a %d %b %H:%M:%S",time.gmtime(time.time()))
     summary.write('This summary was generated at: ' + localtime + ' UTC \n')
     summary.close()
+    
     return [missingSize,clearSize,isUsed,shouldBeSpace]

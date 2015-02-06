@@ -48,10 +48,10 @@ if opts.exceptions:
         print 'Missing exceptions file... exiting.'          # If no results, give up
         exit()
 else:
-    if os.path.exists(TName + '_skipCksm_results.txt'):      # Here, I am looking for a results file
-        listOfFiles = open(TName + '_skipCksm_results.txt')  # to read from. Skipping checksum is the 
-    elif os.path.exists(TName + '_results.txt'):             # default, but otherwise is okay.
-        listOfFiles = open(TName + '_results.txt')
+    if os.path.exists(TName + '_skipCksm_removable.txt'):      # Here, I am looking for a results file
+        listOfFiles = open(TName + '_skipCksm_removable.txt')  # to read from. Skipping checksum is the 
+    elif os.path.exists(TName + '_removable.txt'):             # default, but otherwise is okay.
+        listOfFiles = open(TName + '_removable.txt')
     elif os.path.exists(TName + '.tar.gz'):                  # It's possible for results to be in the tarball
         print 'Extracting files from tarball...'
         os.system('tar -xvzf ' + TName + '.tar.gz')
@@ -67,8 +67,8 @@ for line in listOfFiles.readlines():
             startedOrphan = False                            # Ignore any other lines
             print 'Clearing files ended'
             break
-        if line.startswith('PhEDEx expects no files in '):         # This is in results if whole directory should be removed
-            directory = line.split()[5]
+        if os.path.isdir(line.split()[0]):             # This is in results if whole directory should be removed
+            directory = line.split()[0]
             print '******************************************************************************'
             print 'Removing directory'
             print directory
@@ -116,12 +116,14 @@ for line in listOfFiles.readlines():
                     print '*    Exception thrown, file not removed     *'
                     print '*********************************************'
                     exceptionList.append(line)
-    if line == 'Files not in PhEDEx: \n':                    # This is the flag to start listing files that should be removed
+    if line == '# Files not in PhEDEx (to be removed): \n':                  # This is the flag to start listing files that should be removed
         startedOrphan = True
 
 if len(exceptionList) > 0:             # If exceptions were thrown, write an exceptions file
     exceptionsFile = open(TName + '_exceptions.txt','w')
-    exceptionsFile.write('Files not in PhEDEx: \n')          # Basically just copies the format of the results file
+    exceptionsFile.append('\n###########################\n')
+    exceptionsFile.append('# Files not in PhEDEx (to be removed): \n')       # Basically just copies the format of the results file
+    exceptionsFile.append('###########################\n\n')
     for line in exceptionList:                               # But it should be much smaller
         exceptionsFile.write(line)
     exceptionsFile.write('****************************************************************************** \n')

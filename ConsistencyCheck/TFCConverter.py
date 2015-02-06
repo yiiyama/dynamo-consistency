@@ -44,7 +44,6 @@ def GetPrefix(TName):
         if check['protocol'] == 'direct' and check['element_name'] == 'lfn-to-pfn':
             print check
             tfcPaths.append(check['result'])
-#            tfcNames.append(check['path-match'])
     print "tfcPaths:"
     print tfcPaths
     ##
@@ -53,6 +52,14 @@ def GetPrefix(TName):
         tempPrefix = tfcPath.split('$1')[0].split('store')[0].rstrip('/')    # Get the temporary prefix to check
         if CheckDir(tempPrefix,prefix):
             prefix = tempPrefix
+    ##
+    if prefix == '':
+        for tfcPath in tfcPaths:
+            tempPrefix = tfcPath.split('$1')[0].split('store')[0].rstrip('/')
+            for term in tempPrefix.split('/'):
+                if len(term.split('.')) > 1:
+                    if CheckDir(tempPrefix.split(term)[1],prefix):
+                        prefix = tempPrefix.split(term)[1]
     ##
     if prefix == '':
         print 'ERROR: Problem with the TFC.'                                 # If not found yet, I give up
