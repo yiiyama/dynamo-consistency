@@ -1,15 +1,13 @@
 import json, os,time
 
 def writeBlock(dataSet,store):                                                # Quickly writes the dataset and block name in the output
-    store.append('+----------------------------------------------------- \n')
-    store.append('| Dataset: ' + dataSet.split('#')[0] + ' \n')
-    store.append('| Block  : ' + dataSet.split('#')[1] + ' \n')
-    store.append('+----------------------------------------------------- \n')
-
+    store.append('******************************************************* \n')
+    store.append('* Dataset: ' + dataSet.split('#')[0] + ' \n')
+    store.append('* Block  : ' + dataSet.split('#')[1] + ' \n')
 
 def finalCheck(TName,skipCksm):
     currentTime = time.time()
-    cutTime = 1512000                                                          # Ignore files that are less than 2.5 weeks old
+    cutTime = 2116800                                                          # Ignore files that are less than 3.5 weeks old
     timeTolerance = 3600                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
     firstFile = open(TName + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
     print 'Loading first file...'
@@ -38,9 +36,9 @@ def finalCheck(TName,skipCksm):
     print '***************************************************'
     print ' Checking if all PhEDEx-recorded files are present '
     print '***************************************************'
-    missing.append('\n###########################\n')
-    missing.append('# Files missing at site: \n')                                # First list files that PhEDEx thinks should be there that aren't
-    missing.append('###########################\n\n')
+    missing.append('\n|\n')
+    missing.append('| Files missing at site: \n')                                # First list files that PhEDEx thinks should be there that aren't
+    missing.append('|\n\n')
     for aBlock in firstData:                                                   # For every directory in the parsed list
         newDir = False
         for aFile in aBlock['files']:                                          # For every file in the directory
@@ -115,9 +113,9 @@ def finalCheck(TName,skipCksm):
     print ' Checking if all present files are in PhEDEx '
     print '*********************************************'
     exists = []
-    exists.append('\n###########################\n')
-    exists.append('# Files not in PhEDEx (to be removed): \n')                  # Switching to files that are at site, but not in PhEDEx
-    exists.append('###########################\n\n')
+    exists.append('\n|\n')
+    exists.append('| Files not in PhEDEx (to be removed): \n')                  # Switching to files that are at site, but not in PhEDEx
+    exists.append('|\n\n')
     isUsed = 0                                                                  # Store how much space is used
     clearSize = 0                                                               # Store how much space would be cleared by deleting these files
     for aBlock in secondData:                                                   # Again, look for directory matching
@@ -170,12 +168,12 @@ def finalCheck(TName,skipCksm):
                 except:                                                         # If there's an error, it will be given in the final results
                     print aDirectory + aName + ' does not have a size'          # So there does not need to be a big deal here
 
+    missing.append('\n')
     exists.append('\n')
 
     if skipCksm:                                                               # Everything will be stored differently when skipping checksum calculations
         print 'Missing report will be in: ' + TName + '_skipCksm_missing.txt'
         reportMissing = open(TName + '_skipCksm_missing.txt','w')
-        missing.append('Skipping Checksum (Alder32) comparisons! \n')
         print 'Clear list will be in: ' + TName + '_skipCksm_removable.txt'
         reportClear = open(TName + '_skipCksm_removable.txt','w')
     else:
@@ -201,6 +199,7 @@ def finalCheck(TName,skipCksm):
         reportMissing.write(line)
     for line in exists:
         reportClear.write(line)
+    reportMissing.write('****************************************************************************** \n')
     reportClear.write('****************************************************************************** \n')
     reportMissing.close()
     reportClear.close()
