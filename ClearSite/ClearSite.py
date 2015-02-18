@@ -116,14 +116,14 @@ for line in listOfFiles.readlines():
                     print '*    Exception thrown, file not removed     *'
                     print '*********************************************'
                     exceptionList.append(line)
-    if line == '# Files not in PhEDEx (to be removed): \n':                  # This is the flag to start listing files that should be removed
+    if line == 'Files not in PhEDEx (to be removed): \n':                  # This is the flag to start listing files that should be removed
         startedOrphan = True
 
 if len(exceptionList) > 0:             # If exceptions were thrown, write an exceptions file
     exceptionsFile = open(TName + '_exceptions.txt','w')
-    exceptionsFile.append('\n###########################\n')
-    exceptionsFile.append('# Files not in PhEDEx (to be removed): \n')       # Basically just copies the format of the results file
-    exceptionsFile.append('###########################\n\n')
+    exceptionsFile.append('\n\n')
+    exceptionsFile.append('Files not in PhEDEx (to be removed): \n')       # Basically just copies the format of the results file
+    exceptionsFile.append('\n\n')
     for line in exceptionList:                               # But it should be much smaller
         exceptionsFile.write(line)
     exceptionsFile.write('****************************************************************************** \n')

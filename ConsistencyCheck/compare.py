@@ -36,9 +36,9 @@ def finalCheck(TName,skipCksm):
     print '***************************************************'
     print ' Checking if all PhEDEx-recorded files are present '
     print '***************************************************'
-    missing.append('\n|\n')
-    missing.append('| Files missing at site: \n')                                # First list files that PhEDEx thinks should be there that aren't
-    missing.append('|\n\n')
+    missing.append('\n\n')
+    missing.append('Files missing at site: \n')                                # First list files that PhEDEx thinks should be there that aren't
+    missing.append('\n\n')
     for aBlock in firstData:                                                   # For every directory in the parsed list
         newDir = False
         for aFile in aBlock['files']:                                          # For every file in the directory
@@ -113,9 +113,9 @@ def finalCheck(TName,skipCksm):
     print ' Checking if all present files are in PhEDEx '
     print '*********************************************'
     exists = []
-    exists.append('\n|\n')
-    exists.append('| Files not in PhEDEx (to be removed): \n')                  # Switching to files that are at site, but not in PhEDEx
-    exists.append('|\n\n')
+    exists.append('\n\n')
+    exists.append('Files not in PhEDEx (to be removed): \n')                    # Switching to files that are at site, but not in PhEDEx
+    exists.append('\n\n')
     isUsed = 0                                                                  # Store how much space is used
     clearSize = 0                                                               # Store how much space would be cleared by deleting these files
     for aBlock in secondData:                                                   # Again, look for directory matching
@@ -171,7 +171,7 @@ def finalCheck(TName,skipCksm):
     missing.append('\n')
     exists.append('\n')
 
-    if skipCksm:                                                               # Everything will be stored differently when skipping checksum calculations
+    if skipCksm:                                                                # Everything will be stored differently when skipping checksum calculations
         print 'Missing report will be in: ' + TName + '_skipCksm_missing.txt'
         reportMissing = open(TName + '_skipCksm_missing.txt','w')
         print 'Clear list will be in: ' + TName + '_skipCksm_removable.txt'
@@ -183,14 +183,10 @@ def finalCheck(TName,skipCksm):
         reportClear = open(TName + '_removable.txt','w')
     # Stick some useful instructions at the beginning of the report
     fmt1 = "{0:>10}"
-    reportMissing.write('****************************************************************************** \n')
-    reportMissing.write('Space used in searched areas:         ' + fmt1.format(str(float("{0:.2f}".format(float(isUsed)/2**40)))) + ' TB. \n')
-    reportMissing.write('According to PhEDEx, should be using: ' + fmt1.format(str(float("{0:.2f}".format(float(shouldBeSpace)/2**40)))) + ' TB. \n')
-    reportMissing.write('****************************************************************************** \n')
     reportMissing.write('You are missing ' + str(float("{0:.2f}".format(float(missingSize)/2**30))) + ' GB worth of files. \n')
     reportMissing.write('****************************************************************************** \n')
     reportClear.write('If you run the following command:  \n')
-    reportClear.write('bash ClearSite.sh ' + TName + ' \n')
+    reportClear.write('./ClearSite.sh ' + TName + ' \n')
     reportClear.write('You will clear ' + str(float("{0:.2f}".format(float(clearSize)/2**30))) + ' GB of space. \n')
     reportClear.write('****************************************************************************** \n')
     reportClear.write('Please pay close attention to the options given to you when you run ClearSite.sh \n')

@@ -117,8 +117,21 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
         inFile.close()
     except:
         print 'File list wasn\'t successfully downloaded.'          # I get a 502 Error sometimes
-        print 'Exitting...'
-        exit()
+        print 'Trying a few more times.'
+        for trying in range(5):
+            os.system('wget --no-check-certificate -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
+            try:
+                inFile = open(TName + '.json')
+                inData = json.load(inFile, object_hook = deco._decode_dict) # This step takes a while
+                inFile.close()
+                downloaded = True
+                break
+            except:
+                downloaded = False
+        if not downloaded:
+            print 'None of attempts worked.'
+            print 'Exiting...'
+            exit()
     print 'Size of inData: ' + str(sys.getsizeof(inData))
 
     print 'Skimming PhEDEx output. Please wait...'
@@ -134,6 +147,7 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
                     tempBlock = []
                 lastBlock = block['name']                           # After adding, I update the block
                 lastDirectory = prefix + stripFile(repl['name'])    # and directory information
+            tempTime = 0.0
             for getTime in repl['replica']:                         # Getting creation time of the replica. Give the way our request is
                 if getTime['node'] == TName:                        # done, this step might be unnecessary, but it doesn't take too long
                     try:                                            # If there is no time stored in PhEDEx

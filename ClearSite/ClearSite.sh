@@ -2,17 +2,17 @@
 
 SiteName=$1
 
-wget -q -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/ClearSite.py                                # Download ClearSite.py, if it's new
-wget -q -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/$SiteName/$SiteName\_skipCksm_results.txt   # Download results list, if it's new
+#wget -q -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/ClearSite.py                                  # Download ClearSite.py, if it's new
+#wget -q -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/$SiteName/$SiteName\_skipCksm_removable.txt   # Download results list, if it's new
 
 if [ ! -f ClearSite.py ]; then
     echo "ERROR: ClearSite.py was not successfully downloaded."
     echo "Try checking http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/ClearSite.py"
     exit
 fi
-if [ ! -f $SiteName\_skipCksm_results.txt ]; then
-    echo "ERROR: ${SiteName}_skipCksm_results.txt was not successfully downloaded."
-    echo "Try checking http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/$SiteName/${SiteName}_skipCksm_results.txt"
+if [ ! -f $SiteName\_skipCksm_removable.txt ]; then
+    echo "ERROR: ${SiteName}_skipCksm_removable.txt was not successfully downloaded."
+    echo "Try checking http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/$SiteName/${SiteName}_skipCksm_removable.txt"
     exit
 fi
 
