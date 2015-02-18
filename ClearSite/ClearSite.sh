@@ -2,8 +2,8 @@
 
 SiteName=$1
 
-#wget -q -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/ClearSite.py                                  # Download ClearSite.py, if it's new
-#wget -q -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/$SiteName/$SiteName\_skipCksm_removable.txt   # Download results list, if it's new
+wget -q -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/ClearSite.py                                  # Download ClearSite.py, if it's new
+wget -q -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/$SiteName/$SiteName\_skipCksm_removable.txt   # Download results list, if it's new
 
 if [ ! -f ClearSite.py ]; then
     echo "ERROR: ClearSite.py was not successfully downloaded."
