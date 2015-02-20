@@ -102,7 +102,7 @@ for line in listOfFiles.readlines():
                                 print '*********************************************'
                                 exceptionList.append(line)
                                 break
-                        directory = directory.split(directory.split('/')[-2])[0]
+                        directory = directory.split('/'+directory.split('/')[-2]+'/')[0] + '/'
                         if not os.path.isdir(directory):
                             break
                     else:                                    # Stop if you reach a not empty directory
