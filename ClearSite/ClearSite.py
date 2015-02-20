@@ -101,7 +101,10 @@ for line in listOfFiles.readlines():
                                 print '*  Exception thrown, directory not removed  *'
                                 print '*********************************************'
                                 exceptionList.append(line)
+                                break
                         directory = directory.split(directory.split('/')[-2])[0]
+                        if not os.path.isdir(directory):
+                            break
                     else:                                    # Stop if you reach a not empty directory
                         break
             else:                      # If the directory is not there, skip it. Possibly results file hasn't been updated
@@ -121,10 +124,10 @@ for line in listOfFiles.readlines():
 
 if len(exceptionList) > 0:             # If exceptions were thrown, write an exceptions file
     exceptionsFile = open(TName + '_exceptions.txt','w')
-    exceptionsFile.append('\n\n')
-    exceptionsFile.append('Files not in PhEDEx (to be removed): \n')       # Basically just copies the format of the results file
-    exceptionsFile.append('\n\n')
-    for line in exceptionList:                               # But it should be much smaller
+    exceptionsFile.write('\n\n')
+    exceptionsFile.write('Files not in PhEDEx (to be removed): \n')        # Basically just copies the format of the results file
+    exceptionsFile.write('\n\n')
+    for line in exceptionList:                                             # But it should be much smaller
         exceptionsFile.write(line)
     exceptionsFile.write('****************************************************************************** \n')
     exceptionsFile.close()
