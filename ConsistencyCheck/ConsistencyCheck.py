@@ -32,7 +32,6 @@ parser.add_option('-c',help='Names a configuration file. If configuration file i
 parser.add_option('-T',help='Name of the site. Input is used to find files <site>.json and <site>_tfc.json.',
                   dest='TName',action='store',metavar='<name>')
 parser.add_option('--do-checksum',help='Do checksum calculations and comparison.',action='store_true',dest='doCksm')
-parser.add_option('-N',help='Will do a new download of PhEDEx files.',action='store_true',dest='newDownload')
 parser.add_option('-n',help='Will do a fresh parsing of the PhEDEx file and directory walk.',action='store_true',dest='newPhedexAndWalk')
 parser.add_option('-p',help='Will only do a fresh parse of the PhEDEx file.',action='store_true',dest='newPhedex')
 parser.add_option('-d',help='Will only do a fresh directory walk.',action='store_true',dest='newWalk')
@@ -57,8 +56,7 @@ else:                                                               # If a confi
     config.read(opts.configName)
     opts.TName             = config.get('General','SiteName')
     subDirs                = (config.get('ConsistencyCheck','Directories')).strip(' ').split(',')
-    opts.doCksm            = config.getboolean('ConsistencyCheck','doChecksum')
-    opts.newDownload       = config.getboolean('ConsistencyCheck','DownloadPhEDEx')
+    opts.doCksm            = config.getboolean('ConsistencyCheck','DoChecksum')
     opts.newPhedexAndWalk  = config.getboolean('UseCache','ParsePhEDExAndDir')
     opts.newPhedex         = config.getboolean('UseCache','ParsePhEDEx')
     opts.newWalk           = config.getboolean('UseCache','ParseDir')
@@ -78,12 +76,10 @@ if os.path.exists(TName + '.json'):
         isOld = True
 if isOld:
     print 'It has been a while since you did this...'
-    print 'Redownloading PhEDEx files...'
-    opts.newDownload = True
+    print 'Redownload PhEDEx files...'
+    exit()
 
-if opts.newDownload:                                                # If your starting fresh enough for a new download, walk the PhEDEx file and directory again
-    opts.newPhedexAndWalk = True
-elif os.path.exists(TName + '.tar.gz'):                             # If you're not downloading again, pull files from the tarball
+if os.path.exists(TName + '.tar.gz'):                               # Pull files from the tarball
     print 'Extracting files from tarball...'
     os.system('tar -xvzf ' + TName + '.tar.gz')
 if opts.newPhedexAndWalk:                                           
@@ -93,21 +89,13 @@ if opts.newPhedexAndWalk:
 print 'Checking for empty files...'                                 # If anything from the tarball is empty or almost empty, remove it so that things are rerun
 cleanEmpty()
 
-if not os.path.exists(TName + '_tfc.json') or opts.newDownload:     # Download TFC if needed or asked for
-    print 'Getting JSON files from PhEDEx...'
-    print 'Getting TFC...'
-    os.system('wget --no-check-certificate -q -O '+TName+'_tfc.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/tfc?node='+TName)
-else:
-    print 'Already have TFC...'
+if not os.path.exists(TName + '_tfc.json'):
+    print 'Missing TFC...'
+    exit()
+
 
 prefix   = TFCConverter.GetPrefix(TName)                            # Get the file prefix using the TFC file
 startDir = prefix + '/store/'
-
-if not os.path.exists(TName + '.json') or opts.newDownload:         # Download JSON file list from PhEDEx if needed or asked for
-    print 'Getting file list...'
-    os.system('wget --no-check-certificate -q -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
-else:
-    print 'Already have the file list...'
 
 if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the JSON file if needed to make a new format
     print 'Loading file list. Please wait...'
@@ -117,21 +105,8 @@ if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the 
         inFile.close()
     except:
         print 'File list wasn\'t successfully downloaded.'          # I get a 502 Error sometimes
-        print 'Trying a few more times.'
-        for trying in range(5):
-            os.system('wget --no-check-certificate -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
-            try:
-                inFile = open(TName + '.json')
-                inData = json.load(inFile, object_hook = deco._decode_dict) # This step takes a while
-                inFile.close()
-                downloaded = True
-                break
-            except:
-                downloaded = False
-        if not downloaded:
-            print 'None of attempts worked.'
-            print 'Exiting...'
-            exit()
+        print 'Exiting...'
+        exit()
     print 'Size of inData: ' + str(sys.getsizeof(inData))
 
     print 'Skimming PhEDEx output. Please wait...'

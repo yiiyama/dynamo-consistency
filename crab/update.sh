@@ -8,7 +8,7 @@ TEST=$1
 STOREDIR='/scratch/dabercro/ConsistencyCheck/runs'
 FAILDIR='/home/dabercro/ConsistencyCheck/FailedCheck'
 SERVERDIR='/home/cmsprod/public_html/ConsistencyChecks'
-CKSMDIR='/home/dabercro/ConsistencyCheck/CheckSums/Cache'
+CACHEDIR='/scratch/dabercro/ConsistencyCheck/Cache'
 
 #declare -a SITES=("T1_US_FNAL_Disk")
 # "T1_US_FNAL_MSS")
@@ -34,13 +34,12 @@ for SITE in "${SITES[@]}";do
                 mkdir $SERVERDIR/$SITE
             fi
             cp $SITE*.txt $SERVERDIR/$SITE/.                     # Put results on the server
-            if [ ! -d "$CKSMDIR/$SITE" ]; then                  # Make sure the right folder is there
+            if [ ! -d "$CACHEDIR/$SITE" ]; then                  # Make sure the right folder is there
                 echo "Preparing a checksum cache for $SITE."
                 echo "Making a new folder!"                      # If not there, then make it
-                mkdir $CKSMDIR/$SITE
+                mkdir $CACHEDIR/$SITE
             fi
-            cp $SITE\_phedex.json $CKSMDIR/$SITE/.
-            cp $SITE\_skipCksm_exists.json $CKSMDIR/$SITE/.
+            cp $SITE.tar*.gz $CACHEDIR/$SITE/$SITE.tar.gz
             rm $SITE*.json $SITE*.txt                            # Clean up the stuff from tar
             cd -                                                 # Now cd back
             mv $SITE-* $STOREDIR/.                               # Now store that stuff
@@ -76,6 +75,12 @@ for SITE in "${SITES[@]}";do
             if [ "$COUNTDIR2" -eq "1" ]; then                    # If it's there, remove it 
                 rm -rf $DIRNAME
             fi
+        fi
+        echo 'Checking cache.'                                   # About to submit a job, so update the cache
+        if [ "$TEST" == "submit" ]; then                         # If specified
+            cd $CACHEDIR                                         # Go to the cache storage place
+            python updateCache.py -T $SITE                       # Check and update the cache if necessary
+            cd -                                                 # Come back    
         fi
         NOW=`date +"%Y-%m-%d-%T"`                                # Otherwise, there is no directory for a site
         echo ./submit.sh $SITE $NOW                              # It's easy to make a directory though
