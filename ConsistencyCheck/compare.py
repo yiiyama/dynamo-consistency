@@ -48,6 +48,8 @@ def finalCheck(TName,skipCksm):
                 print "Missing file size for " + aFile['file']
             if (currentTime - float(aFile['time'])) < cutTime:                 # If any file is less than 2.5 weeks old, skip the block for now
                 newDir = True
+            if str(aFile['time']) == 'ERROR ACCESSING':                        # If there was an error accessing one of the files, skip for now
+                newDir = True
         if newDir:
             newBlocks.append(aBlock['dataset'])                                # Store the block name for future skipping
             print 'Skipping block ' + aBlock['dataset'] + ' because it is new.'
@@ -80,7 +82,8 @@ def finalCheck(TName,skipCksm):
                                     writeBlock(aBlock['dataset'],missing)
                                 bSize = bFile['size']
                                 bCksm = bFile['adler32']
-                                missing.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
+                                if str(aSize) != 'ERROR ACCESSING':
+                                    missing.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
                                 missingSize = missingSize + int(aSize)         # If the checksum is wrong, that means the file should basically be replaced
                                 break
 

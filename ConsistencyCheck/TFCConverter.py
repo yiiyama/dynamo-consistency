@@ -7,6 +7,7 @@ def CheckDir(tempPrefix,prefix):
     for term in tempPrefix.split('/'):
         tempCheck = tempCheck.rstrip('/') + '/' + term
         print tempCheck
+        os.system('ls ' + tempCheck)
         if os.path.isdir(tempCheck):
             print os.listdir(tempCheck)
     if os.path.isdir(tempPrefix):
