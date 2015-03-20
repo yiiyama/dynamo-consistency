@@ -65,7 +65,7 @@ for line in listOfFiles.readlines():
             elif "has incorrect size or checksum" in line:
                 try:
                     tempSize = os.path.getsize(copyFile)
-n                    if not tempSize == int(line.split('size')[1].split(';')[0]):
+                    if not tempSize == int(line.split('size')[1].split(';')[0]):
                         copyLine = True
                 except:
                     copyLine = True
