@@ -74,16 +74,18 @@ for line in listOfFiles.readlines():
                 print 'Trying to copy file'
                 print copyFile
                 print '******************************************************************************'
-                directory = copyFile.rsplit('/'+directory.split('/')[-2]+'/',1)[0] + '/'
+                directory = copyFile.rsplit('/'+copyFile.split('/')[-1],1)[0] + '/'
                 if os.path.isdir(directory):
+                    print directory
                     try:
                         dirStat = os.stat(directory)
                         owner = pwd.getpwuid(dirStat.st_uid)[0]
                         group = grp.getgrgid(dirStat.st_gid)[0]
-                        perms = oct(test.st_mode)[-3:]
+                        perms = oct(dirStat.st_mode)[-3:]
                         copyCall = copyFile.split('/store/')[1];
                         os.system('xrdcp root://cmsxrootd.fnal.gov//store/' + copyCall + " " + copyFile)
                         os.system('chmod ' + str(perms) + ' ' + copyFile)
+                        os.system('chmod -x ' + copyFile)
                         os.system('chown ' + owner + ':' + group + ' ' + copyFile)
                     except:
                         print '*********************************************'
