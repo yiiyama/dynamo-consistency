@@ -1,6 +1,6 @@
 import os, json, zlib, urllib2, sys
 from time import time
-import compare, deco, TFCConverter
+import compare, deco, LFN2PFNConverter
 from optparse import OptionParser
 import ConfigParser
 
@@ -29,7 +29,7 @@ parser = OptionParser()
 # useful for speeding up the debugging process.)
 parser.add_option('-c',help='Names a configuration file. If configuration file is present, all other options are ignored.',
                   dest='configName',action='store',metavar='<name>')
-parser.add_option('-T',help='Name of the site. Input is used to find files <site>.json and <site>_tfc.json.',
+parser.add_option('-T',help='Name of the site. Input is used to find files <site>.json and <site>_lfn2pfn.json.',
                   dest='TName',action='store',metavar='<name>')
 parser.add_option('--do-checksum',help='Do checksum calculations and comparison.',action='store_true',dest='doCksm')
 parser.add_option('-n',help='Will do a fresh parsing of the PhEDEx file and directory walk.',action='store_true',dest='newPhedexAndWalk')
@@ -65,7 +65,7 @@ TName = opts.TName                                                  # Name of th
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
 
 startTime = time()                                                  # Start timing for a final readout of the run time
-oldTime = 604800                                                    # If the PhEDEx file hasn't been downloaded for a week, redownload everything
+oldTime = 604800                                                    # If the PhEDEx file hasn't been downloaded for a week, quit the job
 
 isOld = False
 if os.path.exists(TName + '.tar.gz'):
@@ -89,12 +89,12 @@ if opts.newPhedexAndWalk:
 print 'Checking for empty files...'                                 # If anything from the tarball is empty or almost empty, remove it so that things are rerun
 cleanEmpty()
 
-if not os.path.exists(TName + '_tfc.json'):
+if not os.path.exists(TName + '_lfn2pfn.json'):
     print 'Missing TFC...'
     exit()
 
 
-prefix   = TFCConverter.GetPrefix(TName)                            # Get the file prefix using the TFC file
+prefix   = LFN2PFNConverter.GetPrefix(TName)                        # Get the file prefix using the TFC file
 startDir = prefix + '/store/'
 
 if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the JSON file if needed to make a new format

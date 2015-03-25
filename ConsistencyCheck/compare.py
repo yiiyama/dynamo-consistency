@@ -1,4 +1,4 @@
-import json, os,time
+import json, os, time
 
 def writeBlock(dataSet,store):                                                # Quickly writes the dataset and block name in the output
     store.append('******************************************************* \n')
@@ -6,8 +6,9 @@ def writeBlock(dataSet,store):                                                # 
     store.append('* Block  : ' + dataSet.split('#')[1] + ' \n')
 
 def finalCheck(TName,skipCksm):
+    errorMessage = "ERROR ACCESSING"
     currentTime = time.time()
-    cutTime = 2116800                                                          # Ignore files that are less than 3.5 weeks old
+    cutTime = 604800*4                                                         # Ignore files that are less than 4 weeks old
     timeTolerance = 3600                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
     firstFile = open(TName + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
     print 'Loading first file...'
@@ -48,8 +49,6 @@ def finalCheck(TName,skipCksm):
                 print "Missing file size for " + aFile['file']
             if (currentTime - float(aFile['time'])) < cutTime:                 # If any file is less than 2.5 weeks old, skip the block for now
                 newDir = True
-            if str(aFile['time']) == 'ERROR ACCESSING':                        # If there was an error accessing one of the files, skip for now
-                newDir = True
         if newDir:
             newBlocks.append(aBlock['dataset'])                                # Store the block name for future skipping
             print 'Skipping block ' + aBlock['dataset'] + ' because it is new.'
@@ -82,8 +81,7 @@ def finalCheck(TName,skipCksm):
                                     writeBlock(aBlock['dataset'],missing)
                                 bSize = bFile['size']
                                 bCksm = bFile['adler32']
-                                if str(aSize) != 'ERROR ACCESSING':
-                                    missing.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
+                                missing.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
                                 missingSize = missingSize + int(aSize)         # If the checksum is wrong, that means the file should basically be replaced
                                 break
 
@@ -122,7 +120,10 @@ def finalCheck(TName,skipCksm):
     isUsed = 0                                                                  # Store how much space is used
     clearSize = 0                                                               # Store how much space would be cleared by deleting these files
     for aBlock in secondData:                                                   # Again, look for directory matching
-        if (currentTime - float(aBlock['time'])) < cutTime:                     # If the directory is less than 2.5 weeks old, skip it
+        if str(aBlock['time']) == errorMessage:
+            print 'Could not access time of ' + aBlock['directory'] + '. Skipping...'
+            continue
+        elif (currentTime - float(aBlock['time'])) < cutTime:                     # If the directory is less than 2.5 weeks old, skip it
             print 'Skipping the directory ' + aBlock['directory'] + ' because it is new.'
             for aFile in aBlock['files']:
                 try:
@@ -142,7 +143,10 @@ def finalCheck(TName,skipCksm):
                     isUsed = isUsed + int(aFile['size'])                        # Add to the space that is being used
                 except:
                     print "Missing file size for " + aFile['file']
-                if (currentTime - float(aFile['time'])) < cutTime:              # If the file is less than 2.5 weeks old, skip it
+                if str(aFile['time']) == errorMessage:
+                    print 'Skipping the file ' + aDirectory + aFile['file'] + ' because time is inaccessible.'
+                    continue
+                elif (currentTime - float(aFile['time'])) < cutTime:              # If the file is not old, skip it
                     print 'Skipping the file ' + aDirectory + aFile['file'] + ' because it is new.'
                     continue
                 found = False

@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, pwd, grp
 from optparse import OptionParser
 from time import sleep
 import ConfigParser
@@ -74,14 +74,25 @@ for line in listOfFiles.readlines():
                 print 'Trying to copy file'
                 print copyFile
                 print '******************************************************************************'
-                try:
-                    copyCall = copyFile.split('/store/')[1];
-                    os.system('xrdcp root://cmsxrootd.fnal.gov//store/' + copyCall + " " + copyFile)
-                except:
-                    print '*********************************************'
-                    print '*    Exception thrown, file not copied      *'
-                    print '*********************************************'
-                    exceptionList.append(line)
+                directory = copyFile.rsplit('/'+directory.split('/')[-2]+'/',1)[0] + '/'
+                if os.path.isdir(directory):
+                    try:
+                        dirStat = os.stat(directory)
+                        owner = pwd.getpwuid(dirStat.st_uid)[0]
+                        group = grp.getgrgid(dirStat.st_gid)[0]
+                        perms = oct(test.st_mode)[-3:]
+                        copyCall = copyFile.split('/store/')[1];
+                        os.system('echo xrdcp root://cmsxrootd.fnal.gov//store/' + copyCall + " " + copyFile)
+                        os.system('echo chmod ' + str(perms) + ' ' + copyFile)
+                        os.system('echo chown ' + owner + ':' + group + ' ' + copyFile)
+                    except:
+                        print '*********************************************'
+                        print '*    Exception thrown, file not copied      *'
+                        print '*********************************************'
+                        exceptionList.append(line)
+                else:
+                    print '## DIRECTORY DOESN\'T EXIST! ##'
+                    print 'Skipping: ' + copyFile
     if line == 'Files missing at site: \n':                  # This is the flag to start listing files that should be removed
         startedOrphan = True
 

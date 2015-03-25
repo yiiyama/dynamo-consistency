@@ -26,6 +26,7 @@ echo "###########################################"
 echo "ls -lhrt:"
 echo "###########################################"
 ls -lhrt
+ls /pnfs/
 
 python ConsistencyCheck.py -c tempConfig.cfg
 
