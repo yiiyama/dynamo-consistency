@@ -82,9 +82,9 @@ for line in listOfFiles.readlines():
                         group = grp.getgrgid(dirStat.st_gid)[0]
                         perms = oct(test.st_mode)[-3:]
                         copyCall = copyFile.split('/store/')[1];
-                        os.system('echo xrdcp root://cmsxrootd.fnal.gov//store/' + copyCall + " " + copyFile)
-                        os.system('echo chmod ' + str(perms) + ' ' + copyFile)
-                        os.system('echo chown ' + owner + ':' + group + ' ' + copyFile)
+                        os.system('xrdcp root://cmsxrootd.fnal.gov//store/' + copyCall + " " + copyFile)
+                        os.system('chmod ' + str(perms) + ' ' + copyFile)
+                        os.system('chown ' + owner + ':' + group + ' ' + copyFile)
                     except:
                         print '*********************************************'
                         print '*    Exception thrown, file not copied      *'
