@@ -49,7 +49,8 @@ if os.path.exists(TName+'/'+TName + '.tar.gz'):                         # Check 
                     isOld = False
         theFile.close()
     except:
-        os.system('rm '+TName+'/'+TName+'.tar.gz'
+        print 'Removing tarball...'
+        os.system('rm '+TName+'/'+TName+'.tar.gz')
 else:
     if not os.path.exists(TName):
         os.makedirs(TName)
