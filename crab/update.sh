@@ -93,7 +93,13 @@ for SITE in "${SITES[@]}";do
         NOW=`date +"%Y-%m-%d-%T"`                                # Otherwise, there is no directory for a site
         echo ./submit.sh $SITE $NOW                              # It's easy to make a directory though
         if [ "$TEST" == "submit" ]; then                         # If specified
-            ./submit.sh $SITE $NOW                               # Submits a job here
+            if [ -f $CACHEDIR/$SITE/flag ]; then                 # Check if failure flag is there
+                echo "###################################################"
+                echo "# Did not successfully get file list... Aborting. #"
+                echo "###################################################"
+            else
+                ./submit.sh $SITE $NOW                       # Submits a job here
+            fi
         fi
     fi
 done
