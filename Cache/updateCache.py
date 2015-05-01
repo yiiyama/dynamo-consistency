@@ -38,15 +38,18 @@ oldTime = 5*86400              # If the PhEDEx file hasn't been downloaded for a
 isOld  = True
 hasTFC = False
 if os.path.exists(TName+'/'+TName + '.tar.gz'):                         # Check for existence of Cache
-    theFile = tarfile.open(TName+'/'+TName + '.tar.gz','r|gz')          # Open the file if it exists
-    names = theFile.getnames()                                          # Store the list of files
-    for fileName in names:                                              # Check for TFC and json file
-        if fileName == TName+'_lfn2pfn.json':
-            hasTFC = True
-        elif fileName == TName+'.json':
-            if startTime - theFile.getmember(TName+'.json').mtime < oldTime:  # Make sure PhEDEx file is not old
-                isOld = False
-    theFile.close()
+    try:
+        theFile = tarfile.open(TName+'/'+TName + '.tar.gz','r|gz')          # Open the file if it exists
+        names = theFile.getnames()                                          # Store the list of files
+        for fileName in names:                                              # Check for TFC and json file
+            if fileName == TName+'_lfn2pfn.json':
+                hasTFC = True
+            elif fileName == TName+'.json':
+                if startTime - theFile.getmember(TName+'.json').mtime < oldTime:  # Make sure PhEDEx file is not old
+                    isOld = False
+        theFile.close()
+    except:
+        os.system('rm '+TName+'/'+TName+'.tar.gz'
 else:
     if not os.path.exists(TName):
         os.makedirs(TName)
