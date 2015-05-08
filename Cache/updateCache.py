@@ -46,7 +46,8 @@ if os.path.exists(TName+'/'+TName + '.tar.gz'):                         # Check 
                 hasTFC = True
             elif fileName == TName+'.json':
                 if startTime - theFile.getmember(TName+'.json').mtime < oldTime:  # Make sure PhEDEx file is not old
-                    isOld = False
+                    if not theFile.getmember(TName+'.json').size < 100:
+                        isOld = False
         theFile.close()
     except:
         print 'Removing tarball...'
@@ -78,12 +79,12 @@ if isOld:                                                               # If fil
     os.system('wget --no-check-certificate -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
     count = 0
     while cleanEmpty():
-        print 'Trying again...'
-        os.system('wget --no-check-certificate -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
-        count = count + 1
         if count > 2:
             os.system('touch '+TName+'/flag')                           # Flag here for now if there was no success
             break
+        print 'Trying again...'
+        os.system('wget --no-check-certificate -O '+TName+'.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node='+TName)
+        count = count + 1
 
 if not hasTFC or isOld:                                                 # If downloads were necessary, make the tarball
     os.system('tar -cvzf ' + TName+'/'+TName + '.tar.gz ' + TName + '_lfn2pfn.json ' + TName + '.json')
