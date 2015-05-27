@@ -1,6 +1,6 @@
 import os, json, zlib, urllib2, sys
 from time import time
-import compare, deco, LFN2PFNConverter
+import compare, LFN2PFNConverter
 from optparse import OptionParser
 import ConfigParser
 
@@ -68,20 +68,17 @@ startTime = time()                                                  # Start timi
 oldTime = 604800                                                    # If the PhEDEx file hasn't been downloaded for a week, quit the job
 
 isOld = False
-if os.path.exists(TName + '.tar.gz'):
-    if startTime - os.path.getctime(TName + '.tar.gz') > oldTime:
+if os.path.exists(TName + '_phedex.json'):
+    if startTime - os.path.getctime(TName + '_phedex.json') > oldTime:
         isOld = True
-if os.path.exists(TName + '.json'):
-    if startTime - os.path.getctime(TName + '.json') > oldTime:
-        isOld = True
+else:
+    print 'Missing PhEDEx file.'
+    exit()
 if isOld:
     print 'It has been a while since you did this...'
     print 'Redownload PhEDEx files...'
     exit()
 
-if os.path.exists(TName + '.tar.gz'):                               # Pull files from the tarball
-    print 'Extracting files from tarball...'
-    os.system('tar -xvzf ' + TName + '.tar.gz')
 if opts.newPhedexAndWalk:                                           
     opts.newWalk   = True
     opts.newPhedex = True
@@ -93,54 +90,8 @@ if not os.path.exists(TName + '_lfn2pfn.json'):
     print 'Missing TFC...'
     exit()
 
-
 prefix   = LFN2PFNConverter.GetPrefix(TName)                        # Get the file prefix using the TFC file
 startDir = prefix + '/store/'
-
-if not os.path.exists(TName + '_phedex.json') or opts.newPhedex:    # Parse the JSON file if needed to make a new format
-    print 'Loading file list. Please wait...'
-    try:
-        inFile = open(TName + '.json')
-        inData = json.load(inFile, object_hook = deco._decode_dict) # This step takes a while
-        inFile.close()
-    except:
-        print 'File list wasn\'t successfully downloaded.'          # I get a 502 Error sometimes
-        print 'Exiting...'
-        exit()
-    print 'Size of inData: ' + str(sys.getsizeof(inData))
-
-    print 'Skimming PhEDEx output. Please wait...'
-    blockList = []
-    tempBlock = []
-    lastDirectory = ''                                              # Okay, so I want to keep track of every time there's a directory change and make
-    lastBlock = ''                                                  # a new list entry of the directory. (There are some duplicate directories, but that's fine)
-    for block in inData['phedex']['block']:
-        for repl in block['file']:
-            if prefix + stripFile(repl['name']) != lastDirectory:   # This is where I spot the directory change
-                if len(lastDirectory) > 0:                          # If it's not the first directory, I append the old directory info and reset
-                    blockList.append({'dataset':lastBlock,'directory':lastDirectory,'files':tempBlock})           # Information for each directory
-                    tempBlock = []
-                lastBlock = block['name']                           # After adding, I update the block
-                lastDirectory = prefix + stripFile(repl['name'])    # and directory information
-            tempTime = 0.0
-            for getTime in repl['replica']:                         # Getting creation time of the replica. Give the way our request is
-                if getTime['node'] == TName:                        # done, this step might be unnecessary, but it doesn't take too long
-                    try:                                            # If there is no time stored in PhEDEx
-                        tempTime = float(getTime['time_create'])    # Store default time of 0.0, so code will check if file is present
-                    except:
-                        tempTime = 0.0
-            tempBlock.append({'file':repl['name'].split('/')[-1],'size':repl['bytes'],'time':tempTime,            # Information for each file
-                              'adler32':pullAdler(repl['checksum'])})                                             # is stored here
-    blockList.append({'dataset':block['name'],'directory':prefix + stripFile(repl['name']),'files':tempBlock})    # Don't forget the last directory
-    del inData                                                      # This is an attempt to free memory. I'm not convinced it's working...
-    print 'Writing skimmed file...'
-    outParsed = open(TName + '_phedex.json','w')
-    outParsed.write(json.dumps(blockList))
-    outParsed.close()
-    del blockList                                                   # This is an attempt to free memory. I'm not convinced it's working...
-    print 'Done with that...'
-else:                                                               # If not parsing the JSON file, let the user know
-    print 'Using old skimmed file...'
 
 if skipCksm:
     print 'Skipping Checksum (Adler32) calculations...'
