@@ -103,8 +103,8 @@ def finalCheck(TName,skipCksm):
                 if len(os.listdir(aDirectory)) > 0:                            # Check to see if directory is empty
                     wasSearched = False                                        # Directory wasn't searched
             if wasSearched:
-                writeBlock(aBlock['dataset'],missing)                           # Note the block name
-                missing.append('No files were found in ' + aDirectory + ' \n')   # If there is no directory where there should be, this might be a problem
+                writeBlock(aBlock['dataset'],missing)                          # Note the block name
+                missing.append('No files were found in ' + aDirectory + ' \n') # If there is no directory where there should be, this might be a problem
                 for aFile in aBlock['files']:                                  # List the files that should be included
                     missing.append(aDirectory + aFile['file'] + ' \n')            
                     aSize = aFile['size']
