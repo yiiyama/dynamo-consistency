@@ -54,7 +54,7 @@ if not os.path.exists(TName+'/'+TName+'_lfn2pfn.json'):
 prefix = LFN2PFNConverter.GetPrefix(TName)                       # Get the file prefix using the TFC file
 
 try:
-    inFile = open(TName + '/' + TName + '_formatted_added.json')
+    inFile = open(TName + '/' + TName + '_prephedex.json')
     inData = json.load(inFile, object_hook = deco._decode_dict)  # This step takes a while
     inFile.close()
 except:
@@ -65,7 +65,7 @@ except:
 duplicateList = []
 
 blockList = []
-for block in inData['block']:
+for block in inData:
     found = False
     for deleted in deletedList:
         if str(block['dataset']) == str(deleted[0]):
