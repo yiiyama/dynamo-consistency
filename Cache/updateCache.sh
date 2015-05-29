@@ -18,11 +18,11 @@ for site in `ls -d T2_*/ | sed 's/[/].*$//'`; do
 #        wget --no-check-certificate -O $site/$site\_deleted.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/deletions?dataset=/*/*/*\&node=$site\&request_since=$requestdelete\&complete=y
 
         # Just temporary until I get this junk working...
-        /home/dabercro/./jq -M '.phedex|{request_timestamp,block:[.block[]|{directory:.file[0].name|split("/")[0:-1]|join("/"),files:[.file[]|{time:.time_create,alder32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-1:][0],size:.bytes}],dataset:.name}]}' $site/$site.json > $site/$site\_prephedex.json
+        /home/dabercro/./jq -M '.phedex|{request_timestamp,block:[.block[]|{directory:.file[0].name|split("/")[0:-1]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-1:][0],size:.bytes}],dataset:.name}]}' $site/$site.json > $site/$site\_prephedex.json
 
         # Format the data
         /home/dabercro/./jq -M '.phedex|{request_time:.request_timestamp,block:[.dataset[].block[0]|{name,time:.deletion[0].time_complete}]}' $site/$site\_deleted.json > $site/$site\_formatted_deleted.json
-        /home/dabercro/./jq -M '.phedex|{request_timestamp,block:[.block[]|{directory:.file[0].name|split("/")[0:-1]|join("/"),files:[.file[]|{time:.time_create,alder32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-1:][0],size:.bytes}],dataset:.name}]}' $site/$site\_added.json > $site/$site\_formatted_added.json
+        /home/dabercro/./jq -M '.phedex|{request_timestamp,block:[.block[]|{directory:.file[0].name|split("/")[0:-1]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-1:][0],size:.bytes}],dataset:.name}]}' $site/$site\_added.json > $site/$site\_formatted_added.json
         /home/dabercro/./jq -M -s '.[0].block + .[1].block' $site/$site\_prephedex.json $site/$site\_formatted_added.json > $site/$site\_temp.json
         cp $site/$site\_temp.json $site/$site\_prephedex.json
         python mergeFiles.py -T $site
