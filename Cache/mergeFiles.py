@@ -34,7 +34,7 @@ TName = opts.TName                                              # Name of the si
 # First load the list of files that were deleted. Make sure they are not added to the final list.
 try:
     inFile = open(TName + '/' + TName + '_formatted_deleted.json')
-    inData = json.load(inFile, object_hook = deco._decode_dict)
+    inData = json.load(inFile)
     inFile.close()
 except:
     print 'File list wasn\'t successfully loaded.'
@@ -55,7 +55,7 @@ prefix = LFN2PFNConverter.GetPrefix(TName)                       # Get the file 
 
 try:
     inFile = open(TName + '/' + TName + '_prephedex.json')
-    inData = json.load(inFile, object_hook = deco._decode_dict)  # This step takes a while
+    inData = json.load(inFile)
     inFile.close()
 except:
     print 'File list wasn\'t successfully loaded.'
@@ -69,15 +69,13 @@ for block in inData:
     found = False
     for deleted in deletedList:
         if str(block['dataset']) == str(deleted[0]):
-            print "DELETED!!: " + str(deleted[0])
-#            found = True
+            found = True
             break
     if found:
         continue
     for duplicate in duplicateList:
         if str(block['dataset']) == str(duplicate):
             found = True
-            print "DUPLICATE!!: " + str(duplicate)
             break
     if found:
         continue
