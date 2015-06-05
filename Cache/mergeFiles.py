@@ -69,13 +69,15 @@ for block in inData:
     found = False
     for deleted in deletedList:
         if str(block['dataset']) == str(deleted[0]):
-            found = True
+            print "DELETED!!: " + str(deleted[0])
+#            found = True
             break
     if found:
         continue
     for duplicate in duplicateList:
         if str(block['dataset']) == str(duplicate):
             found = True
+            print "DUPLICATE!!: " + str(duplicate)
             break
     if found:
         continue
