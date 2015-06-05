@@ -14,7 +14,7 @@ for line in inFile:
             fileList=[]
         else:
             first = False
-            os.system('wget --no-check-certificate -O checking.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset='+dataset+'#'+block'\&node=T2_US_MIT')
+            os.system('wget --no-check-certificate -O checking.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset='+dataset+'#'+block+'\&node=T2_US_MIT')
         dataset = line.split(' ')[2].split()[0]
     if line.startswith('* Block  : '):
         block = line.split(' ')[4].split()[0]
