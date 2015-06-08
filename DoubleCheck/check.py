@@ -22,7 +22,10 @@ for line in inFile:
         if os.path.exists(line.split()[0]):
             print "File Exists: " + line.split()[0]
 
+for old in os.listdir('PhEDEx'):
+    os.remove('PhEDEx/' + old)
+
 for thing in datasetList:
     fileName = 'PhEDEx/'+thing[0].replace('/','__')+'.json'
     if not os.path.exists(fileName):
-        os.system('wget --no-check-certificate -O PhEDEx/'+fileName+' https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset='+thing[0]+'\&node=T2_US_MIT')
+        os.system('wget --no-check-certificate -O '+fileName+' https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset='+thing[0]+'\&node=T2_US_MIT')
