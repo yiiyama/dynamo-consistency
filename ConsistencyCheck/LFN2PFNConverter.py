@@ -3,6 +3,7 @@ import deco
 
 def CheckDir(tempPrefix,prefix):
     print 'Checking out ' + tempPrefix
+    os.system('ls ' + tempPrefix)
     tempCheck = ''
     if os.path.isdir(tempPrefix+'/store'):                      # Check that this prefix directory exists
         if len(os.listdir(tempPrefix+'/store')) > 0:            # Check that it is not empty

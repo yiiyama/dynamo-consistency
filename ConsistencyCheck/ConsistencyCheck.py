@@ -101,15 +101,21 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     print 'Creating JSON file from your directory...'
     print 'Starting walk...'
     existsList = []                                                 # This will be the list of directories, each with a list of files inside
-    tempBlock=[]                                                    # Temp list to store the list of files
     print startDir
     for subDir in subDirs:                                          # This is the list of directories walked through
         subDir = subDir.strip(' ')                                  # If people put spaces in their configuration file, they shouldn't be punished
         print startDir + subDir
+        tempBlock=[]                                                # Temp list to store the list of files
+        lastDirectory = ''
         for term in os.walk(startDir + subDir):
+            directoryName = term[0].split(term[0].split('/')[-1])[0]
             if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
-                print term[0]
-                tempBlock=[]                                        # Reset directory contents
+                if directoryName != lastDirectory:
+                    if len(tempBlock) > 0:
+                        existsList.append({'directory':lastDirectory,'time':os.path.getctime(lastDirectory),
+                                           'files':tempBlock})      # Each directory is added to the full list
+                    tempBlock=[]                                    # Reset directory contents
+                    lastDirectory = directoryName
                 for aFile in term[-1]: 
                     fullName = term[0]+'/'+aFile
                     if not skipCksm:
@@ -134,8 +140,10 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                         aSize = 'ERROR ACCESSING'
                         aTime = 'ERROR ACCESSING'
                     tempBlock.append({'file':term[0].split('/')[-1]+'/'+aFile,'size':aSize,'time':aTime,'adler32':cksumStr})
-                existsList.append({'directory':term[0].split(term[0].split('/')[-1])[0],'time':os.path.getctime(term[0]),
-                                   'files':tempBlock})              # Each directory is added to the full list
+        if len(tempBlock) > 0:
+            existsList.append({'directory':lastDirectory,'time':os.path.getctime(lastDirectory),
+                               'files':tempBlock})                  # Each directory is added to the full list
+
     if len(existsList) > 0:                                         # Only do this if the directories wheren't completely empty
         print 'Creating JSON file from directory...'
         if skipCksm:

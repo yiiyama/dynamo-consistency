@@ -27,6 +27,7 @@ echo "ls -lhrt:"
 echo "###########################################"
 ls -lhrt
 ls /pnfs/
+ls /mnt/hadoop/cms
 
 python ConsistencyCheck.py -c tempConfig.cfg
 

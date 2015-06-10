@@ -15,11 +15,14 @@ if os.path.exists(TName + '/datasetList.txt'):
     inFile = open(TName + '/datasetList.txt','r')
     for line in inFile:
         if line.startswith('  "'):
-            dataName = line.split('"')[1] + "_"
+            dataName = line.split('"')[1]
+            if len(dataName.split("_")) > 1:
+                dataName = dataName.split("_")[0] + "_"
             print dataName
             sleep(0.5)
             fileName = TName + "/PhEDEx/" + dataName + ".json"
-            os.system('wget --no-check-certificate -O '+fileName+' https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/'+dataName+'*/*/*\&node='+TName)
+            if not os.path.exists(fileName):
+                os.system('wget --no-check-certificate -O '+fileName+' https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/'+dataName+'*/*/*\&node='+TName)
 else:
     print "Something is rather wrong."
 
