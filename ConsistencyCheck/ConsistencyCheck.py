@@ -133,8 +133,8 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
                     except:
                         aSize = 'ERROR ACCESSING'
                         aTime = 'ERROR ACCESSING'
-                    tempBlock.append({'file':aFile,'size':aSize,'time':aTime,'adler32':cksumStr})
-                existsList.append({'directory':term[0]+'/','time':os.path.getctime(term[0]),
+                    tempBlock.append({'file':term[0].split('/')[-1]+'/'+aFile,'size':aSize,'time':aTime,'adler32':cksumStr})
+                existsList.append({'directory':term[0].split(term[0].split('/')[-1])[0],'time':os.path.getctime(term[0]),
                                    'files':tempBlock})              # Each directory is added to the full list
     if len(existsList) > 0:                                         # Only do this if the directories wheren't completely empty
         print 'Creating JSON file from directory...'

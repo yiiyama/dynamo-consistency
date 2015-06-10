@@ -20,7 +20,7 @@ echo "script_exe                = runConsistencyCheck.sh" >> $crabConfFile
 echo "return_data               = 1"                      >> $crabConfFile
 echo "copy_data                 = 0"                      >> $crabConfFile
 echo ""                                                   >> $crabConfFile
-echo "additional_input_files    = ../ConsistencyCheck/ConsistencyCheck.py,../ConsistencyCheck/LFN2PFNConverter.py,../ConsistencyCheck/compare.py,../ConsistencyCheck/deco.py,tempConfig.cfg,/scratch/dabercro/ConsistencyCheck/Cache/"$SITENAME"/"$SITENAME".tar.gz" >> $crabConfFile
+echo "additional_input_files    = ../ConsistencyCheck/ConsistencyCheck.py,../ConsistencyCheck/LFN2PFNConverter.py,../ConsistencyCheck/compare.py,../ConsistencyCheck/deco.py,tempConfig.cfg,/scratch/dabercro/ConsistencyCheck/Cache/"$SITENAME"/"$SITENAME"_phedex.json,/scratch/dabercro/ConsistencyCheck/Cache/"$SITENAME"/"$SITENAME"_lfn2pfn.json" >> $crabConfFile
 echo ""                                                   >> $crabConfFile
 echo "[GRID]"                                             >> $crabConfFile
 echo "rb                        = CERN"                   >> $crabConfFile
