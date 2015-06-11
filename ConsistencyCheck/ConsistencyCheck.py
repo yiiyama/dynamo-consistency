@@ -108,7 +108,7 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
         tempBlock=[]                                                # Temp list to store the list of files
         lastDirectory = ''
         for term in os.walk(startDir + subDir):
-            directoryName = term[0].split(term[0].split('/')[-1])[0]
+            directoryName = term[0].rsplit(term[0].split('/')[-1],1)[0]
             if len(term[-1]) > 0:                                   # If the directory has files in it, do the following
                 if directoryName != lastDirectory:
                     if len(tempBlock) > 0:
