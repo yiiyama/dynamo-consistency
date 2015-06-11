@@ -6,15 +6,14 @@ TEST=$1
 
 # This is where I am keeping all of the output:
 STOREDIR='/scratch/dabercro/ConsistencyCheck/runs'
-FAILDIR='/home/dabercro/ConsistencyCheck/FailedCheck'
+FAILDIR='/scratch/dabercro/ConsistencyCheck/FailedCheck'
 SERVERDIR='/home/cmsprod/public_html/ConsistencyChecks'
 CACHEDIR='/scratch/dabercro/ConsistencyCheck/Cache'
 
 #declare -a SITES=("T1_US_FNAL_Disk")
-# "T1_US_FNAL_MSS")
 #declare -a SITES=("T2_AT_Vienna" "T2_BE_IIHE" "T2_BE_UCL" "T2_BR_SPRACE" "T2_BR_UERJ" "T2_CH_CERN" "T2_CH_CSCS" "T2_CN_Beijing" "T2_DE_DESY" "T2_DE_RWTH" "T2_EE_Estonia" "T2_ES_CIEMAT" "T2_ES_IFCA" "T2_FI_HIP" "T2_FR_CCIN2P3" "T2_FR_GRIF_IRFU" "T2_FR_GRIF_LLR" "T2_FR_IPHC" "T2_GR_Ioannina" "T2_HU_Budapest" "T2_IN_TIFR" "T2_IT_Bari" "T2_IT_Legnaro" "T2_IT_Pisa" "T2_IT_Rome" "T2_KR_KNU" "T2_MY_UPM_BIRUNI" "T2_PK_NCP" "T2_PL_Swierk" "T2_PL_Warsaw" "T2_PT_NCG_Lisbon" "T2_RU_IHEP" "T2_RU_INR" "T2_RU_ITEP" "T2_RU_JINR" "T2_RU_PNPI" "T2_RU_RRC_KI" "T2_RU_SINP" "T2_TH_CUNSTDA" "T2_TR_METU" "T2_UA_KIPT" "T2_UK_London_Brunel" "T2_UK_London_IC" "T2_UK_SGrid_Bristol" "T2_UK_SGrid_RALPP" "T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Nebraska" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
-declare -a SITES=("T2_BE_IIHE" "T2_BE_UCL" "T2_BR_UERJ" "T2_EE_Estonia" "T2_ES_CIEMAT" "T2_IT_Pisa" "T2_IT_Rome" "T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Nebraska" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
-#declare -a SITES=("T2_DE_DESY" "T2_US_MIT")
+declare -a SITES=("T2_AT_Vienna" "T2_BE_IIHE" "T2_BE_UCL" "T2_BR_UERJ" "T2_EE_Estonia" "T2_ES_CIEMAT" "T2_IT_Pisa" "T2_IT_Rome" "T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Nebraska" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
+#declare -a SITES=("T2_US_MIT")
 
 for SITE in "${SITES[@]}";do
     COUNTDIR=`ls -d $SITE-* | wc -l`
@@ -56,7 +55,9 @@ for SITE in "${SITES[@]}";do
                 rm -rf $DIRNAME
             fi
         elif [ "$ISTAR" -eq "0" ]; then                          # If there's no tar, check to see if the job finished
-            if [ -f $DIRNAME/res/CMSSW_1.stdout ]; then          # If it did (with no tar) then there must have been an error
+            if [ ! -f $DIRNAME/share/crab.cfg ]; then            # If there's no cfg file, then I tried to delete this before
+                rm -rf $DIRNAME
+            elif [ -f $DIRNAME/res/CMSSW_1.stdout ]; then        # If it did (with no tar) then there must have been an error
                 echo "Looks like the job failed... Check that out later."
                 cp -r $DIRNAME $STOREDIR/.                       # Store for long term
                 mv $DIRNAME $FAILDIR/.                           # Also store in a place specfically for debugging
@@ -85,21 +86,16 @@ for SITE in "${SITES[@]}";do
             fi
         fi
         echo 'Checking cache.'                                   # About to submit a job, so update the cache
-        if [ "$TEST" == "submit" ]; then                         # If specified
+        if [ "$TEST" == "s" ]; then                              # If specified
             cd $CACHEDIR                                         # Go to the cache storage place
-            python updateCache.py -T $SITE                       # Check and update the cache if necessary
+#            ./updateCache.sh $SITE                               # Check and update the cache if necessary
             cd -                                                 # Come back    
         fi
         NOW=`date +"%Y-%m-%d-%T"`                                # Otherwise, there is no directory for a site
         echo ./submit.sh $SITE $NOW                              # It's easy to make a directory though
-        if [ "$TEST" == "submit" ]; then                         # If specified
-            if [ -f $CACHEDIR/$SITE/flag ]; then                 # Check if failure flag is there
-                echo "###################################################"
-                echo "# Did not successfully get file list... Aborting. #"
-                echo "###################################################"
-            else
-                ./submit.sh $SITE $NOW                       # Submits a job here
-            fi
+        if [ "$TEST" == "s" ]; then                              # If specified
+            echo "Submitting..."
+            ./submit.sh $SITE $NOW                               # Submits a job here
         fi
     fi
 done
