@@ -1,18 +1,59 @@
 #! /bin/bash
 
+# First, make sure that jq is installed
+
+jqCall=./jq                                        # Start out assuming local
+
+if [ ! -f jq ]                                     # If not local, check for installation
+then
+    if [ "`which jq`" != "" ]
+    then
+        jqCall=`which jq`
+    else                                           # If no installation download locally
+        downloadUrl=https://github.com/stedolan/jq/releases/download/jq-1.5
+        if [ "`uname -m`" = "x86_64" ]             # Check for architecture
+        then
+            downloadUrl=$downloadUrl/jq-linux64    # I'm assuming linux binaries work for now
+        else
+            downloadUrl=$downloadUrl/jq-linux32
+        fi
+        wget -O jq $downloadUrl                    # Download jq and install locally
+        chmod +x jq
+    fi
+fi
+
 # Start by downloading the new files and deletions
 
-#declare -a sites=("T2_AT_Vienna" "T2_BE_IIHE" "T2_BE_UCL" "T2_BR_SPRACE" "T2_BR_UERJ" "T2_CH_CERN" "T2_CH_CSCS" "T2_CN_Beijing" "T2_DE_DESY" "T2_DE_RWTH" "T2_EE_Estonia" "T2_ES_CIEMAT" "T2_ES_IFCA" "T2_FI_HIP" "T2_FR_CCIN2P3" "T2_FR_GRIF_IRFU" "T2_FR_GRIF_LLR" "T2_FR_IPHC" "T2_GR_Ioannina" "T2_HU_Budapest" "T2_IN_TIFR" "T2_IT_Bari" "T2_IT_Legnaro" "T2_IT_Pisa" "T2_IT_Rome" "T2_KR_KNU" "T2_MY_UPM_BIRUNI" "T2_PK_NCP" "T2_PL_Swierk" "T2_PL_Warsaw" "T2_PT_NCG_Lisbon" "T2_RU_IHEP" "T2_RU_INR" "T2_RU_ITEP" "T2_RU_JINR" "T2_RU_PNPI" "T2_RU_RRC_KI" "T2_RU_SINP" "T2_TH_CUNSTDA" "T2_TR_METU" "T2_UA_KIPT" "T2_UK_London_Brunel" "T2_UK_London_IC" "T2_UK_SGrid_Bristol" "T2_UK_SGrid_RALPP" "T2_US_Caltech" "T2_US_Florida" "T2_US_MIT" "T2_US_Nebraska" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
-#declare -a sites=("T2_AT_Vienna" "T2_BE_IIHE" "T2_BE_UCL" "T2_BR_UERJ" "T2_EE_Estonia" "T2_ES_CIEMAT" "T2_IT_Pisa" "T2_IT_Rome" "T2_US_Caltech" "T2_US_Florida" "T2_US_Nebraska" "T2_US_Purdue" "T2_US_UCSD" "T2_US_Vanderbilt" "T2_US_Wisconsin")
-declare -a sites=("T3_US_MIT")
+for site in `cat SitesList.txt`; do                # Sites you are keeping in this Cache are in SitesList.txt
+    if [ "${site:0:1}" = "#" ]                     # Possible to comment out sites
+    then
+        continue
+    fi
 
-#for site in `ls -d T2_*/ | sed 's/[/].*$//'`; do
-for site in "${sites[@]}"; do
     echo $site
 
-    # First, let's generate a time that we are interested in looking at
-#    origtime=`/home/dabercro/./jq -M .phedex.request_timestamp $site/$site\_added.json | sed 's/\..*$//'`
-    origtime=`/home/dabercro/./jq -M .phedex.request_timestamp $site/$site.json | sed 's/\..*$//'`
+    # First, let's look for existing cache, otherwise look for cache on AFS server
+
+    if [ ! -f $site/$site.json ]
+    then
+        if [ ! -d $site ]
+        then
+            mkdir $site
+        fi
+        cacheUrl=http://dabercro.web.cern.ch/dabercro/T2_Cache/$site/$site.json
+        wget --spider $cacheUrl
+        if [ $? -ne 0 ]
+        then
+            echo "Looks like the entire content for $site has to be redownloaded..."
+            echo "Contact Dan. He hasn't put something nice for this yet because he's a bum."
+            exit 1
+        else
+            wget -O $site/$site.json $cacheUrl
+        fi
+    fi
+
+#    origtime=`$jqCall -M .phedex.request_timestamp $site/$site\_added.json | sed 's/\..*$//'`
+    origtime=`$jqCall -M .phedex.request_timestamp $site/$site.json | sed 's/\..*$//'`
     now=`date +%s`
     oldtime=`expr $now - 302400`                    # Anything older than half a week, time to download
     if [ $oldtime -gt $origtime ]; then
@@ -22,18 +63,18 @@ for site in "${sites[@]}"; do
         wget --no-check-certificate -O $site/$site\_added.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node=$site\&update_since=$requesttime
 
         # Just temporary until I get this junk working...
-        /home/dabercro/./jq -M '.phedex|[.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/$site.json > $site/$site\_prephedex.json
+        $jqCall -M '.phedex|[.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/$site.json > $site/$site\_prephedex.json
 
-        /home/dabercro/./jq '[.[].dataset|split("/")[1]]|unique'  $site/$site\_prephedex.json > $site/datasetList.txt
+        $jqCall '[.[].dataset|split("/")[1]]|unique'  $site/$site\_prephedex.json > $site/datasetList.txt
 
         rm $site/PhEDEx/*.json
         python downloadOld.py -T $site
 
-        /home/dabercro/./jq -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/PhEDEx/*.json > $site/$site\_prephedex.json
+        $jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/PhEDEx/*.json > $site/$site\_prephedex.json
 
         # Format the data
-        /home/dabercro/./jq -M '.phedex|{request_timestamp,block:[.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]}' $site/$site\_added.json > $site/$site\_formatted_added.json
-        /home/dabercro/./jq -M -s '.[0] + .[1].block' $site/$site\_prephedex.json $site/$site\_formatted_added.json > $site/$site\_temp.json
+        $jqCall -M '.phedex|{request_timestamp,block:[.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]}' $site/$site\_added.json > $site/$site\_formatted_added.json
+        $jqCall -M -s '.[0] + .[1].block' $site/$site\_prephedex.json $site/$site\_formatted_added.json > $site/$site\_temp.json
         cp $site/$site\_temp.json $site/$site\_prephedex.json
         python mergeFiles.py -T $site
     else
