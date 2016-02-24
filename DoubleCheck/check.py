@@ -28,4 +28,4 @@ for old in os.listdir('PhEDEx'):
 for thing in datasetList:
     fileName = 'PhEDEx/'+thing[0].replace('/','__')+'.json'
     if not os.path.exists(fileName):
-        os.system('wget --no-check-certificate -O '+fileName+' https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset='+thing[0]+'\&node=T2_US_MIT')
+        os.system('wget -q --no-check-certificate -O '+fileName+' https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset='+thing[0]+'\&node=T2_US_MIT')
