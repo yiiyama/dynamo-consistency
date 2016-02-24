@@ -1,3 +1,5 @@
+#! /usr/bin/python
+
 import os, json, zlib, urllib2, sys
 from time import time
 import compare, LFN2PFNConverter
