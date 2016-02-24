@@ -36,68 +36,57 @@ then
     fi
 fi
 
-# Start by downloading the new files and deletions
+# Use this thing from IntelROCCS to get reasonable approximation of all datasets
+    
+getting="wget -O DatasetsInPhedexAtSites.dat http://t3serv001.mit.edu/~cmsprod/IntelROCCS/Detox/status/DatasetsInPhedexAtSites.dat"
+if [ ! -f DatasetsInPhedexAtSites.dat ]
+then
+    $getting                                           # I'm going to trust Sid and assume that works
+fi
+if [ `expr $(date +%s) - $(date +%s -r DatasetsInPhedexAtSites.dat)` -gt 86400 ]
+then
+    $getting
+fi
 
-for site in `cat SitesList.txt`; do                # Sites you are keeping in this Cache are in SitesList.txt
-    if [ "${site:0:1}" = "#" ]                     # Possible to comment out sites
+for site in `cat SitesList.txt`; do                    # Sites you are keeping in this Cache are in SitesList.txt
+    if [ "${site:0:1}" = "#" ]                         # Possible to comment out sites
     then
         continue
     fi
 
     echo $site
 
-    # First, let's look for existing cache, otherwise look for cache on AFS server
-
-    if [ ! -f $site/$site.json ]
+    if [ ! -d $site ]
     then
-        if [ ! -d $site ]
+        mkdir $site
+    fi
+
+    if [ -f $site/$site\_temp.json ]
+    then
+        origtime=`date +%s -r $site/$site\_temp.json`  # This line also assumes you're working on Linux
+        now=`date +%s`
+        oldtime=`expr $now - 302400`                   # Anything older than half a week, time to download
+        if [ $oldtime -lt $origtime ]
         then
-            mkdir $site
-        fi
-        cacheUrl=http://dabercro.web.cern.ch/dabercro/T2_Cache/$site/$site.json
-        wget --spider $cacheUrl
-        if [ $? -ne 0 ]
-        then
-            echo "Looks like the entire content for $site has to be redownloaded..."
-            echo "Contact Dan. He hasn't put something nice for this yet because he's a bum."
-            exit 1
-        else
-            wget -O $site/$site.json $cacheUrl
+            echo "Not updating. File is less than 302400 seconds old."
+            echo $oldtime' ; '$origtime
+            continue
         fi
     fi
 
-#    origtime=`$jqCall -M .phedex.request_timestamp $site/$site\_added.json | sed 's/\..*$//'`
-    origtime=`$jqCall -M .phedex.request_timestamp $site/$site.json | sed 's/\..*$//'`
-    now=`date +%s`
-    oldtime=`expr $now - 302400`                    # Anything older than half a week, time to download
-    if [ $oldtime -gt $origtime ]; then
-        requesttime=`expr $origtime - 2630000`      # Request data one month older than the previous request
-        echo Requesting time: $requesttime
-
-        wget --no-check-certificate -O $site/$site\_added.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*\&node=$site\&update_since=$requesttime
-
-        # Just temporary until I get this junk working...
-        $jqCall -M '.phedex|[.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/$site.json > $site/$site\_prephedex.json
-
-        $jqCall '[.[].dataset|split("/")[1]]|unique'  $site/$site\_prephedex.json > $site/datasetList.txt
-
-        if [ ! -d $site/PhEDEx ]
-        then
-            mkdir $site/PhEDEx
-        else
-            rm $site/PhEDEx/*.json &> /dev/null
-        fi
-            
-        python downloadOld.py -T $site
-
-        $jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/PhEDEx/*.json > $site/$site\_prephedex.json
-
-        # Format the data
-        $jqCall -M '.phedex|{request_timestamp,block:[.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]}' $site/$site\_added.json > $site/$site\_formatted_added.json
-        $jqCall -M -s '.[0] + .[1].block' $site/$site\_prephedex.json $site/$site\_formatted_added.json > $site/$site\_temp.json
-        cp $site/$site\_temp.json $site/$site\_prephedex.json
-        python mergeFiles.py -T $site
+    if [ ! -d $site/PhEDEx ]
+    then
+        mkdir $site/PhEDEx
     else
-        echo $oldtime' ; '$origtime
+        rm $site/PhEDEx/*.json &> /dev/null
     fi
+    
+    python downloadOld.py -T $site
+    
+    $jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/PhEDEx/*.json > $site/$site\_prephedex.json
+
+    # Format the data
+    $jqCall -M -s '.[0] + .[1].block' $site/$site\_prephedex.json > $site/$site\_temp.json
+    cp $site/$site\_temp.json $site/$site\_prephedex.json
+    python mergeFiles.py -T $site                   # I should go back and review what this does
 done
