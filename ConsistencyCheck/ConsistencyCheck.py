@@ -69,12 +69,19 @@ skipCksm = not opts.doCksm                                          # Skipping c
 startTime = time()                                                  # Start timing for a final readout of the run time
 oldTime = 604800                                                    # If the PhEDEx file hasn't been downloaded for a week, quit the job
 
+# If Cache is filled, use that
+cacheFile = '../Cache/' + TName + '/' + TName + '_phedex.json'
+if os.path.exists(cacheFile):
+    if not os.path.exists(TName + '_phedex.json'):
+        print 'Creating from cache.'
+        os.system('cp ' + cacheFile + ' .')
+    if os.getmtime(TName + '_phedex.json') < os.getmtime(cacheFile):
+        print 'Updating from cache.'
+        os.system('cp ' + cacheFile + ' .')
+
 isOld = False
 if os.path.exists(TName + '_phedex.json'):
     if startTime - os.path.getctime(TName + '_phedex.json') > oldTime:
-        isOld = True
-elif os.path.exists('../Cache/' + TName + '/' + TName + '_phedex.json'):
-    if startTime - os.path.getctime('../Cache/' + TName + '/' + TName + '_phedex.json') > oldTime:
         isOld = True
 else:
     print 'Missing PhEDEx file.'
@@ -92,6 +99,8 @@ print 'Checking for empty files...'                                 # If anythin
 cleanEmpty()
 
 if not os.path.exists(TName + '_lfn2pfn.json'):
+    if os.path.exists('../Cache/' + TName + '/' + TName + '_lfn2pfn.json'):
+        os.system('cp ../Cache/' + TName + '/' + TName + '_lfn2pfn.json .')
     print 'Missing TFC...'
     exit()
 
