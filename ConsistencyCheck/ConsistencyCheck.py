@@ -101,8 +101,9 @@ cleanEmpty()
 if not os.path.exists(TName + '_lfn2pfn.json'):
     if os.path.exists('../Cache/' + TName + '/' + TName + '_lfn2pfn.json'):
         os.system('cp ../Cache/' + TName + '/' + TName + '_lfn2pfn.json .')
-    print 'Missing TFC...'
-    exit()
+    else:
+        print 'Missing TFC...'
+        exit()
 
 prefix   = LFN2PFNConverter.GetPrefix(TName)                        # Get the file prefix using the TFC file
 startDir = prefix + '/store/'
