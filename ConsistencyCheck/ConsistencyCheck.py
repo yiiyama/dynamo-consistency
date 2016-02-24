@@ -75,7 +75,7 @@ if os.path.exists(cacheFile):
     if not os.path.exists(TName + '_phedex.json'):
         print 'Creating from cache.'
         os.system('cp ' + cacheFile + ' .')
-    if os.getmtime(TName + '_phedex.json') < os.getmtime(cacheFile):
+    if os.path.getmtime(TName + '_phedex.json') < os.path.getmtime(cacheFile):
         print 'Updating from cache.'
         os.system('cp ' + cacheFile + ' .')
 
