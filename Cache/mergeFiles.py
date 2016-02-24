@@ -1,3 +1,5 @@
+#! /usr/bin/python
+
 import deco, LFN2PFNConverter
 import tarfile, os, json, sys
 from optparse import OptionParser
@@ -31,21 +33,6 @@ if not opts.__dict__['TName']:
 
 TName = opts.TName                                              # Name of the site is stored here
 
-## First load the list of files that were deleted. Make sure they are not added to the final list.
-#try:
-#    inFile = open(TName + '/' + TName + '_formatted_deleted.json')
-#    inData = json.load(inFile)
-#    inFile.close()
-#except:
-#    print 'File list wasn\'t successfully loaded.'
-#    print 'Exiting...'
-#    exit()
-#
-#deletedList = []
-#
-#for block in inData['block']:
-#    deletedList.append([block['name'],block['time']])
-
 # Next move on to the files that we should search for. Ignore deleted blocks and duplicates.
 if not os.path.exists(TName+'/'+TName+'_lfn2pfn.json'):
     print 'Getting TFC...'
@@ -66,22 +53,9 @@ duplicateList = []
 
 blockList = []
 for block in inData:
-    found = False
-#    for deleted in deletedList:
-#        if str(block['dataset']) == str(deleted[0]):
-#            print "Deleted: " + str(deleted[0])
-#            found = True
-#            break
-#    if found:
-#        continue
-    for duplicate in duplicateList:
-        if str(block['dataset']) == str(duplicate):
-#            print str(duplicate)
-            found = True
-            break
-    if found:
+    if str(block['dataset']) in duplicateList:
         continue
-    duplicateList.append(block['dataset'])
+    duplicateList.append(str(block['dataset']))
     if block['directory'].startswith(prefix):
         blockList.append({'directory':str(block['directory']),'files':block['files'],'dataset':str(block['dataset'])})
     else:

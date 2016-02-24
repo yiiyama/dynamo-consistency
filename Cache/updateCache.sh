@@ -81,12 +81,12 @@ for site in `cat SitesList.txt`; do                    # Sites you are keeping i
         rm $site/PhEDEx/*.json &> /dev/null
     fi
     
-    python downloadOld.py -T $site
+    ./downloadOld.py -T $site
     
     $jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/PhEDEx/*.json > $site/$site\_prephedex.json
 
     # Format the data
     $jqCall -M -s '.[0] + .[1].block' $site/$site\_prephedex.json > $site/$site\_temp.json
     cp $site/$site\_temp.json $site/$site\_prephedex.json
-    python mergeFiles.py -T $site                   # I should go back and review what this does
+    ./mergeFiles.py -T $site                   # I should go back and review what this does
 done

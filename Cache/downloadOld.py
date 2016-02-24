@@ -1,3 +1,5 @@
+#! /usr/bin/python
+
 import os
 from time import sleep
 from optparse import OptionParser
@@ -15,9 +17,9 @@ if os.path.exists('DatasetsInPhedexAtSites.dat'):
     inFile = open('DatasetsInPhedexAtSites.dat','r')
     toDownload = set()
     for line in inFile:
-        if line.startswith('/'):
+        if line.startswith('/') and TName in line.split(' '):
             dataName = line.split('/')[1]
-            datasetNameLen = 3
+            datasetNameLen = 2
             if len(dataName) >= datasetNameLen:
                 dataName = dataName[:datasetNameLen] + "*"
             toDownload.add(dataName)

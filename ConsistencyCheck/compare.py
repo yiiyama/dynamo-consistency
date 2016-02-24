@@ -10,7 +10,11 @@ def finalCheck(TName,skipCksm):
     currentTime = time.time()
     cutTime = 604800*4                                                         # Ignore files that are less than 4 weeks old
     timeTolerance = 3600                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
-    firstFile = open(TName + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
+    firstFile = None
+    if os.path.exists(TName + '_phedex.json'):
+        firstFile = open(TName + '_phedex.json')                               # Loads the JSON file of parsed PhEDEx
+    elif os.path.exists('../Cache/' + TName + '/' + TName + '_phedex.json'):
+        firstFile = open('../Cache/' + TName + '/' + TName + '_phedex.json')
     print 'Loading first file...'
     firstData = json.load(firstFile)
     firstFile.close()

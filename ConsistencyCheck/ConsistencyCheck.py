@@ -71,6 +71,9 @@ isOld = False
 if os.path.exists(TName + '_phedex.json'):
     if startTime - os.path.getctime(TName + '_phedex.json') > oldTime:
         isOld = True
+elif os.path.exists('../Cache/' + TName + '/' + TName + '_phedex.json'):
+    if startTime - os.path.getctime('../Cache/' + TName + '/' + TName + '_phedex.json') > oldTime:
+        isOld = True
 else:
     print 'Missing PhEDEx file.'
     exit()
