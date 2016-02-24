@@ -10,6 +10,20 @@ then
     then
         jqCall=`which jq`
     else                                           # If no installation download locally
+        echo ""
+        echo "######################################################"
+        echo "#                                                    #"
+        echo "#     I am copying the tool 'jq' binary locally.     #"
+        echo "#     Check out the website here:                    #"
+        echo "#     https://stedolan.github.io/jq/                 #"
+        echo "#     I know nothing about licensing, but jq         #"
+        echo "#     is under the MIT license detailed here:        #"
+        echo "#                                                    #"
+        echo "# https://github.com/stedolan/jq/blob/master/COPYING #"
+        echo "#                                                    #"
+        echo "######################################################"
+        echo ""
+
         downloadUrl=https://github.com/stedolan/jq/releases/download/jq-1.5
         if [ "`uname -m`" = "x86_64" ]             # Check for architecture
         then
