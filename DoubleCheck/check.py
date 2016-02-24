@@ -1,6 +1,8 @@
+#! /usr/bin/python
+
 import json, os
 
-inFile = open('T2_US_MIT_skipCksm_missing.txt','r')
+inFile = open('../ConsistencyCheck/T2_US_MIT_skipCksm_missing.txt','r')
 
 dataset = ''
 block = ''

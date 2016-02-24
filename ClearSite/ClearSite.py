@@ -1,3 +1,5 @@
+#! /usr/bin/python
+
 import os, sys
 from optparse import OptionParser
 from time import sleep
