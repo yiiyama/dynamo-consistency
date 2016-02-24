@@ -81,7 +81,13 @@ for site in `cat SitesList.txt`; do                # Sites you are keeping in th
 
         $jqCall '[.[].dataset|split("/")[1]]|unique'  $site/$site\_prephedex.json > $site/datasetList.txt
 
-        rm $site/PhEDEx/*.json
+        if [ ! -d $site/PhEDEx ]
+        then
+            mkdir $site/PhEDEx
+        else
+            rm $site/PhEDEx/*.json &> /dev/null
+        fi
+            
         python downloadOld.py -T $site
 
         $jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/PhEDEx/*.json > $site/$site\_prephedex.json
