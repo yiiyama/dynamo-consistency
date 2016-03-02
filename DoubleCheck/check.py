@@ -2,7 +2,7 @@
 
 import json, os
 
-inFile = open('../ConsistencyCheck/T2_US_MIT_skipCksm_missing.txt','r')
+inFile = open('T2_US_MIT_skipCksm_missing.txt','r')
 
 dataset = ''
 block = ''

@@ -6,7 +6,7 @@ jqCall=./jq                                        # Start out assuming local
 
 if [ ! -f jq ]                                     # If not local, check for installation
 then
-    if [ "`which jq`" != "" ]
+    if [ "`which jq 2> /dev/null`" != "" ]
     then
         jqCall=`which jq`
     else                                           # If no installation download locally
