@@ -53,7 +53,7 @@ for block in inData:
     if block['directory'].startswith(prefix):
         blockList.append({'directory':str(block['directory']),'files':block['files'],'dataset':str(block['dataset'])})
     else:
-        blockList.append({'directory':prefix+str(block['directory'])+"/",'files':block['files'],'dataset':str(block['dataset'])})
+        blockList.append({'directory':prefix+'/'+str(block['directory'])+'/','files':block['files'],'dataset':str(block['dataset'])})
 
 outfile = open(TName+'/'+TName+'_phedex.json','w')
 outfile.write(json.dumps(blockList))

@@ -9,7 +9,7 @@ def finalCheck(TName,skipCksm):
     errorMessage = "ERROR ACCESSING"
     currentTime = time.time()
     cutTime = 604800*4                                                         # Ignore files that are less than 4 weeks old
-    timeTolerance = 3600                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
+    timeTolerance = 360000000                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
     firstFile = open(TName + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
     print 'Loading first file...'
     firstData = json.load(firstFile)
@@ -51,7 +51,7 @@ def finalCheck(TName,skipCksm):
                 newDir = True
         if newDir:
             newBlocks.append(aBlock['dataset'])                                # Store the block name for future skipping
-            print 'Skipping block ' + aBlock['dataset'] + ' because it is new.'
+#            print 'Skipping block ' + aBlock['dataset'] + ' because it is new.'
     for aBlock in firstData:                                                   # For every directory in the parsed list
         newBlock = False
         for skipBlock in newBlocks:                                            # Check that this block should not be skipped because it is new
@@ -124,7 +124,7 @@ def finalCheck(TName,skipCksm):
             print 'Could not access time of ' + aBlock['directory'] + '. Skipping...'
             continue
         elif (currentTime - float(aBlock['time'])) < cutTime:                     # If the directory is less than 2.5 weeks old, skip it
-            print 'Skipping the directory ' + aBlock['directory'] + ' because it is new.'
+#            print 'Skipping the directory ' + aBlock['directory'] + ' because it is new.'
             for aFile in aBlock['files']:
                 try:
                     isUsed = isUsed + int(aFile['size'])                        # Add to the space that is being used
@@ -147,7 +147,7 @@ def finalCheck(TName,skipCksm):
                     print 'Skipping the file ' + aDirectory + aFile['file'] + ' because time is inaccessible.'
                     continue
                 elif (currentTime - float(aFile['time'])) < cutTime:              # If the file is not old, skip it
-                    print 'Skipping the file ' + aDirectory + aFile['file'] + ' because it is new.'
+#                    print 'Skipping the file ' + aDirectory + aFile['file'] + ' because it is new.'
                     continue
                 found = False
                 aName = aFile['file']

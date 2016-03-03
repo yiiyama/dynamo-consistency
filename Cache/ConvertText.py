@@ -28,18 +28,21 @@ uberOut = open(siteName + '/' + siteName + '.txt','r')
 
 OutputList = list()
 DirectoryInfo = list()
+NewDirectory = ''
 CurrentDirectory = ''
 FileInDirList = list()
 
 for line in uberOut.readlines():
     if not line.endswith('.root\n'):
+        DirectoryInfo = line.strip('\n').split()
+        NewDirectory = '/'.join(DirectoryInfo[-1].split('/')[:-1]) + '/'
+        continue
+
+    if NewDirectory != CurrentDirectory:
         if len(FileInDirList) != 0:
             OutputList.append({"directory": CurrentDirectory, "files": FileInDirList, "time": GetTime(DirectoryInfo[3:6])})
             FileInDirList = []
-
-        DirectoryInfo = line.strip('\n').split()
-        CurrentDirectory = '/'.join(DirectoryInfo[-1].split('/')[:-1]) + '/'
-        continue
+        CurrentDirectory = NewDirectory
 
     FileInfo = line.strip('\n').split()
     FileFull = FileInfo[-1]
@@ -52,11 +55,7 @@ for line in uberOut.readlines():
     if FileDirectory == CurrentDirectory:
         FileInDirList.append({"time": GetTime(FileTime), "adler32": "Not Checked", "file": FileName, "size": int(FileSize)})
     else:
-        print (DirectoryInfo)
-        print (CurrentDirectory)
-        print (FileInfo)
-        print (FileDirectory)
-        print ('Something is wrong with the directory matching. Assuming directory before file is listed first...')
+        print ('Big problem in this thing, yo.')
         exit()
         
 if len(FileInDirList) != 0:

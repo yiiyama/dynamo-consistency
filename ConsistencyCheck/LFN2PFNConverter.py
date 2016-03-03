@@ -43,6 +43,6 @@ def GetPrefix(TName):
             prefix = tempPrefix
     if prefix == '':
         print 'ERROR: Problem with the TFC.'                                 # If not found yet, I give up
-        exit()
+#        exit()
     ##
     return prefix
