@@ -8,19 +8,26 @@ then
     exit 0
 fi
 
-if [ ! -f ../$SiteName\_skipCksm_removable.json ] || [ ! -f ../$SiteName\_phedex.json ]
+if [ ! -f ../ConsistencyCheck/$SiteName\_skipCksm_removable.txt ] || [ ! -f ../ConsistencyCheck/$SiteName\_phedex.json ]
 then
     echo "Output files are missing for $SiteName"
     exit 1
 fi
 
-for checking in `cat ../$SiteName\_skipCksm_removable.json`
+for checking in `cat ../ConsistencyCheck/$SiteName\_skipCksm_removable.txt`
 do
-    if [ "`grep $checking ../$SiteName\_phedex.json`" != "" ]
+    if [ "${checking:0:1}" != "/" ]
     then
-        echo "Found $checking in ../$SiteName\_phedex.json!"
+        continue
+    fi
+
+    if [ "`grep $checking ../ConsistencyCheck/$SiteName\_phedex.json`" != "" ]
+    then
+        echo "Found $checking"
         echo "Exiting..."
         exit 1
+    else
+        ./CheckForPhEDEx.py $SiteName $checking
     fi
 done
 

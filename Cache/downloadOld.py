@@ -17,7 +17,7 @@ if os.path.exists('DatasetsInPhedexAtSites.dat'):
     inFile = open('DatasetsInPhedexAtSites.dat','r')
     toDownload = set()
     for line in inFile:
-        if line.startswith('/') and TName in line.split(' '):
+        if line.startswith('/'): # and TName in line.split(' '):
             dataName = line.split('/')[1]
             datasetNameLen = 2
             if len(dataName) >= datasetNameLen:

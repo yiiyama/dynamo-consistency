@@ -65,7 +65,7 @@ for site in `cat SitesList.txt`; do                    # Sites you are keeping i
     then
         origtime=`date +%s -r $site/$site\_temp.json`  # This line also assumes you're working on Linux
         now=`date +%s`
-        oldtime=`expr $now - 302400`                   # Anything older than half a week, time to download
+        oldtime=`expr $now - 30240`                   # Anything older than half a week, time to download
         if [ $oldtime -lt $origtime ]
         then
             echo "Not updating. File is less than 302400 seconds old."
