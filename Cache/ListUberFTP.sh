@@ -4,15 +4,28 @@ combineCall="cat"
 
 site_SE=SE_$site
 
-UberCall="uberftp -ls gsiftp://${!site_SE}$site_storeLoc"   ## Taken out the -r for now just to test...
+UberCall="uberftp -ls -r gsiftp://${!site_SE}$site_storeLoc"
+
+# Call without recursion just to test
+
+uberftp -ls gsiftp://${!site_SE}$site_storeLoc > /dev/null
+
+if [ $? -ne 0 ]
+then
+    echo "Error making uberftp call for $site. Tried this base:"
+    echo $UberCall
+    exit 1
+fi
 
 echo "Calling site directory structure with:"
 echo "$UberCall"
 
-for dir in `cat Directories.txt`
+for dir in `cat $ConsistencyDir/Config/Directories.txt`
 do
 
-    outFile=$fileBase\_$dir.txt
+    outFile=${fileBase}_$dir.txt
+
+    combineCall="$combineCall $outFile"
 
     # Check if the output file exists
     
@@ -34,18 +47,11 @@ do
 
     $UberCall/$dir > $outFile
 
-    if [ $? -ne 0 ]
-    then
-        echo "Error making uberftp call for $site. Tried this base:"
-        echo $UberCall
-        exit 1
-    fi
-
-    combineCall="$combineCall $outFile"
-
     echo "Finished $dir"
 done
 
-$combineCall $fileBase.txt
+$combineCall > $fileBase.txt
 
 echo "All done with uberftp!"
+
+exit 0

@@ -65,9 +65,9 @@ do
 
      # Check for lfn2pfn file
 
-    if [ ! -f $fileBase\_lfn2pfn.json ]
+    if [ ! -f ${fileBase}_lfn2pfn.json ]
     then
-        wgetCall="wget --no-check-certificate -O $fileBase\_lfn2pfn.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/lfn2pfn?node=$site\&protocol=direct\&lfn=/store/data/test.root"
+        wgetCall="wget --no-check-certificate -O ${fileBase}_lfn2pfn.json https://cmsweb.cern.ch/phedex/datasvc/json/prod/lfn2pfn?node=$site&protocol=direct&lfn=/store/data/test.root"
         $wgetCall
         if [ $? -ne 0 ]
         then
@@ -77,7 +77,7 @@ do
         fi
     fi
 
-    export site_storeLoc=`$jqCall '.phedex.mapping[0]|.pfn|split("/data/test.root")[0]' $fileBase\_lfn2pfn.json | sed 's/"//g'`
+    export site_storeLoc=`$jqCall '.phedex.mapping[0]|.pfn|split("/data/test.root")[0]' ${fileBase}_lfn2pfn.json | sed 's/"//g'`
 
     Cache/ListUberFTP.sh
 
