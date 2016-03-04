@@ -1,0 +1,126 @@
+<!DOCTYPE HTML> 
+<html lang=en> 
+  <head> 
+    <meta charset="utf-8" /> 
+    <meta name="viewport"content="width=device-width,user-scalable=yes"/> 
+    <style type="text/css"> 
+      html{margin:0 auto;max-width:65em}
+      body{font-family:verdana, sans-serif;font-size:17px;padding:0 1em 1em 1em;margin:0}
+      h1{font-size:125%;font-weight:bold;padding:.75em 0 0 0;margin: 0 0 .5em 0;text-align:center}
+      h2{font-size:100%;margin:.5 0 .6em 0;text-align:center;background-color:LightBlue}
+      h3{font-size:75%;margin:.5em 0;text-align:center}
+      h4{font-size:95%;padding:.025em 0}
+      pre{font-size:95%;font-weight:normal}
+      a{text-decoration:none}
+      p{font-size:100%;line-height:1.5em}
+      header{padding:.5em}
+      footer{padding:.5em}
+      div{white-space:pre;background-color:#E3E3E3}
+    </style> 
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  </head>
+  <script>
+    (function($) {
+      $.QueryString = (function(a) {
+        if (a == "") return {};
+          var b = {};
+          for (var i = 0; i < a.length; ++i){
+            var p=a[i].split('=');
+            if (p.length != 2) continue;
+            b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+          }
+          return b;
+        })(window.location.search.substr(1).split('&'))
+      })(jQuery);
+    var sitename = $.QueryString["site"];
+    var summaryLocation = sitename + "/" + sitename + "_skipCksm_summary.txt"
+  </script>
+  <body>
+    <header>
+      <h1 class="site"></h1>
+      <h3>To pick a different site, go back <a href="home.html">here</a>.</h3>
+    </header>
+    <h2>Summary of Consistency Check Results</h2>
+    <p>
+    Below is the summary of the PhEDEx comparison for the <span class="site"></span> storage site.
+    </p>
+    <br>
+    <font face="courier"><div id="summary"></div></font>
+    <script>
+      $("#summary").load(summaryLocation,function(response,status,xhr){
+        if (status=="error"){
+          window.location.replace("home.html");
+        }
+      })
+    </script>
+    <br>
+    <p>
+    A more detailed reports can be accessed here:
+    <br>
+    Files missing from the site: <a target="blank" id="skipCksm_missing"><span class="site"></span>_skipCksm_missing.txt</a>
+    <br>
+    Extra files and directories that can be removed: <a target="blank" id="skipCksm_removable"><span class="site"></span>_skipCksm_removable.txt</a>
+    </p>
+
+    <h2>Directions on How to Clear Excess Files from <span class="site"></span></h2>
+    <p>
+    If you want to clear off some of the excess files from your site, just follow these simple instructions.
+    Download the <font face="courier">ClearSite.sh</font> script from here: 
+    <a target="blank" href="ClearSite.sh">ClearSite.sh</a>.
+    Or you can copy the following command:
+    </p>
+    <div><font face="courier">wget -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/ClearSite.sh; chmod +x ClearSite.sh</font></div>
+    <p>
+    Then run the <font face="courier">ClearSite.sh</font> script for your site with the following argument:
+    </p>
+    <div><font face="courier">./ClearSite.sh <span class="site"></span></font></div>
+    <p>
+    This script will download <font face="courier">ClearSite.py</font> and the consistency result for the specified site or update to new versions if they have already been downloaded.
+    Then you will be given a set of options to either clear off your site, or simply print out the files and directories that would be removed.
+    </p>
+
+    <h2>Directions on How to Copy Missing Files for <span class="site"></span></h2>
+    <p>
+    If you want to copy missing files to your site, just follow these simple instructions.
+    Download the <font face="courier">FillSite.sh</font> script from here: 
+    <a target="blank" href="FillSite.sh">FillSite.sh</a>.
+    Or you can copy the following command:
+    </p>
+    <div><font face="courier">wget -N http://t3serv001.mit.edu/~cmsprod/ConsistencyChecks/FillSite.sh; chmod +x FillSite.sh</font></div>
+    <p>
+    Then run the <font face="courier">FillSite.sh</font> script as <font face="courier">root</font> for your site with the following argument:
+    </p>
+    <div><font face="courier">./FillSite.sh <span class="site"></span></font></div>
+    <p>
+    This script will download <font face="courier">FillSite.py</font> and the consistency result for the specified site or update to new versions if they have already been downloaded.
+    You need to be <font face="courier">root</font> to change the user and group of the new file.
+    The file will have permissions matching the directory it's in (except for a <font face="courier">chmod -x</font>).
+    If the directory that the file is supposed to be in does not exist, no copying is attempted at this point.
+    </p>
+    <p>
+    You also need to have an updated VOMS proxy and working in a CMSSW environment because the python script relies on the <font face="courier">xrdcp</font> command.
+    </p>
+    <p style="color:red">
+    DISCLAIMER: Only files that are on disk at other Tier-2 sites will successfully be copied.
+    We are still working on the case that other file replicas are not on disk.
+    </p>
+
+    <p>
+    Feel free to email me if you want the full output from the job run on your site or if you have any other questions.
+    </p>
+    <footer>
+    <h3>Email: <a href="mailto:daniel.abercrombie@cern.ch" style="text-decoration: underline">daniel.abercrombie@cern.ch</a></h3>
+    </footer>
+  </body>
+  <script>
+    var sites = document.getElementsByClassName("site");
+    for (i0 = 0; i0 < sites.length; i0++){
+      sites[i0].innerHTML = sitename;
+    }
+    var skipCksm_missing_url = sitename + "/" + sitename + "_skipCksm_missing.txt"
+    document.getElementById("skipCksm_missing").setAttribute("href",skipCksm_missing_url);
+    var skipCksm_removable_url = sitename + "/" + sitename + "_skipCksm_removable.txt"
+    document.getElementById("skipCksm_removable").setAttribute("href",skipCksm_removable_url);
+    var resultsSummary;
+  </script>
+</html>

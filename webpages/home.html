@@ -1,0 +1,78 @@
+<!DOCTYPE HTML> 
+<html lang=en> 
+<head> 
+<meta charset="utf-8" /> 
+<meta name="viewport"content="width=device-width,user-scalable=yes"/> 
+<title>Consistency Check</title>
+<style type="text/css"> 
+html{margin:0 auto;max-width:40em}
+body{font-family:verdana, sans-serif;font-size:17px;padding:0 1em 1em 1em;margin:0}
+h1{font-size:125%;font-weight:bold;letter-spacing:0.16em;padding:.75em 0 0 0;margin: 0 0 .5em 0;text-align:center}
+h2{font-size:100%;margin:.5 0 .6em 0;text-align:center}
+h3{font-size:95%;margin:.5em 0;text-align:center}
+h4{font-size:95%;padding:.025em 0}
+a{text-decoration:none}
+p{font-size:100%;line-height:1.5em}
+figure{display:block;margin:auto;padding:.3em 0 0 0}
+figcaption{font-size:90%}
+th{padding:.7em 0 .3em 0}
+td{padding:.2em 0;}
+ul{margin:.5em 2em;padding:0}
+li{line-height:1.4em;font-size:95%}
+nav{border-bottom: 1px solid #ccc;margin-bottom:1em}
+caption{text-align:left;font-weight:bold}
+th{text-align:left;font-weight:bold}
+table{padding:0}
+td{font-size:95%;line-height:1.5em}
+header{background-color:#811;padding:.5em;color:#fff}
+article{padding-bottom:1em}
+footer{padding:.5em}
+</style> 
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+</head>
+<body>
+<header>
+<h1>Consistency Checks</h1>
+</header>
+<br>
+<p>
+Use the drop down menu to see the results of the consistency checks that were ran on various storage sites.
+</p>
+<form action=results.html>
+<center>
+<select name="site">
+<option selected value="default">Please Select Site Name</option>
+<script>
+$.getJSON("sitelist.json", function( json ) {
+  $.each(json, function(key, value) {
+      $('select[name=site]').append('<option value="' + key + '">' + json[key] + '</option>');
+  });
+});
+</script>
+</select>
+</form>
+<input Please Select</type="submit" value="Submit">
+</center>
+
+<!--
+<p>
+If your site does not appear in this list, we have not acquired a consistency check result for it. Email me, and you will be added
+to the list of sites that are checked regularly via CRAB. Results posted to this website are updated every week or so. 
+</p>
+
+<p style="color:red">
+If your site does appear on this list, but you are redirected back to this page, that is because your site's results summary is not loading.
+Please let me know if that happens.
+</p>
+-->
+
+<p style="color:blue">
+This page is out of date and hasn't been updated since CRAB2 stopped working.
+We are currently working to change Consistency Checks into local tool.
+</p>
+
+<footer>
+<h3>Email: <a href="mailto:daniel.abercrombie@cern.ch" style="text-decoration: underline">daniel.abercrombie@cern.ch</a></h3>
+</footer>
+</body>
+</html>

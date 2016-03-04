@@ -16,5 +16,5 @@ if [ ! -f $SiteName\_skipCksm_missing.txt ]; then
     exit
 fi
 
-echo python FillSite.py -T $SiteName
-python FillSite.py -T $SiteName
+echo ./FillSite.py -T $SiteName
+./FillSite.py -T $SiteName

@@ -24,20 +24,20 @@ echo 'Please select an option:'
 select opt in "${options[@]}"; do
     case $opt in 
         "${options[0]}")
-            echo python ClearSite.py --safe -T $SiteName
-            python ClearSite.py --safe -T $SiteName
+            echo ./ClearSite.py --safe -T $SiteName
+            ./ClearSite.py --safe -T $SiteName
             break;;
         "${options[1]}")
-            echo python ClearSite.py --fast --safe -T $SiteName
-            python ClearSite.py --fast --safe -T $SiteName
+            echo ./ClearSite.py --fast --safe -T $SiteName
+            ./ClearSite.py --fast --safe -T $SiteName
             break;;
         "${options[2]}")
-            echo python ClearSite.py -T $SiteName
-            python ClearSite.py -T $SiteName
+            echo ./ClearSite.py -T $SiteName
+            ./ClearSite.py -T $SiteName
             break;;
         "${options[3]}")
-            echo python ClearSite.py --fast -T $SiteName
-            python ClearSite.py --fast -T $SiteName
+            echo ./ClearSite.py --fast -T $SiteName
+            ./ClearSite.py --fast -T $SiteName
             break;;
         "${options[4]}")
             echo "Quitting without clearing..."

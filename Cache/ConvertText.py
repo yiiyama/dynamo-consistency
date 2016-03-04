@@ -12,19 +12,13 @@ def GetTime(uberDate):
     return time.mktime(time.strptime(' '.join(uberDate),'%b %d %H:%M %Y'))
 
 
-if len(sys.argv) < 2:
-    print ('Give me the name of a site!')
-    print (sys.argv[0] + ' <sitename>')
-    exit()
-
-siteName = sys.argv[1]
-if not os.path.exists(siteName + '/' + siteName + '.txt'):
+if not os.path.exists(os.environ['fileBase'] + '.txt'):
     print ('uberftp output seems to be missing.')
-    print ('Check ' + siteName + '/' + siteName + '.txt')
+    print ('Check ' + os.environ['fileBase'] + '.txt')
     exit()
 
 
-uberOut = open(siteName + '/' + siteName + '.txt','r')
+uberOut = open(os.environ['fileBase'] + '.txt','r')
 
 OutputList = list()
 DirectoryInfo = list()
@@ -57,13 +51,13 @@ for line in uberOut.readlines():
     else:
         print ('Big problem in this thing, yo.')
         exit()
+
+uberOut.close()
         
 if len(FileInDirList) != 0:
     OutputList.append({"directory": CurrentDirectory, "files": FileInDirList, "time": GetTime(DirectoryInfo[3:6])})
     FileInDirList = []
 
-uberOut.close()
-
-outfile = open(siteName+'/'+siteName+'_skipCksm_exists.json','w')
+outfile = open(os.environ['fileBase'] + '_skipCksm_exists.json','w')
 outfile.write(json.dumps(OutputList))
 outfile.close()
