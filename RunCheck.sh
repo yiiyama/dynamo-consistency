@@ -48,10 +48,17 @@ then
     jqCall=$ConsistencyDir/jq
 fi
 
+export jqCall
+
 # Then do stuff for each site.
 
 for site in `cat Config/SitesList.txt`
 do
+
+    if [ "${site:0:1}" = "#" ]                         # Possible to comment out sites
+    then
+        continue
+    fi
 
     export site
     export fileBase=$ConsistencyCacheDirectory/$site/$site
@@ -80,5 +87,6 @@ do
     export site_storeLoc=`$jqCall '.phedex.mapping[0]|.pfn|split("/data/test.root")[0]' ${fileBase}_lfn2pfn.json | sed 's/"//g'`
 
     Cache/ListUberFTP.sh
+    Cache/UpdatePhedexList.sh
 
 done
