@@ -87,7 +87,11 @@ do
     export site_storeLoc=`$jqCall '.phedex.mapping[0]|.pfn|split("/store/data/test.root")[0]' ${fileBase}_lfn2pfn.json | sed 's/"//g'`
 
     echo " ### $site ###"
+
     Cache/ListUberFTP.sh
     Cache/UpdatePhedexList.sh
+    Cache/ConvertText.py
+
+    Check/ConsistencyCheck.py
 
 done

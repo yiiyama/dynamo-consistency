@@ -6,26 +6,27 @@ def writeBlock(dataSet,store):                                                # 
     store.append('* Block  : ' + dataSet.split('#')[1] + ' \n')
 
 def finalCheck(TName,skipCksm):
+    fileBase = os.environ['fileBase']
     errorMessage = "ERROR ACCESSING"
     currentTime = time.time()
     cutTime = 604800*4                                                         # Ignore files that are less than 4 weeks old
     timeTolerance = 360000000                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
-    firstFile = open(TName + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
+    firstFile = open(fileBase + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
     print 'Loading first file...'
     firstData = json.load(firstFile)
     firstFile.close()
     print 'Loaded...'
 
     if skipCksm:                                                               # Then loads the JSON file of what exists in directory
-        if not os.path.exists(TName + '_skipCksm_exists.json'):
+        if not os.path.exists(fileBase + '_skipCksm_exists.json'):
             print 'Exists file does not exist. No comparison to make...'
             exit()
-        secondFile = open(TName + '_skipCksm_exists.json')
+        secondFile = open(fileBase + '_skipCksm_exists.json')
     else:
-        if not os.path.exists(TName + '_exists.json'):
+        if not os.path.exists(fileBase + '_exists.json'):
             print 'Exists file does not exist. No comparison to make...'
             exit()
-        secondFile = open(TName + '_exists.json')
+        secondFile = open(fileBase + '_exists.json')
     print 'Loading second file...'
     secondData = json.load(secondFile)
     secondFile.close()
@@ -179,15 +180,15 @@ def finalCheck(TName,skipCksm):
     exists.append('\n')
 
     if skipCksm:                                                                # Everything will be stored differently when skipping checksum calculations
-        print 'Missing report will be in: ' + TName + '_skipCksm_missing.txt'
-        reportMissing = open(TName + '_skipCksm_missing.txt','w')
-        print 'Clear list will be in: ' + TName + '_skipCksm_removable.txt'
-        reportClear = open(TName + '_skipCksm_removable.txt','w')
+        print 'Missing report will be in: ' + fileBase + '_skipCksm_missing.txt'
+        reportMissing = open(fileBase + '_skipCksm_missing.txt','w')
+        print 'Clear list will be in: ' + fileBase + '_skipCksm_removable.txt'
+        reportClear = open(fileBase + '_skipCksm_removable.txt','w')
     else:
-        print 'Report will be in: ' + TName + '_missing.txt'
-        reportMissing = open(TName + '_missing.txt','w')
-        print 'Clear list will be in: ' + TName + '_removable.txt'
-        reportClear = open(TName + '_removable.txt','w')
+        print 'Report will be in: ' + fileBase + '_missing.txt'
+        reportMissing = open(fileBase + '_missing.txt','w')
+        print 'Clear list will be in: ' + fileBase + '_removable.txt'
+        reportClear = open(fileBase + '_removable.txt','w')
     # Stick some useful instructions at the beginning of the report
     fmt1 = "{0:>10}"
     reportMissing.write('You are missing ' + str(float("{0:.2f}".format(float(missingSize)/2**30))) + ' GB worth of files. \n')
@@ -207,11 +208,11 @@ def finalCheck(TName,skipCksm):
     reportMissing.close()
     reportClear.close()
     if skipCksm:                                                               # Everything will be stored differently when skipping checksum calculations
-        print 'Putting summary in: ' + TName + '_skipCksm_summary.txt'
-        summary = open(TName + '_skipCksm_summary.txt','w')
+        print 'Putting summary in: ' + fileBase + '_skipCksm_summary.txt'
+        summary = open(fileBase + '_skipCksm_summary.txt','w')
     else:
-        print 'Putting summary in: ' + TName + '_summary.txt'
-        summary = open(TName + '_summary.txt','w')
+        print 'Putting summary in: ' + fileBase + '_summary.txt'
+        summary = open(fileBase + '_summary.txt','w')
     fmt = '{0:<46} {1:>13}'
     summary.write(fmt.format('Amount of space that can be cleared:',str(float("{0:.2f}".format(float(clearSize)/2**30))) + ' GB') + '\n')
     summary.write(fmt.format('Estimated size of files that are missing:',str(float("{0:.2f}".format(float(missingSize)/2**30))) + ' GB') + '\n')

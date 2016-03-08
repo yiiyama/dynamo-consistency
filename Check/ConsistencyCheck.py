@@ -40,19 +40,12 @@ parser.add_option('-d',help='Will only do a fresh directory walk.',action='store
 
 (opts,args) = parser.parse_args()
 
+TName = ''
+
 if not opts.__dict__['configName']:                                 # User must specify a configuration file
     subDirs = ['mc','data','generator','results','hidata','himc']
     if not opts.__dict__['TName']:                                  # or give a site name
-        print ''
-        parser.print_help()                                         # Otherwise exit the program
-        print ''
-        print '******************************************************************'
-        print ''
-        print 'You did not give a site name or specify a configuration file!'
-        print 'Give a site name with -T or configuration file with -c'
-        print ''
-        print '******************************************************************'
-        exit(-1)
+        TName = os.environ['site']
 else:                                                               # If a configuration file is given
     config = ConfigParser.RawConfigParser()                         # Overwrite or set all other options
     config.read(opts.configName)
@@ -63,30 +56,21 @@ else:                                                               # If a confi
     opts.newPhedex         = config.getboolean('UseCache','ParsePhEDEx')
     opts.newWalk           = config.getboolean('UseCache','ParseDir')
 
-TName = opts.TName                                                  # Name of the site is stored here
+if TName == '':
+    TName = opts.TName                                              # Name of the site is stored here
 skipCksm = not opts.doCksm                                          # Skipping checksums became the default
+fileBase = os.environ.get('fileBase')
 
 startTime = time()                                                  # Start timing for a final readout of the run time
 oldTime = 604800                                                    # If the PhEDEx file hasn't been downloaded for a week, quit the job
 
-# If Cache is filled, use that
-cacheFile = '../Cache/' + TName + '/' + TName + '_phedex.json'
-if os.path.exists(cacheFile):
-    if not os.path.exists(TName + '_phedex.json'):
-        print 'Creating from cache.'
-        os.system('cp ' + cacheFile + ' .')
-    if os.path.getmtime(TName + '_phedex.json') < os.path.getmtime(cacheFile):
-        print 'Updating from cache.'
-        os.system('cp ' + cacheFile + ' .')
+# Use the cached file
+cacheFile = fileBase + '_phedex.json'
+if not os.path.exists(cacheFile):
+    print ('Cache file does not seem to exist.')
+    exit(1)
 
-isOld = False
-if os.path.exists(TName + '_phedex.json'):
-    if startTime - os.path.getctime(TName + '_phedex.json') > oldTime:
-        isOld = True
-else:
-    print 'Missing PhEDEx file.'
-    exit()
-if isOld:
+if startTime - os.path.getctime(fileBase + '_phedex.json') > oldTime:
     print 'It has been a while since you did this...'
     print 'Redownload PhEDEx files...'
     exit()
@@ -98,21 +82,18 @@ if opts.newPhedexAndWalk:
 print 'Checking for empty files...'                                 # If anything from the tarball is empty or almost empty, remove it so that things are rerun
 cleanEmpty()
 
-if not os.path.exists(TName + '_lfn2pfn.json'):
-    if os.path.exists('../Cache/' + TName + '/' + TName + '_lfn2pfn.json'):
-        os.system('cp ../Cache/' + TName + '/' + TName + '_lfn2pfn.json .')
-    else:
-        print 'Missing TFC...'
-        exit()
+if not os.path.exists(fileBase + '_lfn2pfn.json'):
+    print 'Missing TFC...'
+    exit()
 
-prefix   = LFN2PFNConverter.GetPrefix(TName)                        # Get the file prefix using the TFC file
-startDir = prefix + '/store/'
+startDir = os.environ['site_storeLoc'] + '/store/'
 
 if skipCksm:
     print 'Skipping Checksum (Adler32) calculations...'
 else:
     print 'Will calculate Checksum unless old file exists...'
-if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm and not os.path.exists(TName + '_skipCksm_exists.json')) or opts.newWalk:
+
+if (not skipCksm and not os.path.exists(fileBase + '_exists.json')) or (skipCksm and not os.path.exists(fileBase + '_skipCksm_exists.json')) or opts.newWalk:
     print 'Creating JSON file from your directory...'
     print 'Starting walk...'
     existsList = []                                                 # This will be the list of directories, each with a list of files inside
@@ -162,9 +143,9 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
     if len(existsList) > 0:                                         # Only do this if the directories wheren't completely empty
         print 'Creating JSON file from directory...'
         if skipCksm:
-            outExists = open(TName + '_skipCksm_exists.json','w')
+            outExists = open(fileBase + '_skipCksm_exists.json','w')
         else:
-            outExists = open(TName + '_exists.json','w')
+            outExists = open(fileBase + '_exists.json','w')
         outExists.write(json.dumps(existsList))                     # Save the list just made to a file
         outExists.close()
         print 'Done with that...'
@@ -172,9 +153,9 @@ if (not skipCksm and not os.path.exists(TName + '_exists.json')) or (skipCksm an
         print 'Exists list is empty...'                             # If the list is empty, something went wrong
         print 'Checking for empty files...'
         cleanEmpty()                                                # Clears out any empty or very small files again
-        print 'Making tarball for storage: ' + TName +'.tar.gz'     # Make tarball for compressed storage
-        os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json')
-        print 'Everything stored in: ' + TName +'.tar.gz'
+        print 'Making tarball for storage: ' + fileBase +'.tar.gz'     # Make tarball for compressed storage
+        os.system('tar -cvzf ' + fileBase + '.tar.gz ' + fileBase + '*.json')
+        print 'Everything stored in: ' + fileBase +'.tar.gz'
         exit()                                                      # Kill python
 else:                                                               # If the walk isn't asked for or needed, don't do it
     print 'Using old directory JSON file...'
@@ -185,11 +166,11 @@ missingSize = sizes[0]
 clearSize = sizes[1]
 
 print 'Checking for empty files...'
-cleanEmpty()                                                        # Clears out any empty or very small files again
+cleanEmpty()                                                                         # Clears out any empty or very small files again
 
-print 'Making tarball for storage: ' + TName +'.tar.gz'             # Make tarball for compressed storage
-os.system('tar -cvzf ' + TName + '.tar.gz ' + TName + '*.json ' + TName + '*.txt')
-print 'Everything stored in: ' + TName +'.tar.gz'
+print 'Making tarball for storage: ' + fileBase +'.tar.gz'             # Make tarball for compressed storage
+os.system('tar -cvzf ' + fileBase + '.tar.gz ' + fileBase + '*.json ' + fileBase + '*.txt')
+print 'Everything stored in: ' + fileBase +'.tar.gz'
 
 print 'Elapsed time: ' + str(time() - startTime) + ' seconds'       # Output elapsed time
 
