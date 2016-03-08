@@ -3,8 +3,9 @@
 # Use this thing from IntelROCCS to get reasonable approximation of all datasets
     
 DatasetList=$ConsistencyCacheDirectory/DatasetsInPhedexAtSites.dat
+DatasetForSite=$ConsistencyCacheDirectory/$site/PhEDEx/CheckThese.txt
 
-getting="wget -O $DatasetList http://t3serv001.mit.edu/~cmsprod/IntelROCCS/Detox/status/DatasetsInPhedexAtSites.dat"
+getting="wget -O $DatasetList http://t3serv001.mit.edu/~cmsprod/IntelROCCS/Detox/status/DatasetsInPhedexAtSites.dat"  # Get the dataset list if a new one is available
 
 if [ ! -f $DatasetList ]
 then
@@ -16,21 +17,21 @@ then
     $getting
 fi
 
-if [ ! -d $site/PhEDEx ]
+if [ ! -d $ConsistencyCacheDirectory/$site/PhEDEx ]
 then
-    mkdir $site/PhEDEx
+    mkdir $ConsistencyCacheDirectory/$site/PhEDEx
 fi
 
 # Merge DatasetsInPhedexAtSites.dat datasets with sets already checked for at site (which can be empty/reset once in a while)
 
-cat <(cat $site/CheckThese.txt 2> /dev/null) <(grep $site DatasetsInPhedexAtSites.dat | awk -F[/] '{print $2}') | sort | uniq > $site/CheckThese.txt
+cat <(cat $DatasetForSite 2> /dev/null) <(grep $site $DatasetList | awk -F[/] '{print $2}') | sort | uniq > $DatasetForSite
 
 now=`date +%s`
 oldtime=`expr $now - $PhedexOutputAge`         # Anything older than half a week, time to download
 
-for dataset in `cat $site/CheckThese.txt`
+for dataset in `cat $DatasetForSite`
 do
-    outputTarget=$site/PhEDEx/$dataset.json
+    outputTarget=$ConsistencyCacheDirectory/$site/PhEDEx/$dataset.json
     getting="wget --no-check-certificate -O $outputTarget https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/$dataset/*/*&node=$site"
 
     if [ ! -f $outputTarget ]                # If the desired file does not exist, then download
@@ -46,9 +47,6 @@ do
     fi
 done
 
-$jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|split("/")[0:-2]|join("/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $site/PhEDEx/*.json > $site/$site\_prephedex.json
+# Combine and format the data
 
-## Format the data
-#$jqCall -M -s '.[0] + .[1].block' $site/$site\_prephedex.json > $site/$site\_temp.json
-#cp $site/$site\_temp.json $site/$site\_prephedex.json
-#./mergeFiles.py -T $site     # Replace this step or combine with above
+$jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|(split("/")[0:-2]|env.site_storeLoc + join("/")),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $ConsistencyCacheDirectory/$site/PhEDEx/*.json > $ConsistencyCacheDirectory/$site/$site\_prephedex.json

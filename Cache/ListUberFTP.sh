@@ -8,7 +8,7 @@ UberCall="uberftp -ls -r gsiftp://${!site_SE}$site_storeLoc"
 
 # Call without recursion just to test
 
-uberftp -ls gsiftp://${!site_SE}$site_storeLoc > /dev/null
+uberftp -ls gsiftp://${!site_SE}$site_storeLoc/store > /dev/null
 
 if [ $? -ne 0 ]
 then
@@ -45,7 +45,7 @@ do
         fi
     fi
 
-    $UberCall/$dir > $outFile
+    $UberCall/store/$dir > $outFile
 
     echo "Finished $dir"
 done
