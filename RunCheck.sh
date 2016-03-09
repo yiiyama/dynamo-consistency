@@ -97,10 +97,19 @@ do
 
     echo " ### $site ###"
 
-    Cache/ListUberFTP.sh &
     Cache/UpdatePhedexList.sh &
-    wait
-    Cache/ConvertText.py
+    Cache/ListUberFTP.sh
+
+    if [ $? -ne 0 ]             # if ListUberFTP.sh fails, then we give up for now
+    then
+        echo "Was not able to connect uberftp to $site"
+        kill $!                 # This kills the forked process
+        exit 1
+    fi
+
+    Cache/ConvertText.py        # Convert the ListUberFTP.sh output to phedex-style JSOn
+
+    wait                        # Wait for forked process if needed.
 
     Check/ConsistencyCheck.py
 
