@@ -24,7 +24,7 @@ do
         DoubleCheck/CheckForPhEDEx.py $checking
         if [ $? -eq 1 ]
         then
-            cat addData.txt >> $ConsistencyCacheDirectory/$site/PhEDEx/CheckThese.txt
+            cat $fileBase\_addData.txt >> $ConsistencyCacheDirectory/$site/PhEDEx/CheckThese.txt
             numAdded=$((numAdded + 1))
         fi
     fi

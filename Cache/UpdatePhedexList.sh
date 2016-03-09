@@ -24,7 +24,7 @@ fi
 
 # Merge DatasetsInPhedexAtSites.dat datasets with sets already checked for at site (which can be empty/reset once in a while)
 
-cat <(cat $DatasetForSite 2> /dev/null) <(grep $site $DatasetList | awk -F[/] '{print $2}') | sort | uniq > $DatasetForSite
+cat <(cat $fileBase\_addData.txt 2> /dev/null) <(grep $site $DatasetList | awk -F[/] '{print $2}') | sort | uniq > $DatasetForSite
 
 now=`date +%s`
 oldtime=`expr $now - $PhedexOutputAge`         # Anything older than half a week, time to download

@@ -97,12 +97,12 @@ do
 
     echo " ### $site ###"
 
-    Cache/ListUberFTP.sh &
-    Cache/UpdatePhedexList.sh &
-    wait
-    Cache/ConvertText.py
+#    Cache/ListUberFTP.sh &
+#    Cache/UpdatePhedexList.sh &
+#    wait
+#    Cache/ConvertText.py
 
-    Check/ConsistencyCheck.py
+#    Check/ConsistencyCheck.py
 
     DoubleCheck/CheckRemovable.sh
 
