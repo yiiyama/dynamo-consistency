@@ -50,12 +50,21 @@ fi
 
 export jqCall
 
+# Make sure the webpages are up to date.
+
+if [ ! -d $ConsistencyWebpages ]
+then
+    mkdir -p $ConsistencyWebpages
+fi
+
+cp webpages/*.html $ConsistencyWebpages/.
+
 # Then do stuff for each site.
 
 for site in `cat Config/SitesList.txt`
 do
 
-    if [ "${site:0:1}" = "#" ]                         # Possible to comment out sites
+    if [ "${site:0:1}" = "#" ]               # Possible to comment out sites
     then
         continue
     fi
@@ -70,7 +79,7 @@ do
         mkdir -p $ConsistencyCacheDirectory/$site
     fi
 
-     # Check for lfn2pfn file
+    # Check for lfn2pfn file
 
     if [ ! -f ${fileBase}_lfn2pfn.json ]
     then
@@ -93,5 +102,14 @@ do
     Cache/ConvertText.py
 
     Check/ConsistencyCheck.py
+
+    if [ ! -d $ConsistencyWebpages/$site ]
+    then
+        mkdir -p $ConsistencyWebpages/$site
+    fi
+
+    cp $fileBase*_missing.txt  $fileBase*_removable.txt  $fileBase*_summary.txt $ConsistencyWebpages/$site
+
+    crab/updateList.py -D $ConsistencyWebpages
 
 done
