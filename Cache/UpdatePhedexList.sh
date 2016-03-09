@@ -49,4 +49,4 @@ done
 
 # Combine and format the data
 
-$jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|(split("/")[0:-2]|env.site_storeLoc + join("/")),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $ConsistencyCacheDirectory/$site/PhEDEx/*.json > $ConsistencyCacheDirectory/$site/$site\_phedex.json
+$jqCall -M -s '[.[]|.phedex|.block[]|{directory:.file[0].name|(split("/")[0:-2]|env.site_storeLoc + join("/") + "/"),files:[.file[]|{time:.time_create,adler32:.checksum|split(",")[0]|split(":")[1],file:.name|split("/")[-2:]|join("/"),size:.bytes}],dataset:.name}]' $ConsistencyCacheDirectory/$site/PhEDEx/*.json > $ConsistencyCacheDirectory/$site/$site\_phedex.json
