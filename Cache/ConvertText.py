@@ -2,6 +2,8 @@
 
 import os, sys, json, time
 
+print('Trying to convert ' + os.environ['fileBase'] + '.txt')
+
 def GetTime(uberDate):
     uberDate.append(str(time.gmtime(time.time()).tm_year))
 
@@ -16,7 +18,6 @@ if not os.path.exists(os.environ['fileBase'] + '.txt'):
     print ('uberftp output seems to be missing.')
     print ('Check ' + os.environ['fileBase'] + '.txt')
     exit()
-
 
 uberOut = open(os.environ['fileBase'] + '.txt','r')
 
