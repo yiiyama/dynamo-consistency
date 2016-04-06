@@ -24,4 +24,5 @@ export SE_T2_ES_CIEMAT=srm.ciemat.es
 export SE_T2_US_Caltech=cit-se.ultralight.org
 export SE_T2_US_Florida=srm.ihepa.ufl.edu
 export SE_T2_US_MIT=se01.cmsaf.mit.edu
+export SE_T2_US_Nebraska=red-gridftp.unl.edu
 export SE_T2_US_UCSD=bsrm-3.t2.ucsd.edu
