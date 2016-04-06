@@ -1,17 +1,25 @@
 #! /usr/bin/python
 
-import os, sys, json, time
+import os, sys, json, time, re
 
 print('Trying to convert ' + os.environ['fileBase'] + '.txt')
 
-def GetTime(uberDate):
-    uberDate.append(str(time.gmtime(time.time()).tm_year))
+time_string = re.compile(r'[0-9][0-9]:[0-9][0-9]')
 
-    TryTime = time.mktime(time.strptime(' '.join(uberDate),'%b %d %H:%M %Y'))
+def GetTime(uberDate):
+    uberSlice = []
+    for index in range(len(uberDate)):
+        if time_string.match(uberDate[index]):
+            uberSlice = uberDate[index-2:index+1]
+            break
+
+    uberSlice.append(str(time.gmtime(time.time()).tm_year))
+
+    TryTime = time.mktime(time.strptime(' '.join(uberSlice),'%b %d %H:%M %Y'))
     if TryTime > time.time():
-        uberDate[-1] = str(int(uberDate[-1]) - 1)
+        uberSlice[-1] = str(int(uberSlice[-1]) - 1)
         
-    return time.mktime(time.strptime(' '.join(uberDate),'%b %d %H:%M %Y'))
+    return time.mktime(time.strptime(' '.join(uberSlice),'%b %d %H:%M %Y'))
 
 
 if not os.path.exists(os.environ['fileBase'] + '.txt'):
@@ -35,20 +43,19 @@ for line in uberOut.readlines():
 
     if NewDirectory != CurrentDirectory:
         if len(FileInDirList) != 0:
-            OutputList.append({"directory": CurrentDirectory, "files": FileInDirList, "time": GetTime(DirectoryInfo[3:6])})
+            OutputList.append({"directory": CurrentDirectory, "files": FileInDirList, "time": GetTime(DirectoryInfo)})
             FileInDirList = []
         CurrentDirectory = NewDirectory
 
     FileInfo = line.strip('\n').split()
     FileFull = FileInfo[-1]
     FileSize = FileInfo[3]
-    FileTime = FileInfo[4:7]      # This information doesn't seem to look complete coming out of the line
 
     FileDirectory = '/'.join(FileFull.split('/')[:-2]) + '/'
     FileName = '/'.join(FileFull.split('/')[-2:])
 
     if FileDirectory == CurrentDirectory:
-        FileInDirList.append({"time": GetTime(FileTime), "adler32": "Not Checked", "file": FileName, "size": int(FileSize)})
+        FileInDirList.append({"time": GetTime(FileInfo), "adler32": "Not Checked", "file": FileName, "size": int(FileSize)})
     else:
         print ('Big problem in this thing, yo.')
         exit()
@@ -56,7 +63,7 @@ for line in uberOut.readlines():
 uberOut.close()
         
 if len(FileInDirList) != 0:
-    OutputList.append({"directory": CurrentDirectory, "files": FileInDirList, "time": GetTime(DirectoryInfo[3:6])})
+    OutputList.append({"directory": CurrentDirectory, "files": FileInDirList, "time": GetTime(DirectoryInfo)})
     FileInDirList = []
 
 outfile = open(os.environ['fileBase'] + '_skipCksm_exists.json','w')
