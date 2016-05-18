@@ -77,6 +77,10 @@ if __name__ == '__main__':
     for dir in args.dirs:
         processed = process_dir(args.baseurl, '/store/' + dir + '/')
 
+        if len(processed[1] > 0):
+            print('Some directories failed.')
+            exit(1)
+
         filelist = processed[0]
 
         for file in filelist:
