@@ -1,5 +1,7 @@
 #! /bin/bash
 
+test=$1
+
 export ConsistencyDir=`pwd`
 
 source Config/ConsistencyConfig.sh
@@ -97,13 +99,17 @@ do
 
     echo " ### $site ###"
 
-    Cache/UpdatePhedexList.sh &
+    if [ "$test" != "test" ]
+    then
+        Cache/UpdatePhedexList.sh &
+    fi
+
     Cache/ListUberFTP.sh
 
     if [ $? -ne 0 ]             # if ListUberFTP.sh fails, then we give up for now
     then
         echo "Was not able to connect uberftp to $site"
-        Cache/xrootd_treewalker.py
+        Cache/xrootd_treewalker.py `cat Config/Directories.txt | xargs echo -n`
         if [ $? -ne 0 ]
         then
             kill $!             # This kills the forked process
@@ -111,6 +117,11 @@ do
         fi
     else
         Cache/ConvertText.py    # Convert the ListUberFTP.sh output to phedex-style JSOn
+    fi
+
+    if [ "$test" = "test" ]
+    then
+        continue
     fi
 
     wait                        # Wait for forked process if needed.

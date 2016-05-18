@@ -3,7 +3,7 @@
 # Example to find all files in a given directory on a given site.
 #---------------------------------------------------------------------------------------------------
 import re,sys
-import json
+import os,json
 import XRootD.client
 
 user_dir_regexp = re.compile(r'^/+user/+([A-Za-z0-9.]+)/*$')
@@ -62,9 +62,8 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
 
-    parser.add_argument('--sitename', '-s', metavar='SiteName', dest='sitename', default=os.environ.get('site'),
-                        help='Name of site to run treewalker on.')
-    parser.add_argument('--baseurl', '-b', metavar='BaseURL', dest='baseurl', default=os.environ.get('SE_' + os.environ.get('site')),
+    parser.add_argument('--baseurl', '-b', metavar='BaseURL', dest='baseurl', 
+                        default='root://' + str(os.environ.get('SE_' + os.environ.get('site')) + '//'),
                         help='Base URL to check with xrootd.')
     parser.add_argument(metavar='Dirs', dest='dirs', nargs='*', default=[], help='List of directories to look at in /store/')
 
@@ -77,7 +76,7 @@ if __name__ == '__main__':
     for dir in args.dirs:
         processed = process_dir(args.baseurl, '/store/' + dir + '/')
 
-        if len(processed[1] > 0):
+        if len(processed[1]) > 0:
             print('Some directories failed.')
             exit(1)
 
