@@ -1,6 +1,1 @@
-mc
-data
-generator
-results
-hidata
-himc
+test/xrootd/T2_US_Nebraska/store/data/Run2015E/JetHT
