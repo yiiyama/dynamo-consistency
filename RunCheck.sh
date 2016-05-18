@@ -103,11 +103,15 @@ do
     if [ $? -ne 0 ]             # if ListUberFTP.sh fails, then we give up for now
     then
         echo "Was not able to connect uberftp to $site"
-        kill $!                 # This kills the forked process
-        exit 1
+        Cache/xrootd_treewalker.py
+        if [ $? -ne 0 ]
+        then
+            kill $!             # This kills the forked process
+            exit 1
+        fi
+    else
+        Cache/ConvertText.py    # Convert the ListUberFTP.sh output to phedex-style JSOn
     fi
-
-    Cache/ConvertText.py        # Convert the ListUberFTP.sh output to phedex-style JSOn
 
     wait                        # Wait for forked process if needed.
 
