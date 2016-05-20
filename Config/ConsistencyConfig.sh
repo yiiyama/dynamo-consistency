@@ -1,5 +1,5 @@
 ## Location of all the files saved and read by the ConsistencyCheck
-export ConsistencyCacheDirectory=/scratch/dabercro/ConsistencyCache
+export ConsistencyCacheDirectory=/afs/cern.ch/user/d/dabercro/CacheTest
 
 ## Age (in sec) of uberftp output before walking again
 export UberftpOutputAge=302400
@@ -11,7 +11,7 @@ export DatasetsInPhedexAge=86400
 export PhedexOutputAge=302400
 
 ## Location of webpages
-export ConsistencyWebpages=/home/cmsprod/public_html/ConsistencyChecks
+export ConsistencyWebpages=/afs/cern.ch/user/d/dabercro/www/ConsistencyChucking
 
 ## List of SEs
 ## I should find a way to automate this with the SiteDB API
@@ -24,5 +24,6 @@ export SE_T2_ES_CIEMAT=srm.ciemat.es
 export SE_T2_US_Caltech=cit-se.ultralight.org
 export SE_T2_US_Florida=srm.ihepa.ufl.edu
 export SE_T2_US_MIT=se01.cmsaf.mit.edu
-export SE_T2_US_Nebraska=red-gridftp.unl.edu
+#export SE_T2_US_Nebraska=red-gridftp.unl.edu
+export SE_T2_US_Nebraska=srm.unl.edu
 export SE_T2_US_UCSD=bsrm-3.t2.ucsd.edu
