@@ -52,12 +52,11 @@ def process_dir(base_url, directory):
 
 # LAST CHARACTER IN THE DIR HAS TO BE A   '/'
 
-base_url = 'root://srm.unl.edu//'
-dirs = [ '/store/test/xrootd/T2_US_MIT/store/user/paus/fastsm/043' ]
+#base_url = 'root://srm.unl.edu//'
+#dirs = [ '/store/test/xrootd/T2_US_MIT/store/user/paus/fastsm/043' ]
 
-#base_url = 'root://se01.cmsaf.mit.edu//'
-#dirs = [ '/store/user/paus/fastsm/043' ] # just testing
-## [ '/store/test/xrootd/T2_US_Nebraska/store/data/', '/store/test/xrootd/T2_US_Nebraska/store/mc/' ]
+base_url = 'root://xrootd.cmsaf.mit.edu//'
+dirs = [ '/store/test/xrootd/T2_US_MIT/store/mc/JobRobot/' ]
 
 for dir in dirs:
 
