@@ -36,10 +36,10 @@ do
 
         origtime=`date +%s -r $outFile`
         now=`date +%s`
-        oldtime=`expr $now - $UberftpOutputAge`
+        oldtime=`expr $now - $SiteDirListAge`
         if [ $oldtime -lt $origtime ]
         then
-            echo "Not updating. $outFile is less than $UberftpOutputAge seconds old."
+            echo "Not updating. $outFile is less than $SiteDirListAge seconds old."
             echo $oldtime' ; '$origtime
             continue
         fi

@@ -109,6 +109,7 @@ do
     if [ $? -ne 0 ]             # if ListUberFTP.sh fails, then we give up for now
     then
         echo "Was not able to connect uberftp to $site"
+
         Cache/xrootd_treewalker.py `cat Config/Directories.txt | xargs echo -n`
         if [ $? -ne 0 ]
         then

@@ -27,25 +27,9 @@ fi
 cat <(cat $fileBase\_addData.txt 2> /dev/null) <(grep $site $DatasetList | awk -F[/] '{print $2}') | sort | uniq > $DatasetForSite
 
 now=`date +%s`
-oldtime=`expr $now - $PhedexOutputAge`         # Anything older than half a week, time to download
+export oldtime=`expr $now - $PhedexOutputAge`         # Anything older than half a week, time to download
 
-for dataset in `cat $DatasetForSite`
-do
-    outputTarget=$ConsistencyCacheDirectory/$site/PhEDEx/$dataset.json
-    getting="wget --no-check-certificate -O $outputTarget https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/$dataset/*/*&node=$site"
-
-    if [ ! -f $outputTarget ]                # If the desired file does not exist, then download
-    then
-        $getting
-    fi
-
-    origtime=`date +%s -r $outputTarget`     # This line also assumes you're working on Linux
-
-    if [ $origtime -lt $oldtime ]            # if the target file is older than the maximum age for PhEDEx output, then download
-    then
-        $getting
-    fi
-done
+cat "$DatasetForSite" | xargs -n1 -P$NumPhedexThreads Cache/DownloadPhedex.sh
 
 # Combine and format the data
 

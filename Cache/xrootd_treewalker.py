@@ -97,11 +97,8 @@ if __name__ == '__main__':
     for dir in args.dirs:
         processed = process_dir(args.baseurl, '/store/' + dir + '/')
 
-        print('Dumping output')
-        print(processed)
-
         if len(processed[0]) == 0:
-            print('No directories were searched.')
+            print('No directories were successfully listed.')
             exit(1)
 
         filelist = processed[0]
