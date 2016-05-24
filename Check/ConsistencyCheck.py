@@ -41,9 +41,15 @@ parser.add_option('-d',help='Will only do a fresh directory walk.',action='store
 (opts,args) = parser.parse_args()
 
 TName = ''
+subDirs = list()
 
 if not opts.__dict__['configName']:                                 # User must specify a configuration file
-    subDirs = ['mc','data','generator','results','hidata','himc']
+    dirsFile = os.environ.get('ConsistencyDir') + '/Config/Directories.txt'
+    if os.path.exists(dirsFile):
+        with open(dirsFile) as f:
+            subDirs = f.read().splitlines()
+    else:
+        subDirs = ['mc','data','generator','results','hidata','himc']
     if not opts.__dict__['TName']:                                  # or give a site name
         TName = os.environ['site']
 else:                                                               # If a configuration file is given

@@ -51,8 +51,8 @@ for line in uberOut.readlines():
     FileFull = FileInfo[-1]
     FileSize = FileInfo[3]
 
-    FileDirectory = '/'.join(FileFull.split('/')[:-2]) + '/'
-    FileName = '/'.join(FileFull.split('/')[-2:])
+    FileDirectory = '/'.join(FileFull.split('/')[:-4]) + '/'
+    FileName = '/'.join(FileFull.split('/')[-4:])
 
     if FileDirectory == CurrentDirectory:
         FileInDirList.append({"time": GetTime(FileInfo), "adler32": "Not Checked", "file": FileName, "size": int(FileSize)})

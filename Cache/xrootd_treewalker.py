@@ -104,7 +104,7 @@ if __name__ == '__main__':
         filelist = processed[0]
 
         for file in filelist:
-            new_directory = os.environ.get('site_storeLoc') + '/store/' + dir + '/' + '/'.join(file[0].split('/')[:-2]) + '/'
+            new_directory = os.environ.get('site_storeLoc') + '/store/' + dir + '/' + '/'.join(file[0].split('/')[:-4]) + '/'
             if new_directory != directory:
                 if directory != '':
                     output.append({
@@ -119,7 +119,7 @@ if __name__ == '__main__':
             file_output.append({
                     "time": file[2],
                     "adler32": "Not Checked",
-                    "file": '/'.join(file[0].split('/')[-2:]),
+                    "file": '/'.join(file[0].split('/')[-4:]),
                     "size": file[1]
                     })
 

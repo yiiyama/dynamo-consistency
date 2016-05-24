@@ -1,6 +1,1 @@
-mc
-data
-generator
-results
 hidata
-himc

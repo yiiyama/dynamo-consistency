@@ -6,6 +6,12 @@ def writeBlock(dataSet,store):                                                # 
     store.append('* Block  : ' + dataSet.split('#')[1] + ' \n')
 
 def finalCheck(TName,skipCksm):
+
+    dirsFile = os.environ.get('ConsistencyDir') + '/Config/Directories.txt'
+    if os.path.exists(dirsFile):
+        with open(dirsFile) as f:
+            subDirs = f.read().splitlines()
+
     fileBase = os.environ['fileBase']
     errorMessage = "ERROR ACCESSING"
     currentTime = time.time()
@@ -62,6 +68,10 @@ def finalCheck(TName,skipCksm):
             continue
         foundDir = False                                                       # search for a match of each directory in exists list
         aDirectory = aBlock['directory']
+        splitDir = aDirectory.split('/')
+        if splitDir[splitDir.index('store') + 1] not in subDirs:
+            continue
+
         for bBlock in secondData:
             if aBlock['directory'] == bBlock['directory']:                     # Here's the directory matching
                 foundDir = True
