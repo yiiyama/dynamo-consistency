@@ -3,7 +3,7 @@
 # Example to find all files in a given directory on a given site.
 #---------------------------------------------------------------------------------------------------
 import re,sys
-import os,json
+import os,json,time,stat
 import XRootD.client
 
 user_dir_regexp = re.compile(r'^/+user/+([A-Za-z0-9.]+)/*$')
@@ -84,6 +84,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    outputFileName = os.environ['fileBase'] + '_skipCksm_exists.json'
+
+    if os.path.exists(outputFileName) and (int(time.time() - os.stat(outputFileName)[stat.ST_MTIME]) < int(os.environ.get('SiteDirListAge'))):
+        print('Current directory listing is too young to die!')
+        exit(0)
+
     output = []
     file_output = []
     directory = ''
@@ -91,14 +97,17 @@ if __name__ == '__main__':
     for dir in args.dirs:
         processed = process_dir(args.baseurl, '/store/' + dir + '/')
 
-        if len(processed[1]) > 0:
-            print('Some directories failed.')
+        print('Dumping output')
+        print(processed)
+
+        if len(processed[0]) == 0:
+            print('No directories were searched.')
             exit(1)
 
         filelist = processed[0]
 
         for file in filelist:
-            new_directory = os.environ.get('site_storeLoc') + '/' + dir + '/' + '/'.join(file[0].split('/')[:-2]) + '/'
+            new_directory = os.environ.get('site_storeLoc') + '/store/' + dir + '/' + '/'.join(file[0].split('/')[:-2]) + '/'
             if new_directory != directory:
                 if directory != '':
                     output.append({
@@ -123,6 +132,6 @@ if __name__ == '__main__':
             "time": max(get_times(file_output))
             })
 
-    outfile = open(os.environ['fileBase'] + '_skipCksm_exists.json','w')
+    outfile = open(outputFileName,'w')
     outfile.write(json.dumps(output))
     outfile.close()
