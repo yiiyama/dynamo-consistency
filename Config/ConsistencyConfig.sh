@@ -1,5 +1,5 @@
 ## Location of all the files saved and read by the ConsistencyCheck
-export ConsistencyCacheDirectory=../Cache1
+export ConsistencyCacheDirectory=/scratch/dabercro/ConsistencyCache
 
 ## Age (in sec) of uberftp output before walking again
 export SiteDirListAge=302400
@@ -8,13 +8,13 @@ export SiteDirListAge=302400
 export DatasetsInPhedexAge=86400
 
 ## Maximum number of simultaneous wgets calls to Phedex
-export NumPhedexThreads=6
+export NumPhedexThreads=2
 
 ## Age (in sec) of list of files in Phedex before redownloading
 export PhedexOutputAge=302400
 
 ## Location of webpages
-export ConsistencyWebpages=../Webpage1
+export ConsistencyWebpages=/home/cmsprod/public_html/ConsistencyChecks
 
 ## List of SEs
 ## I should find a way to automate this with the SiteDB API
@@ -30,3 +30,4 @@ export SE_T2_US_MIT=se01.cmsaf.mit.edu
 #export SE_T2_US_Nebraska=red-gridftp.unl.edu
 export SE_T2_US_Nebraska=srm.unl.edu
 export SE_T2_US_UCSD=bsrm-3.t2.ucsd.edu
+export SE_T3_CH_CSCS=t3se01.psi.ch

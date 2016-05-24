@@ -104,7 +104,12 @@ do
         Cache/UpdatePhedexList.sh &
     fi
 
-    Cache/ListUberFTP.sh
+    if [ "${site:0:3}" = "T2_" ]
+    then
+        Cache/ListUberFTP.sh
+    else
+        cat yo 2> /dev/null
+    fi
 
     if [ $? -ne 0 ]             # if ListUberFTP.sh fails, then we give up for now
     then
