@@ -4,7 +4,7 @@
 
 dataset=$1
 
-outputTarget=$ConsistencyCacheDirectory/$site/PhEDEx/$dataset.json
+outputTarget=$ConsistencyCacheDirectory/$site/PhEDEx/${dataset%%\*}.json
 getting="wget -q --no-check-certificate -O $outputTarget https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/$dataset/*/*&node=$site"
 
 if [ ! -f $outputTarget ]                # If the desired file does not exist, then download

@@ -31,11 +31,10 @@ export oldtime=`expr $now - $PhedexOutputAge`         # Anything older than half
 
 if [ `cat "$DatasetForSite" | wc -l` -eq 0 ]
 then
-    outputTarget=$ConsistencyCacheDirectory/$site/PhEDEx/Stuff.json
-    wget -q --no-check-certificate -O $outputTarget https://cmsweb.cern.ch/phedex/datasvc/json/prod/filereplicas?dataset=/*/*/*&node=$site
-else
-    cat "$DatasetForSite" | xargs -n1 -P$NumPhedexThreads Cache/DownloadPhedex.sh
+    cp Cache/default.txt $DatasetForSite
 fi
+
+cat "$DatasetForSite" | xargs -n1 -P$NumPhedexThreads Cache/DownloadPhedex.sh
 
 # Combine and format the data
 
