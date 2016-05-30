@@ -2,7 +2,7 @@
 export ConsistencyCacheDirectory=/scratch/dabercro/ConsistencyCache
 
 ## Age (in sec) of uberftp output before walking again
-export SiteDirListAge=302400
+export SiteDirListAge=30240
 
 ## Age (in sec) of DatasetsInPhedex.dat file before it is redownloaded
 export DatasetsInPhedexAge=86400
@@ -11,7 +11,7 @@ export DatasetsInPhedexAge=86400
 export NumPhedexThreads=2
 
 ## Age (in sec) of list of files in Phedex before redownloading
-export PhedexOutputAge=302400
+export PhedexOutputAge=30240
 
 ## Location of webpages
 export ConsistencyWebpages=/home/cmsprod/public_html/ConsistencyChecks
@@ -30,4 +30,4 @@ export SE_T2_US_MIT=se01.cmsaf.mit.edu
 #export SE_T2_US_Nebraska=red-gridftp.unl.edu
 export SE_T2_US_Nebraska=srm.unl.edu
 export SE_T2_US_UCSD=bsrm-3.t2.ucsd.edu
-export SE_T3_CH_CSCS=t3se01.psi.ch
+export SE_T3_CH_PSI=t3se01.psi.ch

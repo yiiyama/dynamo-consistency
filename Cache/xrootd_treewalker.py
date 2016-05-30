@@ -40,7 +40,7 @@ def process_dir(base_url, directory):
             if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
                 worklist.append(cwd + "/" + entry.name)
             else:
-                fname = cwd + entry.name
+                fname = cwd + "/" + entry.name
                 filelist.append((fname[base_len:], entry.statinfo.size, entry.statinfo.modtime))
 
     return filelist, failed_list
@@ -97,10 +97,6 @@ if __name__ == '__main__':
     for dir in args.dirs:
         processed = process_dir(args.baseurl, '/store/' + dir + '/')
 
-        if len(processed[0]) == 0:
-            print('No directories were successfully listed.')
-            exit(1)
-
         filelist = processed[0]
 
         for file in filelist:
@@ -123,12 +119,17 @@ if __name__ == '__main__':
                     "size": file[1]
                     })
 
-    output.append({
+    if len(file_output) > 0:
+        output.append({
             "directory": directory,
             "files": file_output,
             "time": max(get_times(file_output))
             })
 
+    if len(output) == 0:
+        print('Didn\'t get any output.')
+        exit(1)
+        
     outfile = open(outputFileName,'w')
     outfile.write(json.dumps(output))
     outfile.close()

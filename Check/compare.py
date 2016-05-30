@@ -16,8 +16,8 @@ def finalCheck(TName,skipCksm):
     errorMessage = "ERROR ACCESSING"
     currentTime = time.time()
     cutTime = 604800*4                                                         # Ignore files that are less than 4 weeks old
-    timeTolerance = 360000000                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
-    firstFile = open(fileBase + '_phedex.json')                                   # Loads the JSON file of parsed PhEDEx
+    timeTolerance = 3600                                                       # If file creation is more than an hour out of sync with PhEDEx, flag for checksum
+    firstFile = open(fileBase + '_phedex.json')                                # Loads the JSON file of parsed PhEDEx
     print 'Loading first file...'
     firstData = json.load(firstFile)
     firstFile.close()
@@ -72,43 +72,49 @@ def finalCheck(TName,skipCksm):
         if splitDir[splitDir.index('store') + 1] not in subDirs:
             continue
 
+        bFiles = []                                                            # Prepare list of files to compare... This is so poorly written.
+
         for bBlock in secondData:
             if aBlock['directory'] == bBlock['directory']:                     # Here's the directory matching
                 foundDir = True
                 wroteDataSetName = False                                       # Each directory is assumed to be in a different dataset
-                for aFile in aBlock['files']:                                  # For every file in the directory
-                    found = False                                              # search for a match in the exists list
-                    aName = aFile['file']                                      # Store this stuff for easy writing later, not comparison
-                    aSize = aFile['size']
-                    aCksm = aFile['adler32']
-                    for bFile in bBlock['files']:
-                        if aFile['file'] == bFile['file']:                     # Here's the file matching
-                            found = True                                       # Flag file as found and check if consistent
-                            if aFile['size'] == bFile['size'] and (skipCksm or aFile['adler32'] == bFile['adler32']):
-                                break
-                            else:
-                                if not wroteDataSetName:                       # If dataset name hasn't been written yet, write it in report
-                                    wroteDataSetName = True                    # This prevents spamming report with same dataset name
-                                    writeBlock(aBlock['dataset'],missing)
-                                bSize = bFile['size']
-                                bCksm = bFile['adler32']
-                                missing.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
-                                missingSize = missingSize + int(aSize)         # If the checksum is wrong, that means the file should basically be replaced
-                                break
+                for thing in bBlock['files']:
+                    bFiles.append(thing)
 
-                    if not found:                                              # If file is not found after looping through exists directory write it in report
-                        if not os.path.exists(aDirectory + aName):
-                            if not wroteDataSetName:
-                                wroteDataSetName = True
+        if foundDir:
+            for aFile in aBlock['files']:                                  # For every file in the directory
+                found = False                                              # search for a match in the exists list
+                aName = aFile['file']                                      # Store this stuff for easy writing later, not comparison
+                aSize = aFile['size']
+                aCksm = aFile['adler32']
+                for bFile in bFiles:
+                    if aFile['file'] == bFile['file']:                     # Here's the file matching
+                        found = True                                       # Flag file as found and check if consistent
+                        if aFile['size'] == bFile['size'] and (skipCksm or aFile['adler32'] == bFile['adler32']):
+                            break
+                        else:
+                            if not wroteDataSetName:                       # If dataset name hasn't been written yet, write it in report
+                                wroteDataSetName = True                    # This prevents spamming report with same dataset name
                                 writeBlock(aBlock['dataset'],missing)
-                            missing.append(aDirectory + aName + ' \n')
-                            missingSize = missingSize + int(aSize)             # File is missing
-                        else:                                                  # If file was not in exists list, but does exist, I didn't search everywhere
-                            if not wroteDataSetName:
-                                wroteDataSetName = True
-                                writeBlock(aBlock['dataset'],missing)
-                            missing.append(aDirectory + aName + ' was not in a searched directory. \n')
-        if not foundDir:                                                       # If there's no match for the entire directory, note that in report
+                            bSize = bFile['size']
+                            bCksm = bFile['adler32']
+                            missing.append(aDirectory + aName + ' has incorrect size or checksum: PhEDEx -- chksm:'+str(aCksm)+' size:'+str(aSize)+'; Site -- chksm:'+str(bCksm)+' size:'+str(bSize)+' \n')
+                            missingSize = missingSize + int(aSize)         # If the checksum is wrong, that means the file should basically be replaced
+                            break
+
+                if not found:                                              # If file is not found after looping through exists directory write it in report
+                    if not os.path.exists(aDirectory + aName):
+                        if not wroteDataSetName:
+                            wroteDataSetName = True
+                            writeBlock(aBlock['dataset'],missing)
+                        missing.append(aDirectory + aName + ' \n')
+                        missingSize = missingSize + int(aSize)             # File is missing
+                    else:                                                  # If file was not in exists list, but does exist, I didn't search everywhere
+                        if not wroteDataSetName:
+                            wroteDataSetName = True
+                            writeBlock(aBlock['dataset'],missing)
+                        missing.append(aDirectory + aName + ' was not in a searched directory. \n')
+        else:
             wasSearched = True                                                 # First check that the directory is one that was searched by ConsistencyCheck
             if os.path.exists(aDirectory):                                     # If there's a directory there, then there might be no problem
                 if len(os.listdir(aDirectory)) > 0:                            # Check to see if directory is empty

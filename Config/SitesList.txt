@@ -1,3 +1,4 @@
+T3_CH_PSI
 T2_CH_CSCS
 T2_US_Nebraska
 T2_AT_Vienna

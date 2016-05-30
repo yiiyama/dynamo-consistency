@@ -34,7 +34,12 @@ then
     cp Cache/default.txt $DatasetForSite
 fi
 
-cat "$DatasetForSite" | xargs -n1 -P$NumPhedexThreads Cache/DownloadPhedex.sh
+# cat "$DatasetForSite" | xargs -n1 -P$NumPhedexThreads Cache/DownloadPhedex.sh ## This is hard to kill. Put back when stable.
+
+for dataset in `cat "$DatasetForSite"`
+do
+    Cache/DownloadPhedex.sh $dataset
+done
 
 # Combine and format the data
 

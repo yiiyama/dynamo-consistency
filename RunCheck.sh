@@ -104,25 +104,16 @@ do
         Cache/UpdatePhedexList.sh &
     fi
 
-    if [ "${site:0:3}" = "T2_" ]
-    then
-        Cache/ListUberFTP.sh
-    else
-        cat yo 2> /dev/null
-    fi
+#    Cache/ListUberFTP.sh
+    Cache/xrootd_treewalker.py `cat Config/Directories.txt | xargs echo -n`
 
-    if [ $? -ne 0 ]             # if ListUberFTP.sh fails, then we give up for now
+    if [ $? -ne 0 ]             # if fails, then we give up for now
     then
-        echo "Was not able to connect uberftp to $site"
-
-        Cache/xrootd_treewalker.py `cat Config/Directories.txt | xargs echo -n`
-        if [ $? -ne 0 ]
-        then
-            kill $!             # This kills the forked process
-            exit 1
-        fi
-    else
-        Cache/ConvertText.py    # Convert the ListUberFTP.sh output to phedex-style JSOn
+        echo "Was not able to connect to $site"
+        kill $!                 # This kills the forked process
+        exit 1
+#    else
+#        Cache/ConvertText.py    # Convert the ListUberFTP.sh output to phedex-style JSOn
     fi
 
     if [ "$test" = "test" ]
