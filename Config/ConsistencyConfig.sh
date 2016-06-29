@@ -14,20 +14,23 @@ export NumPhedexThreads=2
 export PhedexOutputAge=30240
 
 ## Location of webpages
-export ConsistencyWebpages=/home/cmsprod/public_html/ConsistencyChecks
+export ConsistencyWebpages=/home/dabercro/public_html/ConsistencyCheck
 
 ## List of SEs
-## I should find a way to automate this with the SiteDB API
-export SE_T2_AT_Vienna=hephyse.oeaw.ac.at
+
+locateOutput=$ConsistencyCacheDirectory/se_list.txt
+xrdfs xrootd-redic.pi.infn.it locate -h /store/ > $locateOutput
+xrdfs cmsxrootd1.fnal.gov locate -h /store/ >> $locateOutput
+
+export SE_T2_AT_Vienna=`cat $locateOutput | grep .cscs.ch: | awk 'BEGIN { FS = ":" } { print $1 }'`
 export SE_T2_BE_IIHE=maite.iihe.ac.be
 export SE_T2_BE_UCL=ingrid-se02.cism.ucl.ac.be
 export SE_T2_BR_SPRACE=osg-se.sprace.org.br
-export SE_T2_CH_CSCS=storage01.lcg.cscs.ch
+export SE_T2_CH_CSCS=`cat $locateOutput | grep .cscs.ch: | awk 'BEGIN { FS = ":" } { print $1 }'`
 export SE_T2_ES_CIEMAT=srm.ciemat.es
 export SE_T2_US_Caltech=cit-se.ultralight.org
 export SE_T2_US_Florida=srm.ihepa.ufl.edu
-export SE_T2_US_MIT=se01.cmsaf.mit.edu
-#export SE_T2_US_Nebraska=red-gridftp.unl.edu
-export SE_T2_US_Nebraska=srm.unl.edu
-export SE_T2_US_UCSD=bsrm-3.t2.ucsd.edu
+export SE_T2_US_MIT=`cat $locateOutput | grep .mit.edu: | awk 'BEGIN { FS = ":" } { print $1 }'`
+export SE_T2_US_Nebraska=`cat $locateOutput | grep .unl.edu: | awk 'BEGIN { FS = ":" } { print $1 }'`
+export SE_T2_US_UCSD=`cat $locateOutput | grep .ucsd.edu: | awk 'BEGIN { FS = ":" } { print $1 }'`
 export SE_T3_CH_PSI=t3se01.psi.ch
