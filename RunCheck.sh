@@ -71,6 +71,10 @@ do
         continue
     fi
 
+    echo " ### $site ###"
+    echo " Starting: "`date`
+    echo " #############"
+
     export site
     export fileBase=$ConsistencyCacheDirectory/$site/$site
 
@@ -96,8 +100,6 @@ do
     fi
 
     export site_storeLoc=`$jqCall '.phedex.mapping[0]|.pfn|split("/store/data/test.root")[0]' ${fileBase}_lfn2pfn.json | sed 's/"//g'`
-
-    echo " ### $site ###"
 
     if [ "$test" != "test" ]
     then
@@ -141,5 +143,9 @@ do
     cp $fileBase*_missing.txt  $fileBase*_removable.txt  $fileBase*_summary.txt $ConsistencyWebpages/$site
 
     crab/updateList.py -D $ConsistencyWebpages
+
+    echo " ### $site ###"
+    echo " Finished: "`date`
+    echo " #############"
 
 done
