@@ -5,7 +5,9 @@
 DatasetList=$ConsistencyCacheDirectory/DatasetsInPhedexAtSites.dat
 DatasetForSite=$ConsistencyCacheDirectory/$site/PhEDEx/CheckThese.txt
 
-getting="wget -O $DatasetList http://t3serv001.mit.edu/~cmsprod/IntelROCCS/Detox/status/DatasetsInPhedexAtSites.dat"  # Get the dataset list if a new one is available
+# Get the dataset list if a new one is available
+
+getting="wget -q -O $DatasetList http://t3serv001.mit.edu/~cmsprod/IntelROCCS/Detox/status/DatasetsInPhedexAtSites.dat"
 
 if [ ! -f $DatasetList ]
 then

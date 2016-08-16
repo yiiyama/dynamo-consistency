@@ -100,7 +100,7 @@ if __name__ == '__main__':
         filelist = processed[0]
 
         for file in filelist:
-            new_directory = os.environ.get('site_storeLoc') + '/store/' + dir + '/' + '/'.join(file[0].split('/')[:-4]) + '/'
+            new_directory = os.environ.get('site_storeLoc') + '/store/' + dir + '/' + '/'.join(file[0].replace('//','/').split('/')[:-4]) + '/'
             if new_directory != directory:
                 if directory != '':
                     output.append({

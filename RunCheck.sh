@@ -95,7 +95,7 @@ do
         then
             echo "Error getting LFN2PFN for $site. Tried this:"
             echo "$wgetCall"
-            exit 1
+            continue
         fi
     fi
 
@@ -113,7 +113,7 @@ do
     then
         echo "Was not able to connect to $site"
         kill $!                 # This kills the forked process
-        exit 1
+        continue
 #    else
 #        Cache/ConvertText.py    # Convert the ListUberFTP.sh output to phedex-style JSOn
     fi
