@@ -1,6 +1,11 @@
 ## Location of all the files saved and read by the ConsistencyCheck
 export ConsistencyCacheDirectory=/scratch/dabercro/ConsistencyCache
 
+if [ ! -d $ConsistencyCacheDirectory ]
+then
+    mkdir -p $ConsistencyCacheDirectory
+fi
+
 ## Age (in sec) of uberftp output before walking again
 export SiteDirListAge=30240
 
