@@ -1,5 +1,5 @@
 ## Location of all the files saved and read by the ConsistencyCheck
-export ConsistencyCacheDirectory=/scratch/dabercro/ConsistencyCache
+export ConsistencyCacheDirectory=~/ConsistencyCache
 
 if [ ! -d $ConsistencyCacheDirectory ]
 then
@@ -19,7 +19,7 @@ export NumPhedexThreads=2
 export PhedexOutputAge=30240
 
 ## Location of webpages
-export ConsistencyWebpages=/home/dabercro/public_html/ConsistencyCheck
+export ConsistencyWebpages=~/www/ConsistencyCheck
 
 ## List of SEs
 

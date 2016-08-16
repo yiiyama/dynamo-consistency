@@ -54,7 +54,7 @@ def finalCheck(TName,skipCksm):
                 shouldBeSpace = shouldBeSpace + int(aFile['size'])             # Calculate how much space should be used according to PhEDEx
             except:
                 print "Missing file size for " + aFile['file']
-            if (currentTime - float(aFile['time'])) < cutTime:                 # If any file is less than 2.5 weeks old, skip the block for now
+            if (currentTime - float(aFile['time'])) < cutTime:                 # If any file is less than 4 weeks old, skip the block for now
                 newDir = True
         if newDir:
             newBlocks.append(aBlock['dataset'])                                # Store the block name for future skipping
@@ -140,7 +140,7 @@ def finalCheck(TName,skipCksm):
         if str(aBlock['time']) == errorMessage:
             print 'Could not access time of ' + aBlock['directory'] + '. Skipping...'
             continue
-        elif (currentTime - float(aBlock['time'])) < cutTime:                     # If the directory is less than 2.5 weeks old, skip it
+        elif (currentTime - float(aBlock['time'])) < cutTime:                   # If the directory is less than 4 weeks old, skip it
 #            print 'Skipping the directory ' + aBlock['directory'] + ' because it is new.'
             for aFile in aBlock['files']:
                 try:
@@ -163,7 +163,7 @@ def finalCheck(TName,skipCksm):
                 if str(aFile['time']) == errorMessage:
                     print 'Skipping the file ' + aDirectory + aFile['file'] + ' because time is inaccessible.'
                     continue
-                elif (currentTime - float(aFile['time'])) < cutTime:              # If the file is not old, skip it
+                elif (currentTime - float(aFile['time'])) < cutTime:            # If the file is not old, skip it
 #                    print 'Skipping the file ' + aDirectory + aFile['file'] + ' because it is new.'
                     continue
                 found = False
