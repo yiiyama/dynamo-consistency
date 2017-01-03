@@ -1,0 +1,17 @@
+language: python
+cache: pip
+matrix:
+  include:
+    - python: 2.6
+      env: PYLINTER=old
+    - python: 2.7
+    - dist: trusty
+      sudo: required
+      python: 2.7
+      env: CHECKDOC=true
+install:
+  - if [ "$PYLINTER" = "old" ]; then pip install "astroid<1.3" "pylint<1.4"; fi
+  - git clone https://github.com/dabercro/OpsSpace.git
+# Remember to change this back to the correct thing some day...
+#  - git clone https://github.com/CMSCompOps/OpsSpace.git
+script: OpsSpace/test/package_test.sh
