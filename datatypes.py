@@ -14,7 +14,7 @@ class DirectoryInfo(object):
     """Stores all of the information of a directory"""
 
     def __init__(self, location='', name='', filler=None, to_merge=None):
-        """Create the directory information
+        """ Create the directory information
 
         :param str location: The path up to the current directory.
                              In other words, it is the joining of all the
@@ -46,7 +46,7 @@ class DirectoryInfo(object):
                 'size': size,
                 'mtime': mtime,
                 'hash': hashlib.sha1(
-                    '%s %i %i' % (name, size, mtime)
+                    '%s %i' % (name, size)
                     ).hexdigest()
                 } for name, size, mtime in sorted(files)]
 
