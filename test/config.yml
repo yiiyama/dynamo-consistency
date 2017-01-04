@@ -1,0 +1,30 @@
+##!
+# The configuration file for ConsistencyChecks is a YAML file.
+# It's keys are the following:
+#
+# - **CacheLocation** - The directory where all cached information is stored
+# - **InventoryAge** - The age, in days of how old the information from the inventory can be
+# - **ListAge** - The age, in days, of how old the list of files directly from the site can be
+# - **RedirectorAge** - The age, in days, of how old the information about redirectors can be
+# - **Redirectors** - A dictionary with keys of sites with hard-coded redirector locations.
+#   If a site is not listed in this way, the redirector is found by matching domains from
+#   :py:func:`CMSToolBox.siteinfo.get_domain` to redirectors found in a generic ``xrdfs locate`` call.
+# - **SiteList** - An optional list, which tells the ConsistencyCheck which sites to run over.
+#   All known T1s, T2s, or T3s can be run on by including ``'T1s'``, ``'T2s'``, or ``'T3s'``, respectively.
+# - **WebPageLocation** - The place to copy webpages containing results to.
+#
+# Any file older than its set age must be regenerated
+#
+# :author: Daniel Abercrombie <dabercro@mit.edu>
+##!
+
+CacheLocation: cache
+InventoryAge: 0.00005
+ListAge: 0.00005
+RedirectorAge: 1
+Redirectors:
+  T3_US_MIT: t3serv006.mit.edu
+  T3_CH_PSI: t3se01.psi.ch
+SiteList:
+  - T3_US_MIT
+WebPageLocation: www
