@@ -13,16 +13,6 @@ matrix:
       sudo: required
       python: 2.7
       env: CHECKDOC=true
-before_install:
-
-#####!!!!!
-# Remove all the bash scripts for now. Will fix any still required later
-  - for f in $(git ls-files | grep ".sh"); do echo "Removing $f"; git rm $f; done
-  - git config user.email "dan@abercrombie.ninja"
-  - git config user.name "Travis"
-  - git commit -m "Remove bash files for testing, temporarily."
-#####!!!!!
-
 install:
   - if [ "$PYLINTER" = "old" ]; then pip install "astroid<1.3" "pylint<1.4"; fi
 
