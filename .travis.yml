@@ -14,6 +14,8 @@ before_install:
 #####!!!!!
 # Remove all the bash scripts for now. Will fix any still required later
   - for f in $(git ls-files | grep ".sh"); do echo "Removing $f"; git rm $f; done
+  - git config user.email "dan@abercrombie.ninja"
+  - git config user.name "Travis"
   - git commit -m "Remove bash files for testing, temporarily."
 #####!!!!!
 
