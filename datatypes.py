@@ -1,4 +1,4 @@
-# pylint: disable=too-complex, bad-option-value, too-many-locals, too-many-branches, too-many-statements
+# pylint: disable=bad-option-value, too-many-locals, too-many-branches, too-many-statements, too-complex
 #
 # Here there be dragons.
 # ...
