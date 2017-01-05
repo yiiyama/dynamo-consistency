@@ -1,5 +1,9 @@
-# pylint: disable=too-complex
+# pylint: disable=too-complex, bad-option-value, too-many-locals, too-many-branches, too-many-statements
+#
+# Here there be dragons.
+# ...
 # This will need to be fixed, along with documentation
+#
 
 """
 Module contains the datatypes that are used for storage and comparison
@@ -47,6 +51,7 @@ def create_dirinfo(location, name, filler):
 
         :param str location: For the DirectoryInfo
         :param str name: Name of the empty DirectoryInfo
+        :param multithreading.Connection conn: A way to message the master thread
         """
 
         full_path = os.path.join(location, name)
@@ -119,12 +124,13 @@ def create_dirinfo(location, name, filler):
                         now = time.time()
                         while True:
                             timestamp = conn.recv()
-                            LOG.debug('Compare %f with %f, age: %f', now, timestamp, now - timestamp)
+                            LOG.debug('Compare %f with %f, age: %f',
+                                      now, timestamp, now - timestamp)
                             if now - timestamp < 10.0:
                                 LOG.debug('New enough, breaking.')
                                 break
                             mess = conn.recv()
-                            if message == 'All_Job':
+                            if mess == 'All_Job':
                                 LOG.debug('Found end to pipe.')
                                 conn.close()
                                 connections.remove(conn)

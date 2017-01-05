@@ -31,7 +31,7 @@ RedirectorAge: 1
 Redirectors:
   T3_US_MIT: t3serv006.mit.edu
   T3_CH_PSI: t3se01.psi.ch
-NumberOfRetries: 0
+NumberOfRetries: 10
 SiteList:
   - T3_US_MIT
 DirectoryList:

@@ -10,6 +10,7 @@ Tools to get the files located at a site.
 
 
 import re
+import os
 import time
 import datetime
 import subprocess
@@ -122,7 +123,8 @@ def get_site(site):
     info.display()
 
     # Save
-    info.save('/tmp/%s_content.pkl' % site)
+    info.save(os.path.join(config.config_dict()['CacheLocation'],
+                           '%s_content.pkl' % site))
 
     # Return the DirectoryInfo
     return info
