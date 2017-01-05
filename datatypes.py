@@ -38,9 +38,6 @@ def create_dirinfo(location, name, filler):
 
     in_queue = multiprocessing.Queue()
     out_queue = multiprocessing.Queue()
-    processes = []
-
-    dir_info = DirectoryInfo(name)
 
     def check_dir(location, name):
         """ Checks out a location, and if it has files (or is a dead end)
@@ -59,8 +56,6 @@ def create_dirinfo(location, name, filler):
         for directory in directories:
             in_queue.put((location, os.path.join(name, directory)))
 
-    check_dir(os.path.join(location, name), '')
-
     def run_queue():
         """Runs empty_dirinfo over the queue"""
         running = True
@@ -74,6 +69,12 @@ def create_dirinfo(location, name, filler):
 
         LOG.info('Worker finished input queue')
 
+    # Stick some things in the input queue
+    check_dir(os.path.join(location, name), '')
+
+    # Spawn processes
+    processes = []
+
     for _ in xrange(config.config_dict().get('MaxThreads') or multiprocessing.cpu_count()):
         process = multiprocessing.Process(target=run_queue)
         process.start()
@@ -82,11 +83,14 @@ def create_dirinfo(location, name, filler):
     for process in processes:
         process.join()
 
+    # Build the DirectoryInfo
     building = True
+    dir_info = DirectoryInfo(name)
 
     while building:
         try:
-            name, files = out_queue.get(True, 3)
+            name, files = out_queue.get(True, 1)
+            LOG.info('Building %s', name)
             dir_info.get_node(name).set_files(files)
         except Empty:
             building = False
