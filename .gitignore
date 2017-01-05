@@ -1,7 +1,8 @@
-T2_*
-T3_*
 *~
 *.json
 *.out
 *.pyc
 *.bak
+
+test/cache/*
+test/www/*

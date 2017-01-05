@@ -7,11 +7,13 @@
 import os
 import time
 import subprocess
+import logging
 
 import yaml
 
 from CMSToolBox.siteinfo import get_domain
 
+LOG = logging.getLogger(__name__)
 LOCATION = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test')
 """
 The string giving the location that serverconfig looks first for the configuration.
@@ -22,7 +24,8 @@ def config_dict():
     """
     :returns: the configuration in a dict
     :rtype: str
-    :raises Exception: when it cannot find the configuration file
+    :raises IOError: when it cannot find the configuration file
+    :raises KeyError: when the CacheDirectory key is not set in the configuration file
     """
 
     file_name = 'config.yml'
@@ -41,16 +44,18 @@ def config_dict():
 
     if os.path.exists(location):
         with open(location, 'r') as config:
+            LOG.debug('Opening config: %s', location)
             output = yaml.load(config)
     else:
         raise IOError('Could not load config at ' + location)
 
     cache_location = output.get('CacheLocation')
 
-    if cache_location and not os.path.exists(cache_location):
-        os.makedirs(cache_location)
+    if cache_location:
+        if not os.path.exists(cache_location):
+            os.makedirs(cache_location)
     else:
-        raise KeyError('Configuration dictionary does not have a Cache Location set.\n'
+        raise KeyError('Configuration dictionary does not have a Cache Location set. '
                        'Using dictionary at ' + location)
 
     return output
@@ -67,7 +72,7 @@ def get_redirector(site):
     config = config_dict()
 
     # If the redirector is hardcoded, return it
-    hard_coded = config.get('Redirector', {}).get(site)
+    hard_coded = config.get('Redirectors', {}).get(site)
     if hard_coded:
         return hard_coded
 

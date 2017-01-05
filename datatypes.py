@@ -8,12 +8,63 @@ Module contains the datatypes that are used for storage and comparison
 import os
 import hashlib
 import pickle
+import logging
+import threading
+
+from . import config
+
+LOG = logging.getLogger(__name__)
+IGNORE_AGE = config.config_dict()['IgnoreAge']
+"""
+The maximum age, in days, of files and directories to ignore in this check.
+This variable should be reset once in a while by deamons that run while an
+operator might be adjusting the config.yml.
+"""
+
+def create_dirinfo(location='', name='', filler=None, dirs=[], lock=None):
+    """ Create the directory information in it's very own thread
+
+    :param str location: For the DirectoryInfo constructor
+    :param str name: For the DirectoryInfo constructor
+    :param function filler: For the DirectoryInfo constructor
+    :param list dirs: The list to append daughter DirectoryInfos to
+    :param threading.Lock lock:
+    :returns: A DirectoryInfo
+    :rtype: DirectoryInfo
+    """
+
+    full_path = os.path.join(location, name)
+    directories, files = filler(full_path)
+
+    threads = []
+    dir_infos = []
+    the_lock = threading.Lock()
+    
+    if directories:
+
+        for subdir in directories[1:]:
+            thread = threading.Thread(target = create_dirinfo, args = (full_path, subdir, filler, dir_infos, the_lock))
+            threads.append(thread)
+            thread.start()
+
+        create_dirinfo(full_path, directories[0], filler, dir_infos, the_lock)
+
+        for thread in threads:
+            thread.join()
+
+    directory = DirectoryInfo(location, name, directories=dirs, files=files)
+    if lock:
+        lock.acquire()
+    dirs.append(directory)
+    if lock:
+        lock.release()
 
 
 class DirectoryInfo(object):
     """Stores all of the information of a directory"""
 
-    def __init__(self, location='', name='', filler=None, to_merge=None):
+    def __init__(self, location='', name='', filler=None, to_merge=None,
+                 directories=[], files=[]):
         """ Create the directory information
 
         :param str location: The path up to the current directory.
@@ -28,19 +79,19 @@ class DirectoryInfo(object):
         :param list to_merge: If this is filled, instead of using the location
                               and filler to fill DirectoryInfo, the infos in the
                               list are merged into a master DirectoryInfo.
+        :param list directories: List of subdirectories inside the directory
+        :param list files: List of tuples containing information about files
+                           in the directory.
         """
+
+        LOG.info('About to create: %s', os.path.join(location, name))
 
         if to_merge:
             self.directories = to_merge
             self.files = []
 
         else:
-            full_path = os.path.join(location, name)
-
-            directories, files = filler(full_path)
-
-            self.directories = [DirectoryInfo(full_path, directory, filler) for
-                                directory in sorted(directories)]
+            self.directories = directories
             self.files = [{
                 'name': name,
                 'size': size,
@@ -59,6 +110,7 @@ class DirectoryInfo(object):
         for file_info in self.files:
             hasher.update('%s %s' % (file_info['name'], file_info['hash']))
             ages.append(file_info['mtime'])
+            LOG.debug('File included: %s size: %i', file_info['name'], file_info['size'])
 
         self.oldest = min(ages) if ages else 0
         self.name = name
