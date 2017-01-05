@@ -7,7 +7,7 @@ import ConsistencyCheck.getsitecontents as gsc
 
 if __name__ == '__main__':
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     if len(sys.argv) == 2:
         gsc.get_site(sys.argv[1])

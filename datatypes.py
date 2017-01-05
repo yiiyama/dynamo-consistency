@@ -1,3 +1,6 @@
+# pylint: disable=too-complex
+# This will need to be fixed, along with documentation
+
 """
 Module contains the datatypes that are used for storage and comparison
 
@@ -9,7 +12,6 @@ import os
 import hashlib
 import pickle
 import logging
-import threading
 import multiprocessing
 
 from Queue import Empty
@@ -34,35 +36,30 @@ def create_dirinfo(location, name, filler):
     :rtype: DirectoryInfo
     """
 
-    queue = multiprocessing.Queue()
+    in_queue = multiprocessing.Queue()
+    out_queue = multiprocessing.Queue()
     processes = []
 
-    def empty_dirinfo(location, name, parent=None, lock=None):
-        """ Create empty DirectoryInfo
+    dir_info = DirectoryInfo(name)
+
+    def check_dir(location, name):
+        """ Checks out a location, and if it has files (or is a dead end)
+        places the name of the node in a queue for later processing
 
         :param str location: For the DirectoryInfo
         :param str name: Name of the empty DirectoryInfo
-        :param DirectoryInfo parent: The parent node to append the directory to
-        :param threading.Lock lock: The lock on the parent
-        :returns: The empty DirectoryInfo, list of directories, list of file tuples
-        :rtype: tuple (DirectoryInfo, list, list)
         """
+
         full_path = os.path.join(location, name)
         directories, files = filler(full_path)
 
-        output = DirectoryInfo(name, files=files)
-        output_lock = threading.Lock()
-
-        if parent:
-            lock.acquire()
-            parent.directories.append(output)
-            parent.directories.sort()
-            lock.release()
+        if files or not directories:
+            out_queue.put((name, files))
 
         for directory in directories:
-            queue.put((full_path, directory, output, output_lock))
+            in_queue.put((location, os.path.join(name, directory)))
 
-        return output
+    check_dir(os.path.join(location, name), '')
 
     def run_queue():
         """Runs empty_dirinfo over the queue"""
@@ -70,14 +67,12 @@ def create_dirinfo(location, name, filler):
 
         while running:
             try:
-                parameters = queue.get(True, 10)
-                empty_dirinfo(*parameters)
+                parameters = in_queue.get(True, 3)
+                check_dir(*parameters)
             except Empty:
                 running = False
 
-        LOG.info('Worker finished...')
-
-    dir_info = empty_dirinfo(location, name)
+        LOG.info('Worker finished input queue')
 
     for _ in xrange(config.config_dict().get('MaxThreads') or multiprocessing.cpu_count()):
         process = multiprocessing.Process(target=run_queue)
@@ -87,7 +82,15 @@ def create_dirinfo(location, name, filler):
     for process in processes:
         process.join()
 
-    dir_info.setup_hash()
+    building = True
+
+    while building:
+        try:
+            name, files = out_queue.get(True, 3)
+            dir_info.get_node(name).set_files(files)
+        except Empty:
+            building = False
+
     return dir_info
 
 
@@ -108,22 +111,31 @@ class DirectoryInfo(object):
 
         if to_merge:
             self.directories = to_merge
-            self.files = []
 
         else:
             self.directories = directories or []
-            self.files = [{
-                'name': name,
-                'size': size,
-                'mtime': mtime,
-                'hash': hashlib.sha1(
-                    '%s %i' % (name, size)
-                    ).hexdigest()
-                } for name, size, mtime in sorted(files or [])]
 
         self.name = name
         self.hash = None
         self.oldest = None
+        self.files = None
+        self.set_files(files)
+
+    def set_files(self, files):
+        """
+        Set the files for this DirectoryInfo node
+
+        :param list files: The tuples of file information
+        """
+        LOG.debug('Setting %i files', len(files or []))
+        self.files = [{
+            'name': name,
+            'size': size,
+            'mtime': mtime,
+            'hash': hashlib.sha1(
+                '%s %i' % (name, size)
+                ).hexdigest()
+            } for name, size, mtime in sorted(files or [])]
 
     def setup_hash(self):
         """
@@ -133,10 +145,14 @@ class DirectoryInfo(object):
         hasher = hashlib.sha1()
         ages = []
 
+        self.directories.sort(key=lambda x: x.name)
+        self.files.sort(key=lambda x: x['name'])
+
         for directory in self.directories:
             directory.setup_hash()
             hasher.update('%s %s' % (directory.name, directory.hash))
-            ages.append(directory.oldest)
+            if directory.oldest:
+                ages.append(directory.oldest)
         for file_info in self.files:
             hasher.update('%s %s' % (file_info['name'], file_info['hash']))
             ages.append(file_info['mtime'])
@@ -153,6 +169,8 @@ class DirectoryInfo(object):
         :param str file_name: is the location to save the file
         """
 
+        self.setup_hash()
+
         with open(file_name, 'w') as outfile:
             pickle.dump(self, outfile)
 
@@ -162,6 +180,8 @@ class DirectoryInfo(object):
 
         :param str path: The full path to this DirectoryInfo instance
         """
+
+        self.setup_hash()
 
         if not path:
             path = self.name
@@ -174,6 +194,34 @@ class DirectoryInfo(object):
 
         for directory in self.directories:
             directory.display(os.path.join(path, directory.name))
+
+    def get_node(self, path):
+        """ Get the node that corresponds to the path given
+
+        :param str path: Path to the desired node from current node.
+                         If the path does not exist yet, empty nodes will be created.
+        :returns: A node with the proper path
+        :rtype: DirectoryInfo
+        """
+
+        LOG.debug('From node %s named %s, getting %s', self, self.name, path)
+
+        # If any path left
+        if path:
+            split_path = path.split('/')
+
+            # Search for if directory exists
+            for directory in self.directories:
+                if split_path[0] == directory.name:
+                    return directory.get_node('/'.join(split_path[1:]))
+
+            # If not, make a new directory
+            new_dir = DirectoryInfo(split_path[0])
+            self.directories.append(new_dir)
+            return new_dir.get_node('/'.join(split_path[1:]))
+
+        # If no path, just return this
+        return self
 
     def _grab_first(self, levels=100):
         """ Used for debugging.

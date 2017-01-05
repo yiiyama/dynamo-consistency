@@ -116,6 +116,10 @@ def get_site(site):
 
     # Merge the DirectoryInfo
     info = datatypes.DirectoryInfo(name='/store', to_merge=directories)
+    info.setup_hash()
+
+    # Display for now
+    info.display()
 
     # Save
     info.save('/tmp/%s_content.pkl' % site)
