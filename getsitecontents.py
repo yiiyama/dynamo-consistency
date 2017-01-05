@@ -14,8 +14,6 @@ import time
 import datetime
 import subprocess
 import logging
-import threading
-import multiprocessing
 
 from . import config
 from . import datatypes
@@ -37,9 +35,7 @@ def get_site(site):
 
     # Create the filler function for the DirectoryInfo
 
-    error_code_re = re.compile('\[(\!|\d+)\]')
-    semaphore = threading.Semaphore(
-        config.config_dict().get('MaxThreads') or multiprocessing.cpu_count())
+    error_code_re = re.compile(r'\[(\!|\d+)\]')
 
     def ls_directory(path, attempts=0, prev_stdout=''):
         """
@@ -50,12 +46,10 @@ def get_site(site):
                              If the total number of attempts is more than the
                              NumberOfAttempts in the config, give back a new dummy file.
                              The young age should lead to the directory being left alone.
-        :param str prev_stout: stdout from previous attempt
+        :param str prev_stdout: stdout from previous attempt
         :returns: A list of directories and list of file information
         :rtype: tuple
         """
-
-        semaphore.acquire()
 
         directory_listing = subprocess.Popen(['xrdfs', redirector, 'ls', '-l', path],
                                              stdout=subprocess.PIPE,
@@ -71,27 +65,20 @@ def get_site(site):
         # Parse the stderr
         if stderr:
             LOG.error(stderr.strip())
+            stdout += '\n' + prev_stdout
 
-            # If a number of attempts were already made, give up
-            if attempts == config.config_dict().get('NumberOfAttempts', 1):
-                LOG.info('Giving up on %s', path)
-                stdout += '\n' + prev_stdout
-
-            else:
+            # If full number of attempts haven't been made, tray again
+            if attempts != config.config_dict().get('NumberOfAttempts', 1):
                 # Check against list of "error codes" to retry
                 error_code = error_code_re.search(stderr).group(1)
+
                 if error_code in ['!', '3005']:
                     LOG.info('Retrying directory %s', path)
                     time.sleep(1)
-                    semaphore.release()
-                    return ls_directory(path, attempts + 1,
-                                        '\n'.join([stdout, prev_stdout]))
+                    return ls_directory(path, attempts + 1, stdout)
 
-        # Parse the stdout
-        for line in stdout.split('\n'):
-            # Ignore blank lines
-            if not line.strip():
-                continue
+        # Parse the stdout, skipping blank lines
+        for line in [check for check in stdout.split('\n') if check.strip()]:
 
             # Ignore duplicate lines (which come up a lot)
             elements = line.split()
@@ -111,23 +98,21 @@ def get_site(site):
                          datetime.datetime.strptime(
                              '%s %s' % (elements[1], elements[2]),
                              '%Y-%m-%d %H:%M:%S').timetuple()
-                             )
-                            )
+                         )
                         )
-                        )
+                    )
+                    )
 
         if not directories:
             LOG.info('No more directories in %s, and %i files.', path, len(files))
 
-        semaphore.release()
         return directories, files
 
     # Create DirectoryInfo for each directory to search
-    directories = []
-
-    for directory in config.config_dict().get('DirectoryList', []):
-        datatypes.create_dirinfo('/store/', directory,
-                                 ls_directory, directories)
+    directories = [
+        datatypes.create_dirinfo('/store/', directory, ls_directory) for \
+            directory in config.config_dict().get('DirectoryList', [])
+        ]
 
     # Merge the DirectoryInfo
     info = datatypes.DirectoryInfo(name='/store', to_merge=directories)

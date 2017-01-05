@@ -10,6 +10,9 @@ import hashlib
 import pickle
 import logging
 import threading
+import multiprocessing
+
+from Queue import Empty
 
 from . import config
 
@@ -21,77 +24,94 @@ This variable should be reset once in a while by deamons that run while an
 operator might be adjusting the config.yml.
 """
 
-def create_dirinfo(location='', name='', filler=None, dirs=[], lock=None):
+def create_dirinfo(location, name, filler):
     """ Create the directory information in it's very own thread
 
-    :param str location: For the DirectoryInfo constructor
+    :param str location: For the listing
     :param str name: For the DirectoryInfo constructor
-    :param function filler: For the DirectoryInfo constructor
-    :param list dirs: The list to append daughter DirectoryInfos to
-    :param threading.Lock lock:
+    :param function filler: For the listing
     :returns: A DirectoryInfo
     :rtype: DirectoryInfo
     """
 
-    full_path = os.path.join(location, name)
-    directories, files = filler(full_path)
+    queue = multiprocessing.Queue()
+    processes = []
 
-    threads = []
-    dir_infos = []
-    the_lock = threading.Lock()
-    
-    if directories:
+    def empty_dirinfo(location, name, parent=None, lock=None):
+        """ Create empty DirectoryInfo
 
-        for subdir in directories[1:]:
-            thread = threading.Thread(target = create_dirinfo, args = (full_path, subdir, filler, dir_infos, the_lock))
-            threads.append(thread)
-            thread.start()
+        :param str location: For the DirectoryInfo
+        :param str name: Name of the empty DirectoryInfo
+        :param DirectoryInfo parent: The parent node to append the directory to
+        :param threading.Lock lock: The lock on the parent
+        :returns: The empty DirectoryInfo, list of directories, list of file tuples
+        :rtype: tuple (DirectoryInfo, list, list)
+        """
+        full_path = os.path.join(location, name)
+        directories, files = filler(full_path)
 
-        create_dirinfo(full_path, directories[0], filler, dir_infos, the_lock)
+        output = DirectoryInfo(name, files=files)
+        output_lock = threading.Lock()
 
-        for thread in threads:
-            thread.join()
+        if parent:
+            lock.acquire()
+            parent.directories.append(output)
+            parent.directories.sort()
+            lock.release()
 
-    directory = DirectoryInfo(location, name, directories=dirs, files=files)
-    if lock:
-        lock.acquire()
-    dirs.append(directory)
-    if lock:
-        lock.release()
+        for directory in directories:
+            queue.put((full_path, directory, output, output_lock))
+
+        return output
+
+    def run_queue():
+        """Runs empty_dirinfo over the queue"""
+        running = True
+
+        while running:
+            try:
+                parameters = queue.get(True, 10)
+                empty_dirinfo(*parameters)
+            except Empty:
+                running = False
+
+        LOG.info('Worker finished...')
+
+    dir_info = empty_dirinfo(location, name)
+
+    for _ in xrange(config.config_dict().get('MaxThreads') or multiprocessing.cpu_count()):
+        process = multiprocessing.Process(target=run_queue)
+        process.start()
+        processes.append(process)
+
+    for process in processes:
+        process.join()
+
+    dir_info.setup_hash()
+    return dir_info
 
 
 class DirectoryInfo(object):
     """Stores all of the information of a directory"""
 
-    def __init__(self, location='', name='', filler=None, to_merge=None,
-                 directories=[], files=[]):
+    def __init__(self, name='', to_merge=None,
+                 directories=None, files=None):
         """ Create the directory information
 
-        :param str location: The path up to the current directory.
-                             In other words, it is the joining of all the
-                             parent's names by ``'/'``.
         :param str name: The name of the directory
-        :param function filler: A pointer to a function that takes a full
-                                path as its only argument and returns a
-                                tuple of (directories, files) and
-                                the file information is a tuple including
-                                all of the desired stuff.
-        :param list to_merge: If this is filled, instead of using the location
-                              and filler to fill DirectoryInfo, the infos in the
+        :param list to_merge: If this is filled, the infos in the
                               list are merged into a master DirectoryInfo.
         :param list directories: List of subdirectories inside the directory
         :param list files: List of tuples containing information about files
                            in the directory.
         """
 
-        LOG.info('About to create: %s', os.path.join(location, name))
-
         if to_merge:
             self.directories = to_merge
             self.files = []
 
         else:
-            self.directories = directories
+            self.directories = directories or []
             self.files = [{
                 'name': name,
                 'size': size,
@@ -99,12 +119,22 @@ class DirectoryInfo(object):
                 'hash': hashlib.sha1(
                     '%s %i' % (name, size)
                     ).hexdigest()
-                } for name, size, mtime in sorted(files)]
+                } for name, size, mtime in sorted(files or [])]
+
+        self.name = name
+        self.hash = None
+        self.oldest = None
+
+    def setup_hash(self):
+        """
+        Set the hashes and times for this DirectoryInfo
+        """
 
         hasher = hashlib.sha1()
         ages = []
 
         for directory in self.directories:
+            directory.setup_hash()
             hasher.update('%s %s' % (directory.name, directory.hash))
             ages.append(directory.oldest)
         for file_info in self.files:
@@ -113,7 +143,6 @@ class DirectoryInfo(object):
             LOG.debug('File included: %s size: %i', file_info['name'], file_info['size'])
 
         self.oldest = min(ages) if ages else 0
-        self.name = name
         self.hash = hasher.hexdigest()
 
 
