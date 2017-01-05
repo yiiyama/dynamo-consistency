@@ -11,7 +11,7 @@
 # - **Redirectors** - A dictionary with keys of sites with hard-coded redirector locations.
 #   If a site is not listed in this way, the redirector is found by matching domains from
 #   :py:func:`CMSToolBox.siteinfo.get_domain` to redirectors found in a generic ``xrdfs locate`` call.
-# - **NumberOfAttempts** - The number of attempts to list a directory before giving up.
+# - **NumberOfRetries** - The number of retries to list a directory before giving up.
 # - **SiteList** - An optional list, which tells the ConsistencyCheck which sites to run over.
 #   All known T1s, T2s, or T3s can be run on by including ``'T1s'``, ``'T2s'``, or ``'T3s'``, respectively.
 # - **DirectoryList** - A list of directories inside of ``'/store/'`` to search inside.
@@ -23,7 +23,7 @@
 # :author: Daniel Abercrombie <dabercro@mit.edu>
 ##!
 
-MaxThreads: 8
+MaxThreads: 0
 CacheLocation: cache
 InventoryAge: 0.00005
 ListAge: 0.00005
@@ -31,7 +31,7 @@ RedirectorAge: 1
 Redirectors:
   T3_US_MIT: t3serv006.mit.edu
   T3_CH_PSI: t3se01.psi.ch
-NumberOfAttempts: 3
+NumberOfRetries: 0
 SiteList:
   - T3_US_MIT
 DirectoryList:

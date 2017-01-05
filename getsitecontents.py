@@ -44,7 +44,7 @@ def get_site(site):
         :param str path: The full path starting with ``/store/``.
         :param str attempts: The number of previous attempts.
                              If the total number of attempts is more than the
-                             NumberOfAttempts in the config, give back a new dummy file.
+                             NumberOfRetries in the config, give back a new dummy file.
                              The young age should lead to the directory being left alone.
         :param str prev_stdout: stdout from previous attempt
         :returns: A list of directories and list of file information
@@ -68,7 +68,7 @@ def get_site(site):
             stdout += '\n' + prev_stdout
 
             # If full number of attempts haven't been made, tray again
-            if attempts != config.config_dict().get('NumberOfAttempts', 1):
+            if attempts != config.config_dict().get('NumberOfRetries', 0):
                 # Check against list of "error codes" to retry
                 error_code = error_code_re.search(stderr).group(1)
 

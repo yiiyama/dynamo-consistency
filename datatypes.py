@@ -9,8 +9,10 @@ Module contains the datatypes that are used for storage and comparison
 
 
 import os
+import time
 import hashlib
 import pickle
+import random
 import logging
 import multiprocessing
 
@@ -39,7 +41,7 @@ def create_dirinfo(location, name, filler):
     in_queue = multiprocessing.Queue()
     out_queue = multiprocessing.Queue()
 
-    def check_dir(location, name):
+    def check_dir(location, name, conn=None):
         """ Checks out a location, and if it has files (or is a dead end)
         places the name of the node in a queue for later processing
 
@@ -51,37 +53,47 @@ def create_dirinfo(location, name, filler):
         directories, files = filler(full_path)
 
         if files or not directories:
+            if conn:
+                conn.send('One_Job')
+                conn.send(time.time())
             out_queue.put((name, files))
 
         for directory in directories:
             in_queue.put((location, os.path.join(name, directory)))
 
-    def run_queue():
-        """Runs empty_dirinfo over the queue"""
+    def run_queue(conn):
+        """ Runs empty_dirinfo over the queue
+
+        :param multiprocessing.Connection conn: A connection to pipe back when finished
+        """
         running = True
 
         while running:
             try:
-                parameters = in_queue.get(True, 3)
-                check_dir(*parameters)
+                location, name = in_queue.get(True, 3)
+                check_dir(location, name, conn)
+                LOG.debug('Finished one job with (%s, %s)', location, name)
             except Empty:
                 running = False
 
         LOG.info('Worker finished input queue')
+        conn.send('All_Job')
+        conn.close()
 
     # Stick some things in the input queue
     check_dir(os.path.join(location, name), '')
 
     # Spawn processes
     processes = []
+    connections = []
 
     for _ in xrange(config.config_dict().get('MaxThreads') or multiprocessing.cpu_count()):
-        process = multiprocessing.Process(target=run_queue)
+        con1, con2 = multiprocessing.Pipe()
+
+        process = multiprocessing.Process(target=run_queue, args=(con2,))
         process.start()
         processes.append(process)
-
-    for process in processes:
-        process.join()
+        connections.append(con1)
 
     # Build the DirectoryInfo
     building = True
@@ -93,8 +105,40 @@ def create_dirinfo(location, name, filler):
             LOG.info('Building %s', name)
             dir_info.get_node(name).set_files(files)
         except Empty:
-            building = False
+            LOG.debug('Empty queue for building.')
+            if connections:
+                for _ in connections:
+                    conn = random.choice(connections)
+                    message = conn.recv()
+                    if message == 'All_Job':
+                        LOG.debug('Found end to pipe.')
+                        conn.close()
+                        connections.remove(conn)
+                    elif message == 'One_Job':
+                        LOG.debug('Found one job, about to cycle')
+                        now = time.time()
+                        while True:
+                            timestamp = conn.recv()
+                            LOG.debug('Compare %f with %f, age: %f', now, timestamp, now - timestamp)
+                            if now - timestamp < 10.0:
+                                LOG.debug('New enough, breaking.')
+                                break
+                            mess = conn.recv()
+                            if message == 'All_Job':
+                                LOG.debug('Found end to pipe.')
+                                conn.close()
+                                connections.remove(conn)
+                                break
+                        break
+                    else:
+                        LOG.error('Weird message from pip')
+            else:
+                building = False
 
+    for process in processes:
+        process.join()
+
+    dir_info.setup_hash()
     return dir_info
 
 
@@ -173,8 +217,6 @@ class DirectoryInfo(object):
         :param str file_name: is the location to save the file
         """
 
-        self.setup_hash()
-
         with open(file_name, 'w') as outfile:
             pickle.dump(self, outfile)
 
@@ -184,9 +226,6 @@ class DirectoryInfo(object):
 
         :param str path: The full path to this DirectoryInfo instance
         """
-
-        self.setup_hash()
-
         if not path:
             path = self.name
 
