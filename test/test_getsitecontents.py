@@ -6,6 +6,7 @@ import re
 import socket
 import unittest
 import logging
+import time
 
 from ConsistencyCheck import getsitecontents
 from ConsistencyCheck import datatypes
@@ -51,10 +52,14 @@ class TestT3Listing(unittest.TestCase):
 if __name__ == '__main__':
 
     if len(sys.argv) == 2:
+        start = time.time()
+
         logging.basicConfig(level=logging.DEBUG)
 
         tree = getsitecontents.get_site_tree(sys.argv[1])
         tree.display()
+
+        print '\nDuration: %f seconds\n' % (time.time() - start)
 
     else:
         if re.match(r'T3[A-Z]{4}\d{3}.MIT.EDU', socket.getfqdn()):

@@ -50,6 +50,6 @@ DirectoryList:
   - hidata
   - himc
 
-IgnoreAge: 0.00003
+IgnoreAge: 1
 
 WebPageLocation: www

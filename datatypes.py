@@ -169,6 +169,7 @@ class DirectoryInfo(object):
         else:
             self.directories = directories or []
 
+        self.now = time.time()
         self.name = name
         self.hash = None
         self.oldest = None
@@ -228,9 +229,12 @@ class DirectoryInfo(object):
 
         for directory in self.directories:
             directory.setup_hash()
-            hasher.update('%s %s' % (directory.name, directory.hash))
             if directory.oldest:
                 ages.append(directory.oldest)
+
+            if directory.oldest + IGNORE_AGE * 24 * 3600 < self.now:
+                hasher.update('%s %s' % (directory.name, directory.hash))
+
         for file_info in self.files:
             hasher.update('%s %s' % (file_info['name'], file_info['hash']))
             ages.append(file_info['mtime'])

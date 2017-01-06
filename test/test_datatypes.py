@@ -27,7 +27,6 @@ from ConsistencyCheck import config
 from ConsistencyCheck import datatypes
 
 
-WAIT = config.config_dict()['IgnoreAge'] * 24 * 3600
 TMP_DIR = 'TempConsistency'
 
 # Define a filler function to use in the "remote filling" test
@@ -81,6 +80,7 @@ class TestBase(unittest.TestCase):
                          '%s\n=\n%s' % (tree0.displays(), tree1.displays()))
         self.assertEqual([fi['hash'] for fi in tree0._grab_first().files],
                          [fi['hash'] for fi in tree1._grab_first().files])
+        self.assertEqual(tree0.get_num_files(), tree1.get_num_files())
 
 
 class TestTree(TestBase):
@@ -130,7 +130,7 @@ class TestConsistentTrees(TestBase):
             out.write('\0' * size)
             out.close()
 
-        time.sleep(WAIT * 1.5)
+            os.utime(path, (1000000000, 1000000000))
 
     def test_ls_vs_list(self):
 
@@ -144,12 +144,69 @@ class TestConsistentTrees(TestBase):
 
 class TestInconsistentTrees(TestBase):
 
+    listing = None
+
     orphan = [
         ('/store/data/runE/0000/toomany.root', 20)
         ]
     missing = [
         ('/store/mc/Zllll/0023/signal.root', 15)
         ]
+    new_file = [
+        ('/store/data/runQ/0000/recent.root', 10)
+        ]
+
+    def do_more_setup(self):
+        for name, size in self.file_list + self.orphan:
+            path = os.path.join(TMP_DIR, name[7:])
+            if not os.path.isdir(os.path.dirname(path)):
+                os.makedirs(os.path.dirname(path))
+            out = open(path, 'w')
+            out.write('\0' * size)
+            out.close()
+
+            os.utime(path, (1000000000, 1000000000))
+
+        self.tree.add_file_list(self.missing)
+
+        for name, size in self.new_file:
+            path = os.path.join(TMP_DIR, name[7:])
+            if not os.path.isdir(os.path.dirname(path)):
+                os.makedirs(os.path.dirname(path))
+            out = open(path, 'w')
+            out.write('\0' * size)
+            out.close()
+
+        self.listing = datatypes.DirectoryInfo(
+            '/store', to_merge = [datatypes.create_dirinfo('', subdir, my_ls) \
+                                      for subdir in ['mc', 'data']])
+
+        self.tree.setup_hash()
+        self.listing.setup_hash()
+
+
+    def test_orphan(self):
+        pass
+
+    def test_missing(self):
+        pass
+
+    def test_both(self):
+        pass
+
+    def test_new_file(self):
+        self.tree.add_file_list(self.orphan)
+        self.listing.add_file_list(self.missing)
+
+        self.assertNotEqual(self.tree.get_num_files(), self.listing.get_num_files())
+        self.assertEqual(self.tree.get_num_files() + len(self.new_file),
+                         self.listing.get_num_files())
+
+        self.tree.setup_hash()
+        self.listing.setup_hash()
+
+        self.assertEqual(self.tree.hash, self.listing.hash,
+                         '%s\n=\n%s' % (self.tree.displays(), self.listing.displays()))
 
 if __name__ == '__main__':
     unittest.main()
