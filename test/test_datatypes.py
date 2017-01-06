@@ -127,7 +127,7 @@ class TestConsistentTrees(TestBase):
             if not os.path.isdir(os.path.dirname(path)):
                 os.makedirs(os.path.dirname(path))
             out = open(path, 'w')
-            out.write(bytearray(os.urandom(size)))
+            out.write('\0' * size)
             out.close()
 
         time.sleep(WAIT * 1.5)
