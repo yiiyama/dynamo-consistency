@@ -33,8 +33,14 @@ TMP_DIR = 'TempConsistency'
 # Define a filler function to use in the "remote filling" test
 def my_ls(path):
 
-    results = os.listdir(os.path.join(TMP_DIR, path))
-    return filter(os.path.isdir, results), filter(os.path.isfile, results)
+    full_path = os.path.join(TMP_DIR, path)
+    results = [os.path.join(full_path, res) for res in os.listdir(full_path)]
+
+    dirs  = [os.path.basename(name) for name in filter(os.path.isdir, results)]
+    files = [(os.path.basename(name), os.stat(name).st_size, os.stat(name).st_mtime) for \
+                 name in filter(os.path.isfile, results)]
+
+    return dirs, files
 
 class TestBase(unittest.TestCase):
 
@@ -52,7 +58,7 @@ class TestBase(unittest.TestCase):
 
     def setUp(self):
         if os.path.exists(TMP_DIR):
-            print 'Desire directory location already exists!'
+            print 'Desired directory location already exists!'
             exit(1)
         os.makedirs(TMP_DIR)
         self.tree = datatypes.DirectoryInfo('/store')
@@ -71,17 +77,17 @@ class TestBase(unittest.TestCase):
         tree0.setup_hash()
         tree1.setup_hash()
 
-        print '='*30
-        tree0.display()
-        print '='*30
-        tree1.display()
-
-        self.assertEqual(tree0.hash, tree1.hash)
-        self.assertEqual(tree0._grab_first().files,
-                         tree1._grab_first().files)
+        self.assertEqual(tree0.hash, tree1.hash,
+                         '%s\n=\n%s' % (tree0.displays(), tree1.displays()))
+        self.assertEqual([fi['hash'] for fi in tree0._grab_first().files],
+                         [fi['hash'] for fi in tree1._grab_first().files])
 
 
 class TestTree(TestBase):
+
+    def test_num_files(self):
+        self.assertEqual(self.tree.get_num_files(),
+                         len(self.file_list))
 
     def test_do_hash(self):
         self.assertFalse(self.tree.hash)
@@ -117,11 +123,23 @@ class TestConsistentTrees(TestBase):
 
     def do_more_setup(self):
         for name, size in self.file_list:
-            out = open(os.path.join(TMP_DIR, name[7:]), 'r')
+            path = os.path.join(TMP_DIR, name[7:])
+            if not os.path.isdir(os.path.dirname(path)):
+                os.makedirs(os.path.dirname(path))
+            out = open(path, 'w')
             out.write(bytearray(os.urandom(size)))
             out.close()
 
         time.sleep(WAIT * 1.5)
+
+    def test_ls_vs_list(self):
+
+        dirinfos = [datatypes.create_dirinfo('', subdir, my_ls) \
+                        for subdir in ['mc', 'data']]
+
+        master_dirinfo = datatypes.DirectoryInfo('/store', to_merge=dirinfos)
+
+        self.check_equal(self.tree, master_dirinfo)
 
 
 class TestInconsistentTrees(TestBase):

@@ -207,8 +207,11 @@ class DirectoryInfo(object):
                 files.append((os.path.basename(name), size, 0))
             else:
                 self.get_node(directory).add_files(files)
-                files = []
                 directory = os.path.dirname(name[len(self.name):].lstrip('/'))
+                files = [(os.path.basename(name), size, 0)]
+
+        self.get_node(directory).add_files(files)
+
 
     def setup_hash(self):
         """
@@ -251,17 +254,30 @@ class DirectoryInfo(object):
 
         :param str path: The full path to this DirectoryInfo instance
         """
+        print self.displays(path)
+
+    def displays(self, path=''):
+        """
+        Get the string to print out the contents of this DirectoryInfo
+
+        :param str path: The full path to this DirectoryInfo instance
+        :returns: The display string
+        :rtype: str
+        """
+
         if not path:
             path = self.name
 
-        print 'oldest: %i my hash: %s path: %s' % (self.oldest, self.hash, path)
+        output = 'oldest: %i my hash: %s path: %s' % (self.oldest, self.hash, path)
         for file_info in self.files:
-            print ('mtime: %i size: %i my hash:%s name: %s' %
-                   (file_info['mtime'], file_info['size'],
-                    file_info['hash'], file_info['name']))
+            output += ('\nmtime: %i size: %i my hash:%s name: %s' %
+                       (file_info['mtime'], file_info['size'],
+                        file_info['hash'], file_info['name']))
 
         for directory in self.directories:
-            directory.display(os.path.join(path, directory.name))
+            output += '\n' + directory.displays(os.path.join(path, directory.name))
+
+        return output
 
     def get_node(self, path):
         """ Get the node that corresponds to the path given
@@ -290,6 +306,19 @@ class DirectoryInfo(object):
 
         # If no path, just return this
         return self
+
+    def get_num_files(self):
+        """ Report the total number of files stored.
+
+        :returns: The number of files in the directory tree structure
+        :rtype: int
+        """
+
+        num_files = len(self.files)
+        for directory in self.directories:
+            num_files += directory.get_num_files()
+
+        return num_files
 
     def _grab_first(self, levels=100):
         """ Used for debugging.
