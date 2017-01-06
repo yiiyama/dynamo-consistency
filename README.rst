@@ -1,6 +1,8 @@
 ConsistencyCheck
 ================
 
+|build|
+
 Compares files on site to files on the PhEDEx database.
 Requires Python 2.6 or higher (for the json module).
 
@@ -56,3 +58,6 @@ witout actually removing anything::
 or::
 
     python ClearSite.py --safe --fast -T [SITE NAME]
+
+.. |build| image:: https://travis-ci.org/dabercro/ConsistencyCheck.svg?branch=master
+    :target: https://travis-ci.org/dabercro/ConsistencyCheck

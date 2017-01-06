@@ -24,17 +24,32 @@
 ##!
 
 MaxThreads: 0
+
 CacheLocation: cache
+
 InventoryAge: 0.00005
+
 ListAge: 0.00005
+
 RedirectorAge: 1
+
 Redirectors:
   T3_US_MIT: t3serv006.mit.edu
   T3_CH_PSI: t3se01.psi.ch
+
 NumberOfRetries: 10
+
 SiteList:
   - T3_US_MIT
+
 DirectoryList:
   - mc
+  - data
+  - generator
+  - results
+  - hidata
+  - himc
+
 IgnoreAge: 0.00003
+
 WebPageLocation: www
