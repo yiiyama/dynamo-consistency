@@ -11,11 +11,11 @@ Jobs of datatypes:
 Things to test:
 
 x Save and load trees and compare them to trees only in memory
-- Creation of tree through list of files and through a filler function
+x Creation of tree through list of files and through a filler function
   and compare them to see if they're the same
 - Create two different trees and make sure the differences noted are correct
 - Create new files and see if they affect the hash
-- Create multiple trees and merge them
+x Create multiple trees and merge them
 """
 
 import os
@@ -31,9 +31,9 @@ WAIT = config.config_dict()['IgnoreAge'] * 24 * 3600
 TMP_DIR = 'TempConsistency'
 
 # Define a filler function to use in the "remote filling" test
-def my_ls(path):
+def my_ls(path, location=TMP_DIR):
 
-    full_path = os.path.join(TMP_DIR, path)
+    full_path = os.path.join(location, path)
     results = [os.path.join(full_path, res) for res in os.listdir(full_path)]
 
     dirs  = [os.path.basename(name) for name in filter(os.path.isdir, results)]

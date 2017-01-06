@@ -224,6 +224,8 @@ class DirectoryInfo(object):
         self.directories.sort(key=lambda x: x.name)
         self.files.sort(key=lambda x: x['name'])
 
+        hasher.update(self.name)
+
         for directory in self.directories:
             directory.setup_hash()
             hasher.update('%s %s' % (directory.name, directory.hash))

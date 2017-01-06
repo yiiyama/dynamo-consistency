@@ -21,7 +21,7 @@ from . import datatypes
 
 LOG = logging.getLogger(__name__)
 
-def get_site(site):
+def get_site_tree(site):
     """
     Get the information for a site, either from a cache or from XRootD.
 
@@ -36,7 +36,7 @@ def get_site(site):
 
     # Create the filler function for the DirectoryInfo
 
-    error_code_re = re.compile(r'\[(\!|\d+)\]')
+    error_code_re = re.compile(r'\[(\!|\d+|FATAL)\]')
 
     def ls_directory(path, attempts=0, prev_stdout=''):
         """
@@ -77,6 +77,9 @@ def get_site(site):
                     LOG.info('Retrying directory %s', path)
                     time.sleep(1)
                     return ls_directory(path, attempts + 1, stdout)
+
+                elif error_code in ['FATAL']:
+                    print stderr
 
         # Parse the stdout, skipping blank lines
         for line in [check for check in stdout.split('\n') if check.strip()]:
@@ -119,12 +122,9 @@ def get_site(site):
     info = datatypes.DirectoryInfo(name='/store', to_merge=directories)
     info.setup_hash()
 
-    # Display for now
-    info.display()
-
     # Save
     info.save(os.path.join(config.config_dict()['CacheLocation'],
-                           '%s_content.pkl' % site))
+                           '%s_remotelisting.pkl' % site))
 
     # Return the DirectoryInfo
     return info
