@@ -108,7 +108,7 @@ def create_dirinfo(location, name, filler):
         try:
             name, files = out_queue.get(True, 1)
             LOG.info('Building %s', name)
-            dir_info.get_node(name).set_files(files)
+            dir_info.get_node(name).add_files(files)
         except Empty:
             LOG.debug('Empty queue for building.')
             if connections:
@@ -172,24 +172,43 @@ class DirectoryInfo(object):
         self.name = name
         self.hash = None
         self.oldest = None
-        self.files = None
-        self.set_files(files)
+        self.files = []
+        self.add_files(files)
 
-    def set_files(self, files):
+    def add_files(self, files):
         """
         Set the files for this DirectoryInfo node
 
         :param list files: The tuples of file information
         """
-        LOG.debug('Setting %i files', len(files or []))
-        self.files = [{
+        LOG.debug('Adding %i files', len(files or []))
+        self.files.extend([{
             'name': name,
             'size': size,
             'mtime': mtime,
             'hash': hashlib.sha1(
                 '%s %i' % (name, size)
                 ).hexdigest()
-            } for name, size, mtime in sorted(files or [])]
+            } for name, size, mtime in sorted(files or [])])
+
+    def add_file_list(self, file_infos):
+        """
+        Add a list of tuples containing file_name, file_size to the node
+
+        :param list file_infos: The list of files (full path, size in bytes)
+        """
+
+        files = []
+        directory = ''
+
+        for name, size in file_infos:
+            if directory and \
+                    name.startswith(os.path.join(self.name, directory)):
+                files.append((os.path.basename(name), size, 0))
+            else:
+                self.get_node(directory).add_files(files)
+                files = []
+                directory = os.path.dirname(name[len(self.name):].lstrip('/'))
 
     def setup_hash(self):
         """
