@@ -5,6 +5,7 @@ import sys
 import re
 import socket
 import unittest
+import logging
 
 from ConsistencyCheck import getsitecontents
 from ConsistencyCheck import datatypes
@@ -49,5 +50,12 @@ class TestT3Listing(unittest.TestCase):
 
 if __name__ == '__main__':
 
-    if re.match(r'T3[A-Z]{4}\d{3}.MIT.EDU', socket.getfqdn()):
-        unittest.main()
+    if len(sys.argv) == 2:
+        logging.basicConfig(level=logging.DEBUG)
+
+        tree = getsitecontents.get_site_tree(sys.argv[1])
+        tree.display()
+
+    else:
+        if re.match(r'T3[A-Z]{4}\d{3}.MIT.EDU', socket.getfqdn()):
+            unittest.main()
