@@ -17,6 +17,7 @@ x Creation of tree through list of files and through a filler function
 x Create new files and see if they affect the hash
 x Create multiple trees and merge them
 - Identifies empty directories to be removed
+- Test size to clear
 - Ignores directories that are too new
 """
 
@@ -103,7 +104,10 @@ class TestTree(TestBase):
         self.check_equal(self.tree, tree0)
 
     def test_empty_compare(self):
-        self.assertEqual(len(self.tree.compare(None)), len(self.file_list))
+        file_list, dir_list, _ = self.tree.compare(None)
+
+        self.assertEqual(len(file_list), len(self.file_list))
+        self.assertEqual(len(dir_list), 0)
 
     def test_merge_trees(self):
         trees = {
@@ -192,13 +196,32 @@ class TestInconsistentTrees(TestBase):
         self.listing.setup_hash()
 
     def test_orphan(self):
-        pass
+        file_list, dir_list, _ = self.listing.compare(self.tree)
+
+        self.assertEqual(len(file_list), 1)
+        self.assertEqual(file_list[0], self.orphan[0][0])
 
     def test_missing(self):
-        pass
+        file_list, dir_list, _ = self.tree.compare(self.listing)
+
+        self.assertEqual(len(file_list), 1)
+        self.assertEqual(file_list[0], self.missing[0][0])
 
     def test_both(self):
-        pass
+        file_base = os.path.join(TMP_DIR, 'report')
+        datatypes.compare(self.tree, self.listing, file_base)
+
+        with open('%s_missing.txt' % file_base, 'r') as missing_file:
+            missing = missing_file.readlines()
+
+        with open('%s_orphan.txt' % file_base, 'r') as orphan_file:
+            orphan = orphan_file.readlines()
+
+        self.assertEqual(len(missing), 1)
+        self.assertEqual(len(orphan), 1)
+
+        self.assertEqual(missing[0].strip(), self.missing[0][0])
+        self.assertEqual(orphan[0].strip(), self.orphan[0][0])
 
     def test_olddir(self):
         pass

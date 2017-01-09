@@ -350,31 +350,47 @@ class DirectoryInfo(object):
 
         return output
 
-    def compare(self, other):
+    def compare(self, other, path=''):
         """
         Does one way comparison with a different tree
 
         :param DirectoryInfo other: The directory tree to compare this one to
-        :returns: List of files that are present and not in the other tree
-        :rtype: list
+        :param str path: Is the path to get to this location so far
+        :returns: Tuple of list of files and directories that are present and not in the other tree
+                  and the size of the files that corresponds to
+        :rtype: list, list, int
         """
 
         extra_files = []
+        extra_dirs = []
+        extra_size = 0
+
+        here = os.path.join(path, self.name)
 
         if other:
             if self.hash != other.hash:
                 for directory in self.directories:
-                    extra_files.extend(
-                        directory.compare(
-                            other.get_node(self.name, False)))
+                    if directory.oldest + IGNORE_AGE * 24 * 3600 > self.now:
+                        continue
 
+                    new_other = other.get_node(directory.name, False)
+                    more_files, more_dirs, _ = directory.compare(new_other, here)
+                    extra_files.extend(more_files)
+                    if new_other:
+                        extra_dirs.extend(more_dirs)
+                    else:
+                        extra_dirs.append(os.path.join(here, directory.name))
         else:
             if self.files:
-                extra_files.extend([fi['name'] for fi in self.files])
+                extra_files.extend(
+                    [os.path.join(path, self.name, fi['name']) for fi in self.files]
+                    )
             for directory in self.directories:
-                extra_files.extend(directory.compare(None))
+                more_files, _, _ = directory.compare(None, here)
+                extra_files.extend(more_files)
 
-        return extra_files
+        return extra_files, extra_dirs, extra_size
+
 
 def get_info(file_name):
     """
@@ -390,3 +406,25 @@ def get_info(file_name):
     infile.close()
 
     return output
+
+
+def compare(inventory, listing, output_base):
+    """
+    Compare two different trees and output the differences into an ASCII file
+
+    :param DirectoryInfo inventory: The tree of files that should be at a site
+    :param DirectoryInfo listing: The tree of files that are listed remotely
+    :param str output_base: The names of the ASCII files to place the reports
+                            are generated from this variable.
+    """
+
+    missing, _, _ = inventory.compare(listing)
+    orphan, _, _  = listing.compare(inventory)
+
+    with open('%s_missing.txt' % output_base, 'w') as missing_file:
+        for line in missing:
+            missing_file.write(line + '\n')
+
+    with open('%s_orphan.txt' % output_base, 'w') as orphan_file:
+        for line in orphan:
+            orphan_file.write(line + '\n')

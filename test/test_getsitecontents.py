@@ -48,6 +48,11 @@ class TestT3Listing(unittest.TestCase):
 
         self.assertEqual(local_listing.hash, remote_tree.hash)
 
+    def test_compare_inventory(self):
+        remote_tree = getsitecontents.get_site_tree('T3_US_MIT')
+
+        # Make from inventory
+        inv_tree = None
 
 if __name__ == '__main__':
 

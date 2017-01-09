@@ -1,6 +1,17 @@
 """
-This module updates the cache of what PHEDEX thinks is at a site.
+This module gets the information from the inventory about a site's contents
+
+:author: Daniel Abercrombie <dabercro@mit.edu>
 """
+
+import sys
+
+from CMSToolBox.simplefiletools import load_env
+load_env('/local/dabercro/dynamo/etc/profile.d/init.sh')
+
+sys.path.insert(0, '/local/dabercro/dynamo/lib')
+
+from common.inventory import InventoryManager
 
 def update_cache(site):
     """Updates the cache for a site.
