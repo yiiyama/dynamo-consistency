@@ -14,8 +14,10 @@ x Save and load trees and compare them to trees only in memory
 x Creation of tree through list of files and through a filler function
   and compare them to see if they're the same
 - Create two different trees and make sure the differences noted are correct
-- Create new files and see if they affect the hash
+x Create new files and see if they affect the hash
 x Create multiple trees and merge them
+- Identifies empty directories to be removed
+- Ignores directories that are too new
 """
 
 import os
@@ -100,6 +102,9 @@ class TestTree(TestBase):
 
         self.check_equal(self.tree, tree0)
 
+    def test_empty_compare(self):
+        self.assertEqual(len(self.tree.compare(None)), len(self.file_list))
+
     def test_merge_trees(self):
         trees = {
             'mc': datatypes.DirectoryInfo('mc'),
@@ -141,6 +146,8 @@ class TestConsistentTrees(TestBase):
 
         self.check_equal(self.tree, master_dirinfo)
 
+    def test_newdir(self):
+        pass
 
 class TestInconsistentTrees(TestBase):
 
@@ -184,7 +191,6 @@ class TestInconsistentTrees(TestBase):
         self.tree.setup_hash()
         self.listing.setup_hash()
 
-
     def test_orphan(self):
         pass
 
@@ -192,6 +198,9 @@ class TestInconsistentTrees(TestBase):
         pass
 
     def test_both(self):
+        pass
+
+    def test_olddir(self):
         pass
 
     def test_new_file(self):

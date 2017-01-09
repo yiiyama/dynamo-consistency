@@ -232,7 +232,8 @@ class DirectoryInfo(object):
             if directory.oldest:
                 ages.append(directory.oldest)
 
-            if directory.oldest + IGNORE_AGE * 24 * 3600 < self.now:
+            # Ignore newer directories, and for now empty directories
+            if directory.oldest + IGNORE_AGE * 24 * 3600 < self.now and directory.get_num_files():
                 hasher.update('%s %s' % (directory.name, directory.hash))
 
         for file_info in self.files:
@@ -285,13 +286,14 @@ class DirectoryInfo(object):
 
         return output
 
-    def get_node(self, path):
+    def get_node(self, path, make_new=True):
         """ Get the node that corresponds to the path given
 
         :param str path: Path to the desired node from current node.
                          If the path does not exist yet, empty nodes will be created.
-        :returns: A node with the proper path
-        :rtype: DirectoryInfo
+        :param str make_new: Bool to create new node if none exists at path or not
+        :returns: A node with the proper path, unless make_new is False and the node doesn't exist
+        :rtype: DirectoryInfo or None
         """
 
         LOG.debug('From node %s named %s, getting %s', self, self.name, path)
@@ -305,10 +307,13 @@ class DirectoryInfo(object):
                 if split_path[0] == directory.name:
                     return directory.get_node('/'.join(split_path[1:]))
 
-            # If not, make a new directory
-            new_dir = DirectoryInfo(split_path[0])
-            self.directories.append(new_dir)
-            return new_dir.get_node('/'.join(split_path[1:]))
+            # If not, make a new directory, or None
+            if make_new:
+                new_dir = DirectoryInfo(split_path[0])
+                self.directories.append(new_dir)
+                return new_dir.get_node('/'.join(split_path[1:]))
+            else:
+                return None
 
         # If no path, just return this
         return self
@@ -345,6 +350,31 @@ class DirectoryInfo(object):
 
         return output
 
+    def compare(self, other):
+        """
+        Does one way comparison with a different tree
+
+        :param DirectoryInfo other: The directory tree to compare this one to
+        :returns: List of files that are present and not in the other tree
+        :rtype: list
+        """
+
+        extra_files = []
+
+        if other:
+            if self.hash != other.hash:
+                for directory in self.directories:
+                    extra_files.extend(
+                        directory.compare(
+                            other.get_node(self.name, False)))
+
+        else:
+            if self.files:
+                extra_files.extend([fi['name'] for fi in self.files])
+            for directory in self.directories:
+                extra_files.extend(directory.compare(None))
+
+        return extra_files
 
 def get_info(file_name):
     """
