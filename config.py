@@ -8,15 +8,14 @@ import os
 import time
 import subprocess
 import logging
-
-import yaml
+import json
 
 from CMSToolBox.siteinfo import get_domain
 
 LOG = logging.getLogger(__name__)
-CONFIG_FILE = 'config.yml'
+CONFIG_FILE = 'config.json'
 """
-The string giving the location of the configuration YAML file.
+The string giving the location of the configuration JSON file.
 Generally, you want to set this value of the module before calling for your configuration.
 """
 
@@ -40,7 +39,7 @@ def config_dict():
     if os.path.exists(location):
         with open(location, 'r') as config:
             LOG.debug('Opening config: %s', location)
-            output = yaml.load(config)
+            output = json.load(config)
     else:
         raise IOError('Could not load config at ' + location)
 

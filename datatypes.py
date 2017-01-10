@@ -419,7 +419,7 @@ def compare(inventory, listing, output_base):
     """
 
     missing, _, _ = inventory.compare(listing)
-    orphan, _, _  = listing.compare(inventory)
+    orphan, _, _ = listing.compare(inventory)
 
     with open('%s_missing.txt' % output_base, 'w') as missing_file:
         for line in missing:

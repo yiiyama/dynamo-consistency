@@ -1,0 +1,25 @@
+{
+  "InventoryAge": 5e-05,
+  "MaxThreads": 0,
+  "ListAge": 5e-05,
+  "IgnoreAge": 1,
+  "RedirectorAge": 1,
+  "CacheLocation": "cache",
+  "Redirectors": {
+    "T3_CH_PSI": "t3se01.psi.ch",
+    "T3_US_MIT": "t3serv006.mit.edu"
+  },
+  "DirectoryList": [
+    "mc",
+    "data",
+    "generator",
+    "results",
+    "hidata",
+    "himc"
+  ],
+  "WebPageLocation": "www",
+  "SiteList": [
+    "T3_US_MIT"
+  ],
+  "NumberOfRetries": 10
+}

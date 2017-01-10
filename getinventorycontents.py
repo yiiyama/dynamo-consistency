@@ -1,3 +1,5 @@
+#pylint: skip-file
+
 """
 This module gets the information from the inventory about a site's contents
 
@@ -6,9 +8,11 @@ This module gets the information from the inventory about a site's contents
 
 import sys
 
-from CMSToolBox.simplefiletools import load_env
-load_env('/local/dabercro/dynamo/etc/profile.d/init.sh')
+# This all will be replaced when the code is migrated inside dynamo
 
+from CMSToolBox.simplefiletools import load_env
+
+load_env('/local/dabercro/dynamo/etc/profile.d/init.sh')
 sys.path.insert(0, '/local/dabercro/dynamo/lib')
 
 from common.inventory import InventoryManager
