@@ -33,7 +33,7 @@ def config_dict():
     # If not there, fall back to the test directory
     if not os.path.exists(location):
         location = os.path.join(os.path.dirname(__file__),
-                                'test/config.yml')
+                                'test', CONFIG_FILE)
 
     # If file exists, load it
     if os.path.exists(location):
