@@ -13,7 +13,7 @@ import json
 from CMSToolBox.siteinfo import get_domain
 
 LOG = logging.getLogger(__name__)
-CONFIG_FILE = 'config.json'
+CONFIG_FILE = 'consistency_config.json'
 """
 The string giving the location of the configuration JSON file.
 Generally, you want to set this value of the module before calling for your configuration.
