@@ -57,13 +57,12 @@ def create_dirinfo(location, name, filler):
         full_path = os.path.join(location, name)
         directories, files = filler(full_path)
 
-        if files or not directories:
-            if conn:
-                conn.send('One_Job')
-                conn.send(time.time())
-            out_queue.put((name, files))
+        if conn:
+            conn.send('One_Job')
+            conn.send(time.time())
+        out_queue.put((name, files, directories))
 
-        for directory in directories:
+        for directory, _ in directories:
             in_queue.put((location, os.path.join(name, directory)))
 
     def run_queue(conn):
@@ -106,9 +105,14 @@ def create_dirinfo(location, name, filler):
 
     while building:
         try:
-            name, files = out_queue.get(True, 1)
+            name, files, directories = out_queue.get(True, 1)
             LOG.info('Building %s', name)
-            dir_info.get_node(name).add_files(files)
+            built = dir_info.get_node(name)
+            built.add_files(files)
+
+            for directory, mtime in directories:
+                built.get_node(directory).mtime = mtime
+
         except Empty:
             LOG.debug('Empty queue for building.')
             if connections:
@@ -172,9 +176,9 @@ class DirectoryInfo(object):
         self.timestamp = time.time()
         self.name = name
         self.hash = None
-        self.oldest = None
         self.files = []
         self.add_files(files)
+        self.mtime = None
 
         self.can_compare = False
 
@@ -223,7 +227,6 @@ class DirectoryInfo(object):
         """
 
         hasher = hashlib.sha1()
-        ages = []
 
         self.directories.sort(key=lambda x: x.name)
         self.files.sort(key=lambda x: x['name'])
@@ -232,20 +235,26 @@ class DirectoryInfo(object):
 
         for directory in self.directories:
             directory.setup_hash()
-            if directory.oldest:
-                ages.append(directory.oldest)
+            self.can_compare = self.can_compare or directory.can_compare
 
-            # Ignore newer directories, and for now empty directories
-            if directory.oldest + IGNORE_AGE * 24 * 3600 < self.timestamp and \
-                    directory.get_num_files():
+            # Ignore newer directories
+            if directory.can_compare:
                 hasher.update('%s %s' % (directory.name, directory.hash))
 
-        for file_info in self.files:
-            hasher.update('%s %s' % (file_info['name'], file_info['hash']))
-            ages.append(file_info['mtime'])
-            LOG.debug('File included: %s size: %i', file_info['name'], file_info['size'])
+        LOG.debug('Making hash for directory named %s', self.name)
 
-        self.oldest = min(ages) if ages else 0
+        for file_info in self.files:
+            if file_info['can_compare']:
+                self.can_compare = True
+                hasher.update('%s %s' % (file_info['name'], file_info['hash']))
+
+            LOG.debug('File included: %s size: %i can compare: %i',
+                      file_info['name'], file_info['size'], int(file_info['can_compare']))
+
+        if not (self.directories or self.files) and self.mtime and \
+                self.mtime + IGNORE_AGE * 24 * 3600 < self.timestamp:
+            self.can_compare = True
+
         self.hash = hasher.hexdigest()
 
 
@@ -279,7 +288,7 @@ class DirectoryInfo(object):
         if not path:
             path = self.name
 
-        output = 'oldest: %i my hash: %s path: %s' % (self.oldest, self.hash, path)
+        output = 'compare: %i my hash: %s path: %s' % (int(self.can_compare), self.hash, path)
         for file_info in self.files:
             output += ('\nmtime: %i size: %i my hash:%s name: %s' %
                        (file_info['mtime'], file_info['size'],
@@ -305,20 +314,25 @@ class DirectoryInfo(object):
         # If any path left
         if path:
             split_path = path.split('/')
+            return_name = '/'.join(split_path[1:])
 
             # Search for if directory exists
             for directory in self.directories:
+                LOG.debug('Checking node named %s', directory.name)
                 if split_path[0] == directory.name:
-                    return directory.get_node('/'.join(split_path[1:]))
+                    LOG.debug('Found match, now returning %s', return_name)
+                    return directory.get_node(return_name, make_new)
 
             # If not, make a new directory, or None
+            LOG.debug('Did not find directory. Make new? %i', int(make_new))
             if make_new:
                 new_dir = DirectoryInfo(split_path[0])
                 self.directories.append(new_dir)
-                return new_dir.get_node('/'.join(split_path[1:]))
+                return new_dir.get_node(return_name, make_new)
             else:
                 return None
 
+        LOG.debug('Returning self')
         # If no path, just return this
         return self
 
@@ -374,11 +388,13 @@ class DirectoryInfo(object):
         if other:
             if self.hash != other.hash:
                 for directory in self.directories:
-                    if directory.oldest + IGNORE_AGE * 24 * 3600 > self.timestamp:
+                    if not directory.can_compare:
                         continue
 
+                    LOG.debug('About to get %s from other node.', directory.name)
                     new_other = other.get_node(directory.name, False)
-                    more_files, more_dirs, _ = directory.compare(new_other, here)
+                    more_files, more_dirs, more_size = directory.compare(new_other, here)
+                    extra_size += more_size
                     extra_files.extend(more_files)
                     if new_other:
                         extra_dirs.extend(more_dirs)
@@ -386,11 +402,13 @@ class DirectoryInfo(object):
                         extra_dirs.append(os.path.join(here, directory.name))
         else:
             if self.files:
-                extra_files.extend(
-                    [os.path.join(path, self.name, fi['name']) for fi in self.files]
-                    )
+                for file_info in self.files:
+                    extra_files.append(os.path.join(path, self.name, file_info['name']))
+                    extra_size += file_info['size']
+
             for directory in self.directories:
-                more_files, _, _ = directory.compare(None, here)
+                more_files, _, more_size = directory.compare(None, here)
+                extra_size += more_size
                 extra_files.extend(more_files)
 
         return extra_files, extra_dirs, extra_size

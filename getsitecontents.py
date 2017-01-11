@@ -91,21 +91,20 @@ def get_site_tree(site):
                 continue
             inserted.add(name)
 
+            mtime = int(
+                time.mktime(
+                    datetime.datetime.strptime(
+                        '%s %s' % (elements[1], elements[2]),
+                        '%Y-%m-%d %H:%M:%S').timetuple()
+                    )
+                )
+
             # Determine if directory or file
             if elements[0][0] == 'd':
-                directories.append(name)
+                directories.append((name, mtime))
             else:
                 # For files, append tuple (name, size, mtime)
-                files.append(
-                    (name, int(elements[-2]),
-                     int(time.mktime(
-                         datetime.datetime.strptime(
-                             '%s %s' % (elements[1], elements[2]),
-                             '%Y-%m-%d %H:%M:%S').timetuple()
-                         )
-                        )
-                    )
-                    )
+                files.append((name, int(elements[-2]), mtime))
 
         if not directories:
             LOG.info('No more directories in %s, and %i files.', path, len(files))

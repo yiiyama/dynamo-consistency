@@ -13,24 +13,29 @@ Things to test:
 x Save and load trees and compare them to trees only in memory
 x Creation of tree through list of files and through a filler function
   and compare them to see if they're the same
-- Create two different trees and make sure the differences noted are correct
+x Create two different trees and make sure the differences noted are correct
 x Create new files and see if they affect the hash
 x Create multiple trees and merge them
-- Identifies empty directories to be removed
-- Test size to clear
-- Ignores directories that are too new
+x Identifies empty directories to be removed
+x Test size to clear
+x Ignores directories that are too new
+
+This is the development test script. Please don't touch if you're not me.
+See test_compare.py for something better documented and methodical.
 """
 
 import os
+import sys
 import time
 import shutil
 import unittest
+import logging
 
 from ConsistencyCheck import config
 from ConsistencyCheck import datatypes
 
-
 TMP_DIR = 'TempConsistency'
+LOG = logging.getLogger(__name__)
 
 # Define a filler function to use in the "remote filling" test
 def my_ls(path, location=TMP_DIR):
@@ -38,7 +43,8 @@ def my_ls(path, location=TMP_DIR):
     full_path = os.path.join(location, path)
     results = [os.path.join(full_path, res) for res in os.listdir(full_path)]
 
-    dirs  = [os.path.basename(name) for name in filter(os.path.isdir, results)]
+    dirs  = [(os.path.basename(name), os.stat(name).st_mtime) for \
+                 name in filter(os.path.isdir, results)]
     files = [(os.path.basename(name), os.stat(name).st_size, os.stat(name).st_mtime) for \
                  name in filter(os.path.isfile, results)]
 
@@ -55,6 +61,7 @@ class TestBase(unittest.TestCase):
         ('/store/mc/ttThings/0001/zxcvb.root', 50),
         ('/store/mc/ttThings/0000/doulb.root', 30),
         ('/store/data/runB/0001/missi.root', 45),
+        ('/store/data/runB/earlyfile.root', 5),
         ('/store/data/runA/0030/stuff.root', 10),
         ]
 
@@ -104,10 +111,11 @@ class TestTree(TestBase):
         self.check_equal(self.tree, tree0)
 
     def test_empty_compare(self):
-        file_list, dir_list, _ = self.tree.compare(None)
+        file_list, dir_list, size = self.tree.compare(None)
 
         self.assertEqual(len(file_list), len(self.file_list))
         self.assertEqual(len(dir_list), 0)
+        self.assertEqual(size, sum([size for _, size in self.file_list]))
 
     def test_merge_trees(self):
         trees = {
@@ -151,7 +159,20 @@ class TestConsistentTrees(TestBase):
         self.check_equal(self.tree, master_dirinfo)
 
     def test_newdir(self):
-        pass
+        empty_dir = 'mc/new/empty/0002'
+
+        os.makedirs(os.path.join(TMP_DIR, empty_dir))
+
+        dirinfos = [datatypes.create_dirinfo('', subdir, my_ls) \
+                        for subdir in ['mc', 'data']]
+
+        master_dirinfo = datatypes.DirectoryInfo('/store', to_merge=dirinfos)
+
+        self.check_equal(self.tree, master_dirinfo)
+        self.assertFalse(master_dirinfo.get_node(os.path.join(empty_dir, 'not_there'), False))
+        self.assertTrue(master_dirinfo.get_node(empty_dir, False))
+        self.assertFalse(master_dirinfo.get_node(empty_dir, False).can_compare)
+
 
 class TestInconsistentTrees(TestBase):
 
@@ -189,8 +210,8 @@ class TestInconsistentTrees(TestBase):
             out.close()
 
         self.listing = datatypes.DirectoryInfo(
-            '/store', to_merge = [datatypes.create_dirinfo('', subdir, my_ls) \
-                                      for subdir in ['mc', 'data']])
+            '/store', to_merge=[datatypes.create_dirinfo('', subdir, my_ls) \
+                                    for subdir in ['mc', 'data']])
 
         self.tree.setup_hash()
         self.listing.setup_hash()
@@ -224,7 +245,33 @@ class TestInconsistentTrees(TestBase):
         self.assertEqual(orphan[0].strip(), self.orphan[0][0])
 
     def test_olddir(self):
-        pass
+        empty_dir = 'mc/new/empty/0002'
+        path = os.path.join(TMP_DIR, empty_dir)
+        os.makedirs(path)
+        os.utime(path, (1000000000, 1000000000))
+
+        listing = datatypes.DirectoryInfo('/store',
+                                          to_merge=[datatypes.create_dirinfo('', subdir, my_ls) for
+                                                    subdir in ['mc', 'data']])
+
+        LOG.info('='*40)
+        LOG.info('Doing the hash')
+        LOG.info('='*40)
+
+        listing.setup_hash()
+
+        LOG.info('='*40)
+        LOG.info('Doing the comparison')
+        LOG.info('='*40)
+
+        LOG.info(listing.displays())
+        LOG.info('='*40)
+        LOG.info(self.listing.displays())
+
+        file_list, dir_list, _ = listing.compare(self.listing)
+
+        self.assertEqual(len(dir_list), 1)
+        self.assertTrue(os.path.join('/store', empty_dir).startswith(dir_list[0]))
 
     def test_new_file(self):
         self.tree.add_file_list(self.orphan)
@@ -241,4 +288,7 @@ class TestInconsistentTrees(TestBase):
                          '%s\n=\n%s' % (self.tree.displays(), self.listing.displays()))
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        logging.basicConfig(level=logging.DEBUG)
+
     unittest.main()
