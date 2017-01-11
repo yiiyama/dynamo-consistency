@@ -169,12 +169,14 @@ class DirectoryInfo(object):
         else:
             self.directories = directories or []
 
-        self.now = time.time()
+        self.timestamp = time.time()
         self.name = name
         self.hash = None
         self.oldest = None
         self.files = []
         self.add_files(files)
+
+        self.compare = False
 
     def add_files(self, files):
         """
@@ -189,7 +191,8 @@ class DirectoryInfo(object):
             'mtime': mtime,
             'hash': hashlib.sha1(
                 '%s %i' % (name, size)
-                ).hexdigest()
+                ).hexdigest(),
+            'compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp)
             } for name, size, mtime in sorted(files or [])])
 
     def add_file_list(self, file_infos):
@@ -233,7 +236,7 @@ class DirectoryInfo(object):
                 ages.append(directory.oldest)
 
             # Ignore newer directories, and for now empty directories
-            if directory.oldest + IGNORE_AGE * 24 * 3600 < self.now and directory.get_num_files():
+            if directory.oldest + IGNORE_AGE * 24 * 3600 < self.timestamp and directory.get_num_files():
                 hasher.update('%s %s' % (directory.name, directory.hash))
 
         for file_info in self.files:
@@ -370,7 +373,7 @@ class DirectoryInfo(object):
         if other:
             if self.hash != other.hash:
                 for directory in self.directories:
-                    if directory.oldest + IGNORE_AGE * 24 * 3600 > self.now:
+                    if directory.oldest + IGNORE_AGE * 24 * 3600 > self.timestamp:
                         continue
 
                     new_other = other.get_node(directory.name, False)

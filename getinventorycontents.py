@@ -20,6 +20,7 @@ from common.inventory import InventoryManager
 from common.dataformat import File
 
 from . import datatypes
+from . import config
 
 def get_site_inventory(site):
     """Loads the contents of a site, based on PHEDEX's count
@@ -34,9 +35,18 @@ def get_site_inventory(site):
     inventory = InventoryManager()
     replicas = inventory.sites[site].dataset_replicas
 
+    dirs_to_look = config.config_dict()['DirectoryList']
+
     for replica in replicas:
-        tree.add_file_list(
-            [(os.path.join(File.directories[fi.directory_id], fi.name), int(fi.size)) \
-                 for fi in replica.dataset.files])
+        add_list = []
+        for fi in replica.dataset.files:
+            if File.directories[fi.directory_id].split('/')[2] in dirs_to_look:
+                add_list.append(
+                    (os.path.join(File.directories[fi.directory_id], fi.name),
+                     int(fi.size)))
+
+        tree.add_file_list(add_list)
+
+    tree.setup_hash()
 
     return tree
