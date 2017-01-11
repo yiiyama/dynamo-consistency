@@ -21,7 +21,8 @@ def my_ls(path, location='/mnt/hadoop/cms/store'):
 
     results = [os.path.join(full_path, res) for res in os.listdir(full_path)]
 
-    dirs  = [os.path.basename(name) for name in filter(os.path.isdir, results)]
+    dirs  = [(os.path.basename(name), os.stat(name).st_mtime) for \
+                 name in filter(os.path.isdir, results)]
     files = [(os.path.basename(name), os.stat(name).st_size, os.stat(name).st_mtime) for \
                  name in filter(os.path.isfile, results)]
 
@@ -49,7 +50,7 @@ class TestT3Listing(unittest.TestCase):
         self.assertEqual(local_listing.hash, remote_tree.hash)
 
     def test_compare_inventory(self):
-        remote_tree = getsitecontents.get_site_tree('T3_US_MIT')
+#        remote_tree = getsitecontents.get_site_tree('T3_US_MIT')
 
         # Make from inventory
         inv_tree = None
