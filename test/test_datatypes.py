@@ -273,6 +273,9 @@ class TestInconsistentTrees(TestBase):
         self.assertEqual(len(dir_list), 1)
         self.assertTrue(os.path.join('/store', empty_dir).startswith(dir_list[0]))
 
+        for file_name, _ in self.file_list:
+            self.assertFalse(file_name.startswith(dir_list[0]))
+
     def test_new_file(self):
         self.tree.add_file_list(self.orphan)
         self.listing.add_file_list(self.missing)
@@ -288,6 +291,7 @@ class TestInconsistentTrees(TestBase):
                          '%s\n=\n%s' % (self.tree.displays(), self.listing.displays()))
 
 if __name__ == '__main__':
+
     if len(sys.argv) > 1:
         logging.basicConfig(level=logging.DEBUG)
 

@@ -5,3 +5,7 @@
 
 test/cache/*
 test/www/*
+test/T2/*.yml
+test/T2/storage*
+test/T2/*.pkl
+test/T2/cache/*
