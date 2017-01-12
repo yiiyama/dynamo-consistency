@@ -81,6 +81,9 @@ def get_site_tree(site):
                 elif error_code in ['FATAL']:
                     print stderr
 
+            else:
+                files.append(('_unlisted_', 0, 0))
+
         # Parse the stdout, skipping blank lines
         for line in [check for check in stdout.split('\n') if check.strip()]:
 
