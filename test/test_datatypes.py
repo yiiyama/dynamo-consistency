@@ -290,6 +290,28 @@ class TestInconsistentTrees(TestBase):
         self.assertEqual(self.tree.hash, self.listing.hash,
                          '%s\n=\n%s' % (self.tree.displays(), self.listing.displays()))
 
+    def test_same_dir(self):
+        self.tree.add_file_list(self.orphan)
+        self.listing.add_file_list(self.missing)
+
+        same_dir = [('/store/data/runB/0001/misso.root', 35)]
+
+        self.tree.add_file_list(same_dir)
+
+        self.listing.setup_hash()
+        self.tree.setup_hash()
+
+        LOG.info('=' * 30)
+        LOG.info('Building done, going to compare')
+        LOG.info('=' * 30)
+
+        file_list, dir_list, _ = self.tree.compare(self.listing)
+
+        self.assertFalse(dir_list)
+        self.assertTrue(file_list)
+        self.assertEqual(len(file_list), 1)
+        self.assertEqual(file_list[0], same_dir[0][0])
+
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:

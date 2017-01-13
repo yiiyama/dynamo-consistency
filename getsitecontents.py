@@ -85,6 +85,9 @@ def get_site_tree(site):
                 files.append(('_unlisted_', 0, 0))
 
         # Parse the stdout, skipping blank lines
+
+        LOG.debug('STDOUT:\n%s', stdout)
+
         for line in [check for check in stdout.split('\n') if check.strip()]:
 
             # Ignore duplicate lines (which come up a lot)
@@ -112,6 +115,7 @@ def get_site_tree(site):
         if not directories:
             LOG.info('No more directories in %s, and %i files.', path, len(files))
 
+        LOG.debug('OUTPUT:\n%s\n%s', directories, files)
         return directories, files
 
     # Create DirectoryInfo for each directory to search

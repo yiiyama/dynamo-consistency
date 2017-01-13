@@ -196,7 +196,8 @@ class DirectoryInfo(object):
             'hash': hashlib.sha1(
                 '%s %i' % (name, size)
                 ).hexdigest(),
-            'can_compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp)
+            'can_compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp and
+                                name != '_unlisted_')
             } for name, size, mtime in sorted(files or [])])
 
     def add_file_list(self, file_infos):
@@ -398,8 +399,26 @@ class DirectoryInfo(object):
                     extra_files.extend(more_files)
                     if new_other:
                         extra_dirs.extend(more_dirs)
-                    else:
+                    elif '_unlisted_' not in [fi['name'] for fi in other.files]:
                         extra_dirs.append(os.path.join(here, directory.name))
+
+                for file_info in self.files:
+                    if not file_info['can_compare']:
+                        continue
+
+                    LOG.debug('Searching for match to: %s', file_info)
+                    found = False
+                    for to_match in other.files:
+                        LOG.debug('Checking %s', to_match)
+                        if file_info['hash'] == to_match['hash'] or \
+                                to_match['name'] == '_unlisted_':
+                            LOG.debug('Match found!')
+                            found = True
+                            break
+
+                    if not found:
+                        LOG.debug('No match found!')
+                        extra_files.append(os.path.join(path, self.name, file_info['name']))
         else:
             if self.files:
                 for file_info in self.files:
@@ -413,6 +432,42 @@ class DirectoryInfo(object):
 
         return extra_files, extra_dirs, extra_size
 
+    def listdir(self, *args, **kwargs):
+        """
+        Get the list of directory names within a DirectoryInfo.
+        Adding an argument will display the contents of the matching directory
+        that is displayed when there is one less argument.
+
+        :param args: Is a list of indices to list the subdirectories
+        :param kwargs: Supports 'printing' which is set to a bool. Defaults as True.
+        :returns: The DirectoryInfo that is listed
+        :rtype: DirectoryInfo
+        """
+
+        printing = kwargs.get('printing', True)
+
+        if printing:
+
+            print '\nDirectories:'
+
+            if self.directories:
+                width = max([len(di.name) for di in self.directories]) + 2
+            else:
+                width = 0
+
+            for index, directory in enumerate(self.directories):
+                print '%i: %-{0}s %s  Num Files: %i'.format(width) % \
+                    (index, directory.name, directory.hash, directory.get_num_files())
+
+        if args:
+            return self.directories[args[0]].listdir(*args[1:], printing=printing)
+
+        elif printing:
+            print 'Files:'
+            for file_info in self.files:
+                print file_info
+
+        return self
 
 def get_info(file_name):
     """
