@@ -45,25 +45,36 @@ def create_dirinfo(location, name, filler):
     in_queue = multiprocessing.Queue()
     out_queue = multiprocessing.Queue()
 
-    def check_dir(location, name, conn=None):
+    def check_dir(retry, location, name, params, conn=None):
         """ Checks out a location, and if it has files (or is a dead end)
         places the name of the node in a queue for later processing
 
+        :param bool retry: Specifies if this is a retried directory or not
         :param str location: For the DirectoryInfo
         :param str name: Name of the empty DirectoryInfo
+        :param tuple params: The parameters to pass to the filler on a retry
         :param multithreading.Connection conn: A way to message the master thread
         """
 
-        full_path = os.path.join(location, name)
-        directories, files = filler(full_path)
+        if retry:
+            directories, files = filler(*params)
+        else:
+            full_path = os.path.join(location, name)
+            directories, files = filler(full_path)
 
-        if conn:
-            conn.send('One_Job')
-            conn.send(time.time())
-        out_queue.put((name, files, directories))
+        # If failed and retry, we will get these unusual values for directories and files
+        if isinstance(directories, str) and directories == '_retry_':
+            in_queue.put((True, location, name, files))
 
-        for directory, _ in directories:
-            in_queue.put((location, os.path.join(name, directory)))
+        # On success, we do the normal input and output queues
+        else:
+            if conn:
+                conn.send('One_Job')
+                conn.send(time.time())
+            out_queue.put((name, files, directories))
+
+            for directory, _ in directories:
+                in_queue.put((False, location, os.path.join(name, directory), ()))
 
     def run_queue(conn):
         """ Runs empty_dirinfo over the queue
@@ -74,8 +85,8 @@ def create_dirinfo(location, name, filler):
 
         while running:
             try:
-                location, name = in_queue.get(True, 3)
-                check_dir(location, name, conn)
+                retry, location, name, params = in_queue.get(True, 3)
+                check_dir(retry, location, name, params, conn)
                 LOG.debug('Finished one job with (%s, %s)', location, name)
             except Empty:
                 running = False
@@ -85,7 +96,7 @@ def create_dirinfo(location, name, filler):
         conn.close()
 
     # Stick some things in the input queue
-    check_dir(os.path.join(location, name), '')
+    check_dir(False, os.path.join(location, name), '', ())
 
     # Spawn processes
     processes = []

@@ -1,6 +1,6 @@
 {
   "InventoryAge": 5e-05,
-  "MaxThreads": 3,
+  "MaxThreads": 4,
   "ListAge": 5e-05,
   "IgnoreAge": 14,
   "RedirectorAge": 1,
@@ -10,7 +10,7 @@
     "T3_US_MIT": "t3serv006.mit.edu"
   },
   "DirectoryList": [
-    "results"
+    "mc"
   ],
   "WebPageLocation": "www",
   "SiteList": [

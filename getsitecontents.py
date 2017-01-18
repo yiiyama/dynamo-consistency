@@ -43,7 +43,7 @@ def get_site_tree(site):
         Gets the contents of the previously defined redirector at a given path
 
         :param str path: The full path starting with ``/store/``.
-        :param str attempts: The number of previous attempts.
+        :param int attempts: The number of previous attempts.
                              If the total number of attempts is more than the
                              NumberOfRetries in the config, give back a new dummy file.
                              The young age should lead to the directory being left alone.
@@ -51,6 +51,14 @@ def get_site_tree(site):
         :returns: A list of directories and list of file information
         :rtype: tuple
         """
+
+        LOG.debug('Calling ls_directory with: path=%s, attempts=%i, prev_stdout=%i',
+                  path, attempts, int(bool(prev_stdout.strip())))
+
+        if attempts:
+            LOG.info('Retrying directory %s', path)
+            LOG.info('Sleeping for %i seconds before retry.')
+            time.sleep(attempts)
 
         directory_listing = subprocess.Popen(['xrdfs', redirector, 'ls', '-l', path],
                                              stdout=subprocess.PIPE,
@@ -65,7 +73,7 @@ def get_site_tree(site):
 
         # Parse the stderr
         if stderr:
-            LOG.error(stderr.strip())
+            LOG.warning(stderr.strip())
             stdout += '\n' + prev_stdout
 
             # If full number of attempts haven't been made, tray again
@@ -73,15 +81,12 @@ def get_site_tree(site):
                 # Check against list of "error codes" to retry
                 error_code = error_code_re.search(stderr).group(1)
 
+                # I should actually raise an exception here
                 if error_code in ['!', '3005']:
-                    LOG.info('Retrying directory %s', path)
-                    time.sleep(1)
-                    return ls_directory(path, attempts + 1, stdout)
-
-                elif error_code in ['FATAL']:
-                    print stderr
+                    return ('_retry_', (path, attempts + 1, stdout))
 
             else:
+                LOG.error('Giving up on listing directory %s', path)
                 files.append(('_unlisted_', 0, 0))
 
         # Parse the stdout, skipping blank lines
@@ -112,8 +117,8 @@ def get_site_tree(site):
                 # For files, append tuple (name, size, mtime)
                 files.append((name, int(elements[-2]), mtime))
 
-        if not directories:
-            LOG.info('No more directories in %s, and %i files.', path, len(files))
+        LOG.info('From %s returning %i directories and %i files.',
+                 path, len(directories), len(files))
 
         LOG.debug('OUTPUT:\n%s\n%s', directories, files)
         return directories, files
