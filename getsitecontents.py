@@ -57,7 +57,7 @@ def get_site_tree(site):
 
         if attempts:
             LOG.info('Retrying directory %s', path)
-            LOG.info('Sleeping for %i seconds before retry.')
+            LOG.info('Sleeping for %i seconds before retry.', attempts)
             time.sleep(attempts)
 
         directory_listing = subprocess.Popen(['xrdfs', redirector, 'ls', '-l', path],
@@ -97,6 +97,12 @@ def get_site_tree(site):
 
             # Ignore duplicate lines (which come up a lot)
             elements = line.split()
+
+            if len(elements) != 5:
+                LOG.error('Number of elements unexpected: %i', len(elements))
+                LOG.error('xrdfs %s ls -l %s', redirector, path)
+                LOG.error(stdout)
+
             name = elements[-1].split('/')[-1]
             if name in inserted:
                 continue
