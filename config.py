@@ -9,6 +9,7 @@ import time
 import subprocess
 import logging
 import json
+import random
 
 from CMSToolBox.siteinfo import get_domain
 
@@ -58,45 +59,67 @@ def config_dict():
 
 def get_redirector(site):
     """
-    Get the redirector for a given site
+    Get the redirector and xrootd servers for a given site
 
     :param str site: The site we want to contact
-    :returns: Public hostname of the redirector
-    :rtype: str
+    :returns: Public hostname of the local redirector
+              and a list of xrootd servers
+    :rtype: str, list
     """
     config = config_dict()
 
     # If the redirector is hardcoded, return it
-    hard_coded = config.get('Redirectors', {}).get(site)
-    if hard_coded:
-        return hard_coded
+    redirector = config.get('Redirectors', {}).get(site, '')
 
-    # Otherwise check the cache
-    file_name = os.path.join(config['CacheLocation'], 'redirector_list.txt')
+    def dump_file(redirs, file_name):
+        """
+        Dump the redirector info into a file.
 
-    # Update, if necessary (File doesn't exist or is too old)
-    if not os.path.exists(file_name) or \
-            (time.time() - os.stat(file_name).st_mtime) > \
-            config.get('RedirectorAge', 0) * 24 * 3600:
+        :param list redirs: Is a list of redirectors to check for servers
+        :param str file_name: Is the name of the file to output the redirector
+        """
 
-        with open(file_name, 'w') as redir_file:
+        # Update, if necessary (File doesn't exist or is too old)
+        if not os.path.exists(file_name) or \
+                (time.time() - os.stat(file_name).st_mtime) > \
+                config.get('RedirectorAge', 0) * 24 * 3600:
 
-            for global_redir in ['xrootd-redic.pi.infn.it', 'cmsxrootd1.fnal.gov']:
-                # Get the locate from each redirector
-                proc = subprocess.Popen(['xrdfs', global_redir, 'locate', '-h', '/store/'],
-                                        stdout=subprocess.PIPE)
+            with open(file_name, 'w') as redir_file:
 
-                for line in proc.stdout:
-                    redir_file.write(line)
+                for global_redir in redirs:
+                    # Get the locate from each redirector
+                    proc = subprocess.Popen(['xrdfs', global_redir, 'locate', '-h', '/store/'],
+                                            stdout=subprocess.PIPE)
 
-                proc.communicate()
+                    for line in proc.stdout:
+                        redir_file.write(line.split(':')[0] + '\n')
 
-    # Parse for a correct redirector
-    domain = get_domain(site)
-    with open(file_name, 'r') as redir_file:
-        for line in redir_file:
-            if domain in line:
-                return line.split(':')[0]
+                    proc.communicate()
 
-    # Return blank string if redirector not found
-    return ''
+
+    # If not hard-coded, get the redirector
+    if not redirector:
+        # Otherwise check the cache
+        file_name = os.path.join(config['CacheLocation'], 'redirector_list.txt')
+
+        dump_file(['xrootd-redic.pi.infn.it', 'cmsxrootd1.fnal.gov'], file_name)
+
+        # Parse for a correct redirector
+        domain = get_domain(site)
+        with open(file_name, 'r') as redir_file:
+            for line in redir_file:
+                if domain in line:
+                    redirector = line.strip()
+                    break
+
+    list_name = os.path.join(config['CacheLocation'], '%s_redirector_list.txt' % site)
+    dump_file([redirector], list_name)
+
+    local_list = []
+
+    with open(list_name, 'r') as list_file:
+        for line in list_file:
+            local_list.append(line.strip())
+
+    # Return redirector and list of half the redirectors (rounded up)
+    return (redirector, random.sample(local_list, (len(local_list) + 1)/2))

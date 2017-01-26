@@ -15,6 +15,7 @@ import time
 import datetime
 import subprocess
 import logging
+import random
 
 from . import config
 from . import datatypes
@@ -31,8 +32,10 @@ def get_site_tree(site):
     """
 
     # Get the redirector for a site
+    # The redirector is used for a double check (not implemented yet...)
+    # The redir_list is used for the original listing
 
-    redirector = config.get_redirector(site)
+    redirector, redir_list = config.get_redirector(site)
 
     # Create the filler function for the DirectoryInfo
 
@@ -51,6 +54,8 @@ def get_site_tree(site):
         :returns: A list of directories and list of file information
         :rtype: tuple
         """
+
+        redirector = random.choice(redir_list)
 
         LOG.debug('Calling ls_directory with: path=%s, attempts=%i, prev_stdout=%i',
                   path, attempts, int(bool(prev_stdout.strip())))

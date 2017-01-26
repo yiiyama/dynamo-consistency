@@ -1,6 +1,6 @@
 {
   "InventoryAge": 5e-05,
-  "MaxThreads": 3,
+  "MaxThreads": 6,
   "ListAge": 5e-05,
   "IgnoreAge": 14,
   "RedirectorAge": 1,
@@ -11,7 +11,12 @@
     "T3_US_MIT": "t3serv006.mit.edu"
   },
   "DirectoryList": [
-    "mc"
+    "mc",
+    "data",
+    "generator",
+    "results",
+    "hidata",
+    "himc"
   ],
   "WebPageLocation": "www",
   "SiteList": [
