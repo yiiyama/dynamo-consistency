@@ -8,9 +8,16 @@ from ConsistencyCheck import getinventorycontents
 from ConsistencyCheck import datatypes
 
 if __name__ == '__main__':
-    site = 'T2_US_MIT'
+    if len(sys.argv) < 2:
+        print 'Usage: ./compare.py site-name [watch/debug list inv]'
+        exit(0)
 
-    if 'watch' in sys.argv:
+    site = sys.argv[1]
+
+    if 'debug' in sys.argv:
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+    elif 'watch' in sys.argv:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 

@@ -128,7 +128,7 @@ def create_dirinfo(location, name, filler):
 
         except Empty:
             LOG.debug('Empty queue for building.')
-            LOG.info('Number of files so far built: %i', built.get_num_files())
+            LOG.info('Number of files so far built: %i', dir_info.get_num_files())
             if connections:
                 for _ in connections:
                     conn = random.choice(connections)
