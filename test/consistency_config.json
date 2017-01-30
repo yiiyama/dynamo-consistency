@@ -1,6 +1,6 @@
 {
   "InventoryAge": 5e-05,
-  "MaxThreads": 1,
+  "MaxThreads": 4,
   "ListAge": 5e-05,
   "IgnoreAge": 1,
   "RedirectorAge": 1,

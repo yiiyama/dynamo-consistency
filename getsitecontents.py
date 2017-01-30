@@ -35,13 +35,18 @@ def get_site_tree(site):
     # The redirector is used for a double check (not implemented yet...)
     # The redir_list is used for the original listing
 
-    redirector, redir_list = config.get_redirector(site)
+    _, redir_list = config.get_redirector(site)
+    LOG.debug('Full redirector list: %s', redir_list)
+
+    # Get the primary list of servers to hammer
+    primary_list = random.sample(redir_list, (len(redir_list) + 1)/2)
+    LOG.debug('Primary redirector list: %s', primary_list)
 
     # Create the filler function for the DirectoryInfo
 
     error_code_re = re.compile(r'\[(\!|\d+|FATAL)\]')
 
-    def ls_directory(path, attempts=0, prev_stdout=''):
+    def ls_directory(path, attempts=0, prev_stdout='', failed_list=None):
         """
         Gets the contents of the previously defined redirector at a given path
 
@@ -51,19 +56,38 @@ def get_site_tree(site):
                              NumberOfRetries in the config, give back a new dummy file.
                              The young age should lead to the directory being left alone.
         :param str prev_stdout: stdout from previous attempt
+        :param list failed_list: A list of redirectors that have not worked
+                                 for the current path.
         :returns: A list of directories and list of file information
         :rtype: tuple
         """
 
-        redirector = random.choice(redir_list)
+        track_failed_list = failed_list or []
 
-        LOG.debug('Calling ls_directory with: path=%s, attempts=%i, prev_stdout=%i',
-                  path, attempts, int(bool(prev_stdout.strip())))
+        LOG.debug('Calling ls_directory with: path=%s, attempts=%i, '
+                  'prev_stdout lines=%i, failed_list=%s', path, attempts,
+                  len([line for line in prev_stdout.split('\n') if line.strip()]),
+                  track_failed_list)
 
-        if attempts:
-            LOG.info('Retrying directory %s', path)
-            LOG.info('Sleeping for %i seconds before retry.', attempts)
-            time.sleep(attempts)
+        # Get a redirector. First try the primary list, unless all primaries are in the failed list
+        if len(track_failed_list) < len(primary_list):
+            in_list = primary_list
+        # If retrying, reset the failed list and get redirector
+        elif attempts < config.config_dict().get('NumberOfRetries', 0):
+            track_failed_list = []
+            attempts += 1
+            in_list = primary_list
+        # Otherwise, use the full list
+        else:
+            in_list = redir_list
+
+        valid_redirs = [server for server in in_list if server not in track_failed_list]
+        LOG.debug('List of valid redirectors: %s', valid_redirs)
+        redirector = random.choice(valid_redirs)
+
+        LOG.debug('Using redirector %s', redirector)
+        # This should maybed be configurable
+        time.sleep(attempts * 5)
 
         directory_listing = subprocess.Popen(['xrdfs', redirector, 'ls', '-l', path],
                                              stdout=subprocess.PIPE,
@@ -71,24 +95,25 @@ def get_site_tree(site):
 
         directories = []
         files = []
-        # For some reason, we have duplicates. Ignore those with this variable
-        inserted = set()
 
         stdout, stderr = directory_listing.communicate()
 
         # Parse the stderr
         if stderr:
+            LOG.warning('Received error while listing %s', path)
             LOG.warning(stderr.strip())
             stdout += '\n' + prev_stdout
 
-            # If full number of attempts haven't been made, tray again
-            if attempts != config.config_dict().get('NumberOfRetries', 0):
+            track_failed_list.append(redirector)
+
+            # If full number of attempts haven't been made, try again
+            if len(track_failed_list) < len(redir_list):
                 # Check against list of "error codes" to retry
                 error_code = error_code_re.search(stderr).group(1)
 
                 # I should actually raise an exception here
                 if error_code in ['!', '3005']:
-                    return ('_retry_', (path, attempts + 1, stdout))
+                    return ('_retry_', (path, attempts, stdout, track_failed_list))
 
             else:
                 LOG.error('Giving up on listing directory %s', path)
@@ -108,11 +133,10 @@ def get_site_tree(site):
                 LOG.error('xrdfs %s ls -l %s', redirector, path)
                 LOG.error(stdout)
 
+            # Get the basename only
             name = elements[-1].split('/')[-1]
-            if name in inserted:
-                continue
-            inserted.add(name)
 
+            # Parse the time in the output to get timestamp
             mtime = int(
                 time.mktime(
                     datetime.datetime.strptime(
@@ -128,8 +152,8 @@ def get_site_tree(site):
                 # For files, append tuple (name, size, mtime)
                 files.append((name, int(elements[-2]), mtime))
 
-        LOG.info('From %s returning %i directories and %i files.',
-                 path, len(directories), len(files))
+        LOG.debug('From %s returning %i directories and %i files.',
+                  path, len(directories), len(files))
 
         LOG.debug('OUTPUT:\n%s\n%s', directories, files)
         return directories, files

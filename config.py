@@ -9,7 +9,6 @@ import time
 import subprocess
 import logging
 import json
-import random
 
 from CMSToolBox.siteinfo import get_domain
 
@@ -117,9 +116,13 @@ def get_redirector(site):
 
     local_list = []
 
+    LOG.debug('List file located at %s', list_name)
+
     with open(list_name, 'r') as list_file:
         for line in list_file:
             local_list.append(line.strip())
 
-    # Return redirector and list of half the redirectors (rounded up)
-    return (redirector, random.sample(local_list, (len(local_list) + 1)/2))
+    LOG.debug('From %s, got list %s', redirector, local_list)
+
+    # Return redirector and list the redirectors
+    return (redirector, local_list)

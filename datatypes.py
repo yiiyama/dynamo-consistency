@@ -63,6 +63,8 @@ def create_dirinfo(location, name, filler):
             directories, files = filler(full_path)
 
         # If failed and retry, we will get these unusual values for directories and files
+        # directories will be the string '_retry_'
+        # files will be the tuple of parameters to be passed to the filler function on retry
         if isinstance(directories, str) and directories == '_retry_':
             in_queue.put((True, location, name, files))
 
@@ -117,7 +119,7 @@ def create_dirinfo(location, name, filler):
     while building:
         try:
             name, files, directories = out_queue.get(True, 1)
-            LOG.info('Building %s', name)
+            LOG.debug('Building %s', name)
             built = dir_info.get_node(name)
             built.add_files(files)
 
@@ -126,6 +128,7 @@ def create_dirinfo(location, name, filler):
 
         except Empty:
             LOG.debug('Empty queue for building.')
+            LOG.info('Number of files so far built: %i', built.get_num_files())
             if connections:
                 for _ in connections:
                     conn = random.choice(connections)

@@ -8,9 +8,9 @@ from ConsistencyCheck import getinventorycontents
 from ConsistencyCheck import datatypes
 
 if __name__ == '__main__':
-    site = 'T2_US_Wisconsin'
+    site = 'T2_US_MIT'
 
-    if 'debug' in sys.argv:
+    if 'watch' in sys.argv:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 
