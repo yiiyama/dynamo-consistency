@@ -17,6 +17,8 @@ import subprocess
 import logging
 import random
 
+import XRootD.client
+
 from . import config
 from . import datatypes
 
@@ -35,8 +37,10 @@ def get_site_tree(site):
     # The redirector is used for a double check (not implemented yet...)
     # The redir_list is used for the original listing
 
-    _, redir_list = config.get_redirector(site)
-    LOG.debug('Full redirector list: %s', redir_list)
+    _, gate_list = config.get_redirector(site)
+    LOG.debug('Full redirector list: %s', gate_list)
+
+    redir_list = [XRootD.client.FileSystem(gate) for gate in gate_list]
 
     # Get the primary list of servers to hammer
     primary_list = random.sample(redir_list, (len(redir_list) + 1)/2)
@@ -62,6 +66,9 @@ def get_site_tree(site):
         :rtype: tuple
         """
 
+        if path[-1] != '/':
+            path += '/'
+
         track_failed_list = failed_list or []
 
         LOG.debug('Calling ls_directory with: path=%s, attempts=%i, '
@@ -86,77 +93,31 @@ def get_site_tree(site):
         redirector = random.choice(valid_redirs)
 
         LOG.debug('Using redirector %s', redirector)
-        # This should maybed be configurable
-        time.sleep(attempts * 5)
 
-        directory_listing = subprocess.Popen(['xrdfs', redirector, 'ls', '-l', path],
-                                             stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE)
+        status, dir_list = redirector.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
         directories = []
         files = []
 
-        stdout, stderr = directory_listing.communicate()
+        LOG.debug('Status %s', status)
+        LOG.debug('Directory listing %s', dir_list)
 
-        # Parse the stderr
-        if stderr:
-            LOG.warning('Received error while listing %s', path)
-            LOG.warning(stderr.strip())
-            stdout += '\n' + prev_stdout
+        if status.ok:
 
-            track_failed_list.append(redirector)
-
-            # If full number of attempts haven't been made, try again
-            if len(track_failed_list) < len(redir_list):
-                # Check against list of "error codes" to retry
-                error_code = error_code_re.search(stderr).group(1)
-
-                # I should actually raise an exception here
-                if error_code in ['!', '3005']:
-                    return ('_retry_', (path, attempts, stdout, track_failed_list))
-
-            else:
-                LOG.error('Giving up on listing directory %s', path)
-                files.append(('_unlisted_', 0, 0))
-
-        # Parse the stdout, skipping blank lines
-
-        LOG.debug('STDOUT:\n%s', stdout)
-
-        for line in [check for check in stdout.split('\n') if check.strip()]:
-
-            # Ignore duplicate lines (which come up a lot)
-            elements = line.split()
-
-            if len(elements) != 5:
-                LOG.error('Number of elements unexpected: %i', len(elements))
-                LOG.error('xrdfs %s ls -l %s', redirector, path)
-                LOG.error(stdout)
-
-            # Get the basename only
-            name = elements[-1].split('/')[-1]
-
-            # Parse the time in the output to get timestamp
-            mtime = int(
-                time.mktime(
-                    datetime.datetime.strptime(
-                        '%s %s' % (elements[1], elements[2]),
-                        '%Y-%m-%d %H:%M:%S').timetuple()
-                    )
-                )
-
-            # Determine if directory or file
-            if elements[0][0] == 'd':
-                directories.append((name, mtime))
-            else:
-                # For files, append tuple (name, size, mtime)
-                files.append((name, int(elements[-2]), mtime))
+            for entry in dir_list.dirlist:
+                LOG.debug('Entry %s', entry)
+                if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
+                    directories.append((entry.name, entry.statinfo.modtime))
+                else:
+                    files.append((entry.name, entry.statinfo.size, entry.statinfo.modtime))
 
         LOG.debug('From %s returning %i directories and %i files.',
                   path, len(directories), len(files))
 
         LOG.debug('OUTPUT:\n%s\n%s', directories, files)
+
         return directories, files
+
 
     # Create DirectoryInfo for each directory to search
     directories = [

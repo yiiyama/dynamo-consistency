@@ -104,13 +104,10 @@ def create_dirinfo(location, name, filler):
     processes = []
     connections = []
 
-    for _ in xrange(config.config_dict().get('MaxThreads') or multiprocessing.cpu_count()):
-        con1, con2 = multiprocessing.Pipe()
+    con1, con2 = multiprocessing.Pipe()
 
-        process = multiprocessing.Process(target=run_queue, args=(con2,))
-        process.start()
-        processes.append(process)
-        connections.append(con1)
+    run_queue(con2)
+    connections.append(con1)
 
     # Build the DirectoryInfo
     building = True
@@ -158,9 +155,6 @@ def create_dirinfo(location, name, filler):
                         LOG.error('Weird message from pip')
             else:
                 building = False
-
-    for process in processes:
-        process.join()
 
     dir_info.setup_hash()
     return dir_info
