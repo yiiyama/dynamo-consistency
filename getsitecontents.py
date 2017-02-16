@@ -107,7 +107,7 @@ def get_site_tree(site):
             for entry in dir_list.dirlist:
                 LOG.debug('Entry %s', entry)
                 if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
-                    directories.append((entry.name, entry.statinfo.modtime))
+                    directories.append((entry.name.lstrip('/'), entry.statinfo.modtime))
                 else:
                     files.append((entry.name, entry.statinfo.size, entry.statinfo.modtime))
 

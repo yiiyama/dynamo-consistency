@@ -56,10 +56,14 @@ def create_dirinfo(location, name, filler):
         :param multithreading.Connection conn: A way to message the master thread
         """
 
+        LOG.debug('Called check_dir with: (%i, %s, %s, %s)',
+                  retry, location, name, params)
+
         if retry:
             directories, files = filler(*params)
         else:
             full_path = os.path.join(location, name)
+            LOG.debug('Full path is %s', full_path)
             directories, files = filler(full_path)
 
         # If failed and retry, we will get these unusual values for directories and files
@@ -76,7 +80,9 @@ def create_dirinfo(location, name, filler):
             out_queue.put((name, files, directories))
 
             for directory, _ in directories:
-                in_queue.put((False, location, os.path.join(name, directory), ()))
+                joined_name = os.path.join(name, directory)
+                LOG.debug('Adding to queue: %s, in %s', joined_name, location)
+                in_queue.put((False, location, joined_name, ()))
 
     def run_queue(conn):
         """ Runs empty_dirinfo over the queue
