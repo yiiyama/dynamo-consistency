@@ -16,6 +16,7 @@ import datetime
 import subprocess
 import logging
 import random
+import threading
 
 import XRootD.client
 
@@ -40,7 +41,8 @@ def get_site_tree(site):
     _, gate_list = config.get_redirector(site)
     LOG.debug('Full redirector list: %s', gate_list)
 
-    redir_list = [XRootD.client.FileSystem(gate) for gate in gate_list]
+    redir_list = [ {'redir': XRootD.client.FileSystem(gate),
+                    'lock': threading.Lock()} for gate in gate_list]
 
     # Get the primary list of servers to hammer
     primary_list = random.sample(redir_list, (len(redir_list) + 1)/2)
@@ -94,7 +96,10 @@ def get_site_tree(site):
 
         LOG.debug('Using redirector %s', redirector)
 
-        status, dir_list = redirector.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
+        redirector['lock'].acquire()
+        LOG.debug('Lock acquired.')
+        status, dir_list = redirector['redir'].dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
+        redirector['lock'].release()
 
         directories = []
         files = []
@@ -109,12 +114,22 @@ def get_site_tree(site):
                 if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
                     directories.append((entry.name.lstrip('/'), entry.statinfo.modtime))
                 else:
-                    files.append((entry.name, entry.statinfo.size, entry.statinfo.modtime))
+                    files.append((entry.name.lstrip('/'), entry.statinfo.size, entry.statinfo.modtime))
 
-        LOG.debug('From %s returning %i directories and %i files.',
-                  path, len(directories), len(files))
+            LOG.debug('From %s returning %i directories and %i files.',
+                      path, len(directories), len(files))
 
-        LOG.debug('OUTPUT:\n%s\n%s', directories, files)
+            LOG.debug('OUTPUT:\n%s\n%s', directories, files)
+
+        else:
+
+            failed_list.append(redirector)
+            if len(failed_list) < len(redir_list):
+                return '_retry_', (path, attempts, '', failed_list)
+
+            else:
+                LOG.error('Giving up on listing directory %s', path)
+                files.append(('_unlisted_', 0, 0))
 
         return directories, files
 

@@ -60,23 +60,29 @@ def create_dirinfo(location, name, filler):
                   retry, location, name, params)
 
         if retry:
+            LOG.debug('Retrying with params: %s', params)
             directories, files = filler(*params)
         else:
             full_path = os.path.join(location, name)
             LOG.debug('Full path is %s', full_path)
             directories, files = filler(full_path)
 
+        LOG.debug('Got from filler:\n%s\n%s', directories, files)
+
         # If failed and retry, we will get these unusual values for directories and files
         # directories will be the string '_retry_'
         # files will be the tuple of parameters to be passed to the filler function on retry
         if isinstance(directories, str) and directories == '_retry_':
+            LOG.debug('Will retry that directory.')
             in_queue.put((True, location, name, files))
 
         # On success, we do the normal input and output queues
         else:
             if conn:
+                LOG.debug('Reporting job finished to connection...')
                 conn.send('One_Job')
                 conn.send(time.time())
+                LOG.debug('Finished')
             out_queue.put((name, files, directories))
 
             for directory, _ in directories:
@@ -100,8 +106,9 @@ def create_dirinfo(location, name, filler):
                 running = False
 
         LOG.info('Worker finished input queue')
-        conn.send('All_Job')
-        conn.close()
+        if conn:
+            conn.send('All_Job')
+            conn.close()
 
     # Stick some things in the input queue
     check_dir(False, os.path.join(location, name), '', ())
@@ -110,9 +117,10 @@ def create_dirinfo(location, name, filler):
     processes = []
     connections = []
 
-    con1, con2 = multiprocessing.Pipe()
+    con1, con2 = multiprocessing.Pipe(False)
 
-    run_queue(con2)
+    run_queue(None)
+    con2.send('All_Job')
     connections.append(con1)
 
     # Build the DirectoryInfo
