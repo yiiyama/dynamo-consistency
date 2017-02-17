@@ -41,8 +41,7 @@ def get_site_tree(site):
     _, gate_list = config.get_redirector(site)
     LOG.debug('Full redirector list: %s', gate_list)
 
-    redir_list = [ {'redir': XRootD.client.FileSystem(gate),
-                    'lock': threading.Lock()} for gate in gate_list]
+    redir_list = [XRootD.client.FileSystem(gate) for gate in gate_list]
 
     # Get the primary list of servers to hammer
     primary_list = random.sample(redir_list, (len(redir_list) + 1)/2)
@@ -96,10 +95,7 @@ def get_site_tree(site):
 
         LOG.debug('Using redirector %s', redirector)
 
-        redirector['lock'].acquire()
-        LOG.debug('Lock acquired.')
-        status, dir_list = redirector['redir'].dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
-        redirector['lock'].release()
+        status, dir_list = redirector.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
         directories = []
         files = []
@@ -123,9 +119,9 @@ def get_site_tree(site):
 
         else:
 
-            failed_list.append(redirector)
-            if len(failed_list) < len(redir_list):
-                return '_retry_', (path, attempts, '', failed_list)
+            track_failed_list.append(redirector)
+            if len(track_failed_list) < len(redir_list):
+                return '_retry_', (path, attempts, '', track_failed_list)
 
             else:
                 LOG.error('Giving up on listing directory %s', path)
