@@ -8,7 +8,13 @@ import unittest
 import logging
 import time
 
-from ConsistencyCheck import getsitecontents
+try:
+    from ConsistencyCheck import getsitecontents
+except ImportError:
+    print 'Cannot import ConsistencyCheck.getsitecontents.'
+    print 'Probably do not have XRootD installed here'
+    exit(0)
+
 from ConsistencyCheck import datatypes
 from ConsistencyCheck import config
 

@@ -71,7 +71,7 @@ def check_dir(in_queue, out_queue, filler, location, name, conn=None):
             in_queue.put((False, location, joined_name, ()))
 
 
-def create_dirinfo(location, name, filler, threads=1):
+def create_dirinfo(location, name, filler, threads=0):
     """ Create the directory information in it's very own thread
 
     :param str location: For the listing
@@ -87,13 +87,13 @@ def create_dirinfo(location, name, filler, threads=1):
     in_queue = multiprocessing.Queue()
     out_queue = multiprocessing.Queue()
 
-    def run_queue(conn, create_filler=0):
+    def run_queue(conn, create_filler=0, running=True):
         """ Runs empty_dirinfo over the queue
 
         :param multiprocessing.Connection conn: A connection to pipe back when finished
         """
-        running = True
 
+        LOG.debug('Running queue with: %s, %s, %s', conn, create_filler, running)
         if not isinstance(create_filler, int):
             thread_object = filler(*create_filler)
             filler_func = thread_object.list
@@ -116,12 +116,17 @@ def create_dirinfo(location, name, filler, threads=1):
     # Stick some things in the input queue
     if isinstance(threads, int):
         filler_func = filler
-        looper = xrange(threads)
+        n_threads = threads or config.config_dict()['MaxThreads']
+        looper = xrange(n_threads)
     else:
         filler_func = filler(*threads[0]).list
         looper = threads
 
-    check_dir(in_queue, out_queue, filler_func, os.path.join(location, name), '')
+    in_queue.put((False, os.path.join(location, name), '', ()))
+
+    first_proc = multiprocessing.Process(target=run_queue, args=(None, random.choice(looper), False))
+    first_proc.start()
+    first_proc.join()
 
     # Spawn processes
     processes = []
@@ -181,6 +186,9 @@ def create_dirinfo(location, name, filler, threads=1):
                         LOG.error('Weird message from pip')
             else:
                 building = False
+
+    for proc in processes:
+        proc.join()
 
     dir_info.setup_hash()
     return dir_info

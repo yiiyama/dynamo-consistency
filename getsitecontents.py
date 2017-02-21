@@ -62,7 +62,8 @@ class XRootDLister(object):
         if path[-1] != '/':
             path += '/'
 
-        LOG.debug('Using door %s', door)
+        LOG.debug('Listing directory with parameters: %s, %s, %s',
+                  door, path, failed_list)
 
         status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
@@ -72,29 +73,30 @@ class XRootDLister(object):
         LOG.debug('Status %s', status)
         LOG.debug('Directory listing %s', dir_list)
 
-        if status.ok:
+        for entry in dir_list.dirlist:
+            LOG.debug('Entry %s', entry)
+            if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
+                directories.append((entry.name.lstrip('/'), entry.statinfo.modtime))
+            else:
+                files.append((entry.name.lstrip('/'), entry.statinfo.size, entry.statinfo.modtime))
 
-            for entry in dir_list.dirlist:
-                LOG.debug('Entry %s', entry)
-                if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
-                    directories.append((entry.name.lstrip('/'), entry.statinfo.modtime))
-                else:
-                    files.append((entry.name.lstrip('/'), entry.statinfo.size, entry.statinfo.modtime))
+        LOG.debug('From %s returning %i directories and %i files.',
+                  path, len(directories), len(files))
 
-            LOG.debug('From %s returning %i directories and %i files.',
-                      path, len(directories), len(files))
+        LOG.debug('OUTPUT:\n%s\n%s', directories, files)
 
-            LOG.debug('OUTPUT:\n%s\n%s', directories, files)
+        if not status.ok:
 
-#        else:
-#
-#            track_failed_list.append(door)
-#            if len(track_failed_list) < len(redir_list):
-#                return '_retry_', (path, attempts, '', track_failed_list)
-#
-#            else:
-#                LOG.error('Giving up on listing directory %s', path)
-#                files.append(('_unlisted_', 0, 0))
+            LOG.warning('While listing %s: %s', path, status.message)
+            LOG.debug('Full status: %s', status)
+
+            track_failed_list.append(redirector.url.hostname)
+            if len(track_failed_list) < len(redir_list):
+                return '_retry_', (path, attempts, track_failed_list, directories, files)
+
+            else:
+                LOG.error('Giving up on listing directory %s', path)
+                files.append(('_unlisted_', 0, 0))
 
         return directories, files
 
@@ -149,8 +151,9 @@ def get_site_tree(site):
     directories = [
         datatypes.create_dirinfo(
             '/store/', directory, XRootDLister,
-            [(prim, back) for prim, back in zip(door_list[0::2], door_list[1::2])]) for \
-            directory in config.config_dict().get('DirectoryList', [])
+#            [(prim, back) for prim, back in zip(door_list[0::2], door_list[1::2])]) \
+            [(door_list[0], door_list[1]), (door_list[2], door_list[3])]) \
+            for directory in config.config_dict().get('DirectoryList', [])
         ]
 
     # Merge the DirectoryInfo
