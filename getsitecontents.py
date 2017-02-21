@@ -40,6 +40,7 @@ class XRootDLister(object):
 
         self.primary_conn = XRootD.client.FileSystem(primary_door)
         self.backup_conn = XRootD.client.FileSystem(backup_door)
+        self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
 
         
     def ls_directory(self, door, path, failed_list=None):
@@ -70,7 +71,6 @@ class XRootDLister(object):
         directories = []
         files = []
 
-        LOG.debug('Status %s', status)
         LOG.debug('Directory listing %s', dir_list)
 
         if dir_list:
@@ -89,9 +89,11 @@ class XRootDLister(object):
         if not status.ok:
 
             LOG.warning('While listing %s: %s', path, status.message)
-            LOG.debug('Full status: %s', status)
 
-            return '_retry_', (directories, files)
+            error_code = self.error_re.search(status.message).group(1)
+
+            if error_code in ['!', '3005']:
+                return '_retry_', (directories, files)
 
         return directories, files
 
