@@ -60,7 +60,12 @@ def create_dirinfo(location, name, filler, threads=0):
     in_queues = [multiprocessing.Queue() for _ in looper]
     out_queue = multiprocessing.Queue()
 
-    def check_dir(filler, location, name, conn=None, failed_list=None, in_queue=None):
+    # First we will make a queue that has only one element
+    start_queue = multiprocessing.Queue()
+    start_queue.put((os.path.join(location, name), '', (), []))
+    in_queues.append(start_queue)
+
+    def check_dir(filler, location, name, conn=None, failed_list=None, i_queue=None):
         """ Checks out a location, and if it has files (or is a dead end)
         places the name of the node in a queue for later processing
 
@@ -72,11 +77,13 @@ def create_dirinfo(location, name, filler, threads=0):
         """
 
         LOG.debug('check_dir called with (%s, %s, %s, %s, %s, %s)',
-                  filler, location, name, conn, failed_list, in_queue)
+                  filler, location, name, conn, failed_list, i_queue)
 
         if failed_list is not None:
-            failed_list.append(in_queue)
-            retry_candidates = [queue for queue in in_queues if queue not in failed_list]
+            failed_list.append(i_queue)
+            LOG.debug('All available queues: %s', in_queues)
+            retry_candidates = [queue for queue in in_queues \
+                                    if in_queues.index(queue) not in failed_list]
             LOG.debug('Retry candidates created: %s', retry_candidates)
 
         full_path = os.path.join(location, name)
@@ -89,10 +96,12 @@ def create_dirinfo(location, name, filler, threads=0):
         # directories will be the string '_retry_'
         # files will be the tuple of parameters to be passed to the filler function on retry
         if isinstance(directories, str) and directories == '_retry_':
-            LOG.debug('Will retry that directory.')
             if retry_candidates:
-                random.choice(retry_candidates).put((location, name, files, failed_list))
+                retry_queue = random.choice(retry_candidates)
+                LOG.debug('Will retry in queue %s', retry_queue)
+                retry_queue.put((location, name, files, failed_list))
             else:
+                LOG.debug('Giving up directory.')
                 files.append(('_unlisted_', 0, 0))
                 out_queue.put((name, files, directories))
 
@@ -108,16 +117,16 @@ def create_dirinfo(location, name, filler, threads=0):
             for directory, _ in directories:
                 joined_name = os.path.join(name, directory)
                 LOG.debug('Adding to queue: %s, in %s', joined_name, location)
-                options = [queue.qsize() for queue in in_queues]
-                in_queues[options.index(min(options))].put((location, joined_name, (), []))
+                sizes = [queue.qsize() for queue in in_queues]
+                in_queues[sizes.index(min(sizes))].put((location, joined_name, (), []))
 
-    def run_queue(conn, in_queue, create_filler=0):
+    def run_queue(conn, i_queue, create_filler=0):
         """ Runs empty_dirinfo over the queue
 
         :param multiprocessing.Connection conn: A connection to pipe back when finished
         """
 
-        LOG.debug('Running queue with: %s, %s, %s', conn, in_queue, create_filler)
+        LOG.debug('Running queue with: %s, %s, %s', conn, i_queue, create_filler)
         running = True
 
         if not isinstance(create_filler, int):
@@ -128,8 +137,8 @@ def create_dirinfo(location, name, filler, threads=0):
 
         while running:
             try:
-                location, name, params, failed_list = in_queue.get(True, 3)
-                check_dir(filler_func, location, name, conn, failed_list, in_queue)
+                location, name, params, failed_list = in_queues[i_queue].get(True, 3)
+                check_dir(filler_func, location, name, conn, failed_list, i_queue)
                 LOG.debug('Finished one job with (%s, %s)', location, name)
             except Empty:
                 running = False
@@ -139,22 +148,20 @@ def create_dirinfo(location, name, filler, threads=0):
             conn.send('All_Job')
             conn.close()
 
-    # First we will make a queue that has only one element
-    start_queue = multiprocessing.Queue()
-    start_queue.put((os.path.join(location, name), '', (), []))
-
-    first_proc = multiprocessing.Process(target=run_queue, args=(None, start_queue, random.choice(looper)))
+    first_proc = multiprocessing.Process(target=run_queue, args=(None, -1, random.choice(looper)))
     first_proc.start()
     first_proc.join()
+
+    in_queues.pop()
 
     # Spawn processes
     processes = []
     connections = []
 
-    for element, in_queue in zip(looper, in_queues):
+    for i_queue, element in enumerate(looper):
         con1, con2 = multiprocessing.Pipe(False)
 
-        process = multiprocessing.Process(target=run_queue, args=(con2, in_queue, element))
+        process = multiprocessing.Process(target=run_queue, args=(con2, i_queue, element))
         process.start()
         processes.append(process)
         connections.append(con1)
