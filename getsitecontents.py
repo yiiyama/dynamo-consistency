@@ -102,7 +102,7 @@ class XRootDLister(object):
         retry = (isinstance(directories, str) and '_retry_' == directories)
 
         if retry:
-            time.sleep(30)
+            time.sleep(15)
             door = self.primary_conn if is_primary else self.backup_conn
             door = XRootD.client.FileSystem(door.url.hostname)
 
@@ -121,9 +121,6 @@ class XRootDLister(object):
 
         if self.check_retry(directories):
             directories, files = self.ls_directory(self.backup_conn, path)
-            if self.check_retry(directories, False):
-                # Return nothing for now
-                return [], [('_unlisted_', 0, 0)]
 
         return directories, files
 
@@ -149,7 +146,6 @@ def get_site_tree(site):
         datatypes.create_dirinfo(
             '/store/', directory, XRootDLister,
             [(prim, back) for prim, back in zip(door_list[0::2], door_list[1::2])]) \
-#            [(door_list[0], door_list[1]), (door_list[2], door_list[3])]) \
             for directory in config.config_dict().get('DirectoryList', [])
         ]
 
