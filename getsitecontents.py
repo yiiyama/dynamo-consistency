@@ -14,11 +14,7 @@ Tools to get the files located at a site.
 import re
 import os
 import time
-import datetime
-import subprocess
 import logging
-import random
-import threading
 
 import XRootD.client
 
@@ -42,18 +38,12 @@ class XRootDLister(object):
         self.backup_conn = XRootD.client.FileSystem(backup_door)
         self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
 
-        
     def ls_directory(self, door, path, failed_list=None):
         """
         Gets the contents of the previously defined redirector at a given path
 
         :param XRootD.client.FileSystem door: The door server to use for the listing
         :param str path: The full path starting with ``/store/``.
-        :param int attempts: The number of previous attempts.
-                             If the total number of attempts is more than the
-                             NumberOfRetries in the config, give back a new dummy file.
-                             The young age should lead to the directory being left alone.
-        :param str prev_stdout: stdout from previous attempt
         :param list failed_list: A list of redirectors that have not worked
                                  for the current path.
         :returns: A list of directories and list of file information
@@ -79,7 +69,8 @@ class XRootDLister(object):
                 if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
                     directories.append((entry.name.lstrip('/'), entry.statinfo.modtime))
                 else:
-                    files.append((entry.name.lstrip('/'), entry.statinfo.size, entry.statinfo.modtime))
+                    files.append((entry.name.lstrip('/'), entry.statinfo.size,
+                                  entry.statinfo.modtime))
 
             LOG.debug('From %s returning %i directories and %i files.',
                       path, len(directories), len(files))
@@ -98,8 +89,19 @@ class XRootDLister(object):
         return directories, files
 
     def check_retry(self, directories, is_primary=True):
+        """
+        Check the output of the directory listing to determine whether
+        or not to retry with the backup door.
 
-        retry = (isinstance(directories, str) and '_retry_' == directories)
+        :param directories: This is the first output from the directory listing
+                            which is used to determine whether or not to retry
+        :type directories: list or str
+        :param bool is_primary: says if the door last listed is the primary or backup door
+        :returns: whether or not to retry the listing
+        :rtype: bool
+        """
+
+        retry = (isinstance(directories, str) and directories == '_retry_')
 
         if retry:
             time.sleep(15)
