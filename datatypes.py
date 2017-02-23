@@ -135,9 +135,14 @@ def create_dirinfo(location, name, filler, threads=0):
         else:
             filler_func = filler
 
+        if i_queue == -1:
+            in_queue = in_queues.pop()
+        else:
+            in_queue = in_queues[i_queue]
+
         while running:
             try:
-                location, name, params, failed_list = in_queues[i_queue].get(True, 3)
+                location, name, params, failed_list = in_queue.get(True, 3)
                 check_dir(filler_func, location, name, conn, failed_list, i_queue)
                 LOG.debug('Finished one job with (%s, %s)', location, name)
             except Empty:
@@ -151,8 +156,6 @@ def create_dirinfo(location, name, filler, threads=0):
     first_proc = multiprocessing.Process(target=run_queue, args=(None, -1, random.choice(looper)))
     first_proc.start()
     first_proc.join()
-
-    in_queues.pop()
 
     # Spawn processes
     processes = []
