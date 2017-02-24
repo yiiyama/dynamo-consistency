@@ -82,6 +82,9 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         Runs over one of the queues
         """
 
+        LOG = logging.getLogger('%s--thread%i' % (__name__, i_queue))
+
+
         LOG.debug('Running queue: %i', i_queue)
         running = True
 
@@ -90,7 +93,9 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         conn = slave_conns[i_queue]
 
         if object_params:
-            thread_object = filler(object_params[i_queue])
+            params = object_params[i_queue]
+            LOG.debug('Params for this object: %s', params)
+            thread_object = filler(*params)
             filler_func = thread_object.list
         else:
             filler_func = filler
@@ -104,7 +109,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                 # Call filler
                 full_path = os.path.join(location, name)
                 LOG.debug('Full path is %s', full_path)
-                directories, files = filler(full_path)
+                directories, files = filler_func(full_path)
                 LOG.debug('Got from filler:\n%s\n%s', directories, files)
 
                 # If failed and retry, we will get these unusual values for directories and files
