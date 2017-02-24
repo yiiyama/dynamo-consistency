@@ -112,6 +112,10 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                 directories, files = filler_func(full_path)
                 LOG.debug('Got from filler:\n%s\n%s', directories, files)
 
+                # Tell master that a job finished
+                conn.send('One_Job')
+                conn.send(time.time())
+
                 # If failed and retry, we will get these unusual values for directories and files
                 # directories will be the string '_retry_'
                 # files will be the tuple of parameters to be passed to the filler function on retry
@@ -141,8 +145,8 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                         LOG.debug('Giving up directory %s', full_path)
                         files.append(('_unlisted_', 0, 0))
                         out_queue.put((name,
-                                       list(set(files + prev_files)),
-                                       list(set(directories + prev_dirs)),
+                                       files,
+                                       directories,
                                        len(track_failed)
                                       )
                                      )
@@ -162,9 +166,6 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
 
 
                 LOG.debug('Finished one job with (%s, %s)', location, name)
-                # Tell master that a job finished
-                conn.send('One_Job')
-                conn.send(time.time())
             except Empty:
                 # Report empty
                 LOG.info('Worker finished input queue')
