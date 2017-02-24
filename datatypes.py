@@ -33,7 +33,7 @@ operator might be adjusting the config.yml.
 """
 
 
-def create_dirinfo(location, name, filler, threads=0):
+def create_dirinfo(location, first_dir, filler, object_params=None):
     """ Create the directory information in it's very own thread
 
     :param str location: For the listing
@@ -46,176 +46,200 @@ def create_dirinfo(location, name, filler, threads=0):
     :rtype: DirectoryInfo
     """
 
-    # Stick some things in the input queue
-    if isinstance(threads, int):
-        filler_func = filler
-        n_threads = threads or config.config_dict()['MaxThreads']
-        looper = xrange(n_threads)
+    LOG.debug('Called create_dirinfo(%s, %s, %s, %s)',
+              location, first_dir, filler, object_params)
+
+    # Determine the number of threads
+    if not object_params:
+        n_threads = config.config_dict()['MaxThreads'] or multiprocessing.cpu_count()
     else:
-        if not threads:
-            LOG.error('There are no parameters for threads!')
-        filler_func = filler(*threads[0]).list
-        looper = threads
+        n_threads = len(object_params)
 
-    in_queues = [multiprocessing.Queue() for _ in looper]
+    LOG.debug('Number of threads: %i', n_threads)
+
+    # Initialize queue and connection lists
     out_queue = multiprocessing.Queue()
+    in_queues = []
 
-    # First we will make a queue that has only one element
-    start_queue = multiprocessing.Queue()
-    start_queue.put((os.path.join(location, name), '', (), []))
-    in_queues.append(start_queue)
+    master_conns = []
+    slave_conns = []
 
-    def check_dir(filler, location, name, conn=None, failed_list=None, i_queue=None):
-        """ Checks out a location, and if it has files (or is a dead end)
-        places the name of the node in a queue for later processing
+    for _ in xrange(n_threads):
+        in_queues.append(multiprocessing.Queue())
 
-        :param bool retry: Specifies if this is a retried directory or not
-        :param str location: For the DirectoryInfo
-        :param str name: Name of the empty DirectoryInfo
-        :param tuple params: The parameters to pass to the filler on a retry
-        :param multithreading.Connection conn: A way to message the master thread
+        con1, con2 = multiprocessing.Pipe()
+        master_conns.append(con1)
+        slave_conns.append(con2)
+
+    # Put in the first element for the queues
+    # They go like, (location inside DirectoryInfo, name of inner object,
+    #                list of previous directories, list of previous files,
+    #                list of queue numbers that have failed so far)
+    random.choice(in_queues).put((os.path.join(location, first_dir), '', [], [], []))
+
+    def run_queue(i_queue):
+        """
+        Runs over one of the queues
         """
 
-        LOG.debug('check_dir called with (%s, %s, %s, %s, %s, %s)',
-                  filler, location, name, conn, failed_list, i_queue)
-
-        if failed_list is not None:
-            failed_list.append(i_queue)
-            LOG.debug('All available queues: %s', in_queues)
-            retry_candidates = [queue for queue in in_queues \
-                                    if in_queues.index(queue) not in failed_list]
-            LOG.debug('Retry candidates created: %s', retry_candidates)
-
-        full_path = os.path.join(location, name)
-        LOG.debug('Full path is %s', full_path)
-        directories, files = filler(full_path)
-
-        LOG.debug('Got from filler:\n%s\n%s', directories, files)
-
-        # If failed and retry, we will get these unusual values for directories and files
-        # directories will be the string '_retry_'
-        # files will be the tuple of parameters to be passed to the filler function on retry
-        if isinstance(directories, str) and directories == '_retry_':
-            if retry_candidates:
-                retry_queue = random.choice(retry_candidates)
-                LOG.debug('Will retry in queue %s', retry_queue)
-                retry_queue.put((location, name, files, failed_list))
-            else:
-                LOG.debug('Giving up directory.')
-                files.append(('_unlisted_', 0, 0))
-                out_queue.put((name, files, directories))
-
-        # On success, we do the normal input and output queues
-        else:
-            if conn:
-                LOG.debug('Reporting job finished to connection...')
-                conn.send('One_Job')
-                conn.send(time.time())
-                LOG.debug('Finished')
-            out_queue.put((name, files, directories))
-
-            for directory, _ in directories:
-                joined_name = os.path.join(name, directory)
-                LOG.debug('Adding to queue: %s, in %s', joined_name, location)
-                sizes = [queue.qsize() for queue in in_queues]
-                in_queues[sizes.index(min(sizes))].put((location, joined_name, (), []))
-
-    def run_queue(conn, i_queue, create_filler=0):
-        """ Runs empty_dirinfo over the queue
-
-        :param multiprocessing.Connection conn: A connection to pipe back when finished
-        """
-
-        LOG.debug('Running queue with: %s, %s, %s', conn, i_queue, create_filler)
+        LOG.debug('Running queue: %i', i_queue)
         running = True
 
-        if not isinstance(create_filler, int):
-            thread_object = filler(*create_filler)
+        # Get the queue and connection for this thread
+        in_queue = in_queues[i_queue]
+        conn = slave_conns[i_queue]
+
+        if object_params:
+            thread_object = filler(object_params[i_queue])
             filler_func = thread_object.list
         else:
             filler_func = filler
 
-        if i_queue == -1:
-            in_queue = in_queues.pop()
-        else:
-            in_queue = in_queues[i_queue]
-
         while running:
             try:
-                location, name, params, failed_list = in_queue.get(True, 3)
-                check_dir(filler_func, location, name, conn, failed_list, i_queue)
-                LOG.debug('Finished one job with (%s, %s)', location, name)
+                location, name, prev_files, prev_dirs, failed_list = in_queue.get(True, 3)
+                LOG.debug('Getting directory with (%s, %s, %s)',
+                          location, name, failed_list)
+
+                # Call filler
+                full_path = os.path.join(location, name)
+                LOG.debug('Full path is %s', full_path)
+                directories, files = filler(full_path)
+                LOG.debug('Got from filler:\n%s\n%s', directories, files)
+
+                # If failed and retry, we will get these unusual values for directories and files
+                # directories will be the string '_retry_'
+                # files will be the tuple of parameters to be passed to the filler function on retry
+                if isinstance(directories, str) and directories == '_retry_':
+
+                    # Duplicate the failed list and add this thread
+                    track_failed = list(failed_list)
+                    track_failed.append(i_queue)
+                    LOG.debug('Creating retry list, excluding %s', track_failed)
+
+                    LOG.debug('All available queues: %s', in_queues)
+                    retry_candidates = [queue for queue in in_queues \
+                                            if in_queues.index(queue) not in track_failed]
+                    LOG.debug('Retry candidates created: %s', retry_candidates)
+
+                    # If there are threads where we can retry this, put the input there
+                    if retry_candidates:
+                        retry_queue = random.choice(retry_candidates)
+                        LOG.debug('Will retry in queue %s', retry_queue)
+                        retry_queue.put((location, name,
+                                         files + prev_files,
+                                         directories + prev_dirs,
+                                         failed_list))
+                    # Otherwise, give up and output
+                    else:
+                        LOG.debug('Giving up directory %s', full_path)
+                        files.append(('_unlisted_', 0, 0))
+                        out_queue.put((name,
+                                       list(set(files + prev_files)),
+                                       list(set(directories + prev_dirs)),
+                                       len(track_failed)
+                                      )
+                                     )
+
+                # On success, we do the normal input and output queues
+                else:
+                    conn.send('One_Job')
+                    conn.send(time.time())
+                    out_queue.put((name, files, directories, len(failed_list)))
+
+                    # Add each directory into some input queue
+                    for directory, _ in directories:
+                        joined_name = os.path.join(name, directory)
+                        LOG.debug('Adding to queue: %s, in %s', joined_name, location)
+                        sizes = [queue.qsize() for queue in in_queues]
+                        in_queues[sizes.index(min(sizes))].\
+                            put((location, joined_name, [], [], []))
+
+                    LOG.debug('Finished one job with (%s, %s)', location, name)
             except Empty:
-                running = False
+                # Report empty
+                LOG.info('Worker finished input queue')
+                conn.send('All_Job')
 
-        LOG.info('Worker finished input queue')
-        if conn:
-            conn.send('All_Job')
-            conn.close()
-
-    first_proc = multiprocessing.Process(target=run_queue, args=(None, -1, random.choice(looper)))
-    first_proc.start()
-    first_proc.join()
+                # Check for main process
+                message = conn.recv()                
+                LOG.debug('Message from master: %s', message)
+                # If permission, close
+                if message == 'Close':
+                    conn.close()
+                    running = False
 
     # Spawn processes
     processes = []
-    connections = []
 
-    for i_queue, element in enumerate(looper):
-        con1, con2 = multiprocessing.Pipe(False)
-
-        process = multiprocessing.Process(target=run_queue, args=(con2, i_queue, element))
+    for i_queue in range(n_threads):
+        process = multiprocessing.Process(target=run_queue, args=(i_queue,))
         process.start()
         processes.append(process)
-        connections.append(con1)
 
     # Build the DirectoryInfo
     building = True
-    dir_info = DirectoryInfo(name)
+    dir_info = DirectoryInfo(first_dir)
 
     while building:
         try:
-            name, files, directories = out_queue.get(True, 1)
+            # Get the info from the queue
+            name, files, directories, _ = out_queue.get(True, 1)
+
+            # Create the nodes and files
             LOG.debug('Building %s', name)
             built = dir_info.get_node(name)
             built.add_files(files)
 
+            # Set correct node mtime for directories
             for directory, mtime in directories:
                 built.get_node(directory).mtime = mtime
 
         except Empty:
             LOG.debug('Empty queue for building.')
             LOG.info('Number of files so far built: %i', dir_info.get_num_files())
-            if connections:
-                for _ in connections:
-                    conn = random.choice(connections)
-                    message = conn.recv()
-                    if message == 'All_Job':
-                        LOG.debug('Found end to pipe.')
-                        conn.close()
-                        connections.remove(conn)
-                    elif message == 'One_Job':
-                        LOG.debug('Found one job, about to cycle')
-                        now = time.time()
-                        while True:
-                            timestamp = conn.recv()
-                            LOG.debug('Compare %f with %f, age: %f',
-                                      now, timestamp, now - timestamp)
-                            if now - timestamp < 10.0:
-                                LOG.debug('New enough, breaking.')
-                                break
-                            mess = conn.recv()
-                            if mess == 'All_Job':
-                                LOG.debug('Found end to pipe.')
-                                conn.close()
-                                connections.remove(conn)
-                                break
-                        break
-                    else:
-                        LOG.error('Weird message from pip')
-            else:
+
+            # Ends only if all threads are done at the beginning of this check
+            threads_done = 0
+            for conn in master_conns:
+                message = conn.recv()
+                # Count the number of threads saying their finished at the beginning
+                if message == 'All_Job':
+                    threads_done += 1
+                    LOG.debug('Threads saying done: %i', threads_done)
+                    # Send back to work, just in case not all threads are done
+                    conn.send('Work')
+                elif message == 'One_Job':
+                    LOG.debug('Found one job, about to cycle')
+                    now = time.time()
+                    while True:
+                        # Cycle through timestamps so that we do not have a backlog
+                        timestamp = conn.recv()
+                        LOG.debug('Compare %f with %f, age: %f',
+                                  now, timestamp, now - timestamp)
+                        if now - timestamp < 10.0:
+                            LOG.debug('New enough, breaking.')
+                            break
+                        mess = conn.recv()
+                        if mess == 'All_Job':
+                            LOG.debug('Found end to pipe.')
+                            break
+                    break
+                else:
+                    LOG.error('Weird message from pipe')
+ 
+            if threads_done == n_threads:
+                LOG.debug('Done building')
                 building = False
 
+    LOG.debug('Closing all connections')
+    # Tell connections to close
+    for conn in master_conns:
+        conn.send('Close')
+        conn.close()
+
+    LOG.debug('Waiting for processes')
+    # Wait for processes to join
     for proc in processes:
         proc.join()
 
@@ -253,7 +277,7 @@ class DirectoryInfo(object):
 
         self.can_compare = False
 
-    def add_files(self, files):
+    def add_files(self, files, num_fails=0):
         """
         Set the files for this DirectoryInfo node
 
@@ -390,7 +414,6 @@ class DirectoryInfo(object):
 
             # Search for if directory exists
             for directory in self.directories:
-                LOG.debug('Checking node named %s', directory.name)
                 if split_path[0] == directory.name:
                     LOG.debug('Found match, now returning %s', return_name)
                     return directory.get_node(return_name, make_new)
