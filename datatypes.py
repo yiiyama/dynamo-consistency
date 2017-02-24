@@ -228,8 +228,8 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                         mess = conn.recv()
                         if mess == 'All_Job':
                             LOG.debug('Found end to pipe.')
+                            conn.send('Work')
                             break
-                    break
                 else:
                     LOG.error('Weird message from pipe')
  
