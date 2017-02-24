@@ -38,14 +38,12 @@ class XRootDLister(object):
         self.backup_conn = XRootD.client.FileSystem(backup_door)
         self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
 
-    def ls_directory(self, door, path, failed_list=None):
+    def ls_directory(self, door, path):
         """
         Gets the contents of the previously defined redirector at a given path
 
         :param XRootD.client.FileSystem door: The door server to use for the listing
         :param str path: The full path starting with ``/store/``.
-        :param list failed_list: A list of redirectors that have not worked
-                                 for the current path.
         :returns: A list of directories and list of file information
         :rtype: tuple
         """
@@ -53,8 +51,7 @@ class XRootDLister(object):
         if path[-1] != '/':
             path += '/'
 
-        LOG.debug('Listing directory with parameters: %s, %s, %s',
-                  door, path, failed_list)
+        LOG.debug('Listing directory with parameters: %s, %s', door, path)
 
         status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
@@ -65,7 +62,6 @@ class XRootDLister(object):
 
         if dir_list:
             for entry in dir_list.dirlist:
-                LOG.debug('Entry %s', entry)
                 if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
                     directories.append((entry.name.lstrip('/'), entry.statinfo.modtime))
                 else:
@@ -74,8 +70,6 @@ class XRootDLister(object):
 
             LOG.debug('From %s returning %i directories and %i files.',
                       path, len(directories), len(files))
-
-            LOG.debug('OUTPUT:\n%s\n%s', directories, files)
 
         if not status.ok:
 

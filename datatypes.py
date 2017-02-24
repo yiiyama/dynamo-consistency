@@ -123,18 +123,19 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                     LOG.debug('Creating retry list, excluding %s', track_failed)
 
                     LOG.debug('All available queues: %s', in_queues)
-                    retry_candidates = [queue for queue in in_queues \
-                                            if in_queues.index(queue) not in track_failed]
+                    retry_candidates = [queue for queue in range(n_threads) \
+                                            if queue not in track_failed]
                     LOG.debug('Retry candidates created: %s', retry_candidates)
 
                     # If there are threads where we can retry this, put the input there
                     if retry_candidates:
                         retry_queue = random.choice(retry_candidates)
                         LOG.debug('Will retry in queue %s', retry_queue)
-                        retry_queue.put((location, name,
-                                         files + prev_files,
-                                         directories + prev_dirs,
-                                         failed_list))
+                        in_queues[retry_queue].put((location, name,
+                                                    [],
+                                                    [],
+                                                    track_failed))
+                        LOG.debug('Put in queue %s', retry_queue)
                     # Otherwise, give up and output
                     else:
                         LOG.debug('Giving up directory %s', full_path)
@@ -148,8 +149,6 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
 
                 # On success, we do the normal input and output queues
                 else:
-                    conn.send('One_Job')
-                    conn.send(time.time())
                     out_queue.put((name, files, directories, len(failed_list)))
 
                     # Add each directory into some input queue
@@ -159,8 +158,13 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                         sizes = [queue.qsize() for queue in in_queues]
                         in_queues[sizes.index(min(sizes))].\
                             put((location, joined_name, [], [], []))
+                        LOG.debug('Put in queue %s', sizes.index(min(sizes)))
 
-                    LOG.debug('Finished one job with (%s, %s)', location, name)
+
+                LOG.debug('Finished one job with (%s, %s)', location, name)
+                # Tell master that a job finished
+                conn.send('One_Job')
+                conn.send(time.time())
             except Empty:
                 # Report empty
                 LOG.info('Worker finished input queue')
@@ -207,7 +211,9 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
             # Ends only if all threads are done at the beginning of this check
             threads_done = 0
             for conn in master_conns:
+                LOG.debug('Waiting for thread %i', master_conns.index(conn))
                 message = conn.recv()
+                LOG.debug('Recieved message %s', message)
                 # Count the number of threads saying their finished at the beginning
                 if message == 'All_Job':
                     threads_done += 1
@@ -217,19 +223,21 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                 elif message == 'One_Job':
                     LOG.debug('Found one job, about to cycle')
                     now = time.time()
-                    while True:
+                    cycle = True
+                    while cycle:
                         # Cycle through timestamps so that we do not have a backlog
                         timestamp = conn.recv()
                         LOG.debug('Compare %f with %f, age: %f',
                                   now, timestamp, now - timestamp)
                         if now - timestamp < 10.0:
                             LOG.debug('New enough, breaking.')
-                            break
-                        mess = conn.recv()
-                        if mess == 'All_Job':
-                            LOG.debug('Found end to pipe.')
-                            conn.send('Work')
-                            break
+                            cycle = False
+                        else:
+                            mess = conn.recv()
+                            if mess == 'All_Job':
+                                LOG.debug('Found end to pipe.')
+                                conn.send('Work')
+                                cycle = False
                 else:
                     LOG.error('Weird message from pipe')
  
@@ -410,7 +418,7 @@ class DirectoryInfo(object):
         :rtype: DirectoryInfo or None
         """
 
-        LOG.debug('From node %s named %s, getting %s', self, self.name, path)
+        LOG.debug('From node named %s, getting %s', self.name, path)
 
         # If any path left
         if path:
@@ -424,7 +432,6 @@ class DirectoryInfo(object):
                     return directory.get_node(return_name, make_new)
 
             # If not, make a new directory, or None
-            LOG.debug('Did not find directory. Make new? %i', int(make_new))
             if make_new:
                 new_dir = DirectoryInfo(split_path[0])
                 self.directories.append(new_dir)
