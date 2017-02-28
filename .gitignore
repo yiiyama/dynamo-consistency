@@ -5,8 +5,8 @@
 
 test/cache/*
 test/www/*
-test/T2/*.log
-test/T2/*.pkl
+test/T2/*.log*
+test/T2/*.pkl*
 test/T2/*.txt
 test/T2/*.yml
 test/T2/storage*
