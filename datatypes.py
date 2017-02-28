@@ -102,24 +102,30 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
 
         while running:
             try:
-                location, name, prev_files, prev_dirs, failed_list = in_queue.get(True, 3)
+                location, name, prev_dirs, prev_files, failed_list = in_queue.get(True, 3)
                 LOG.debug('Getting directory with (%s, %s, %s)',
                           location, name, failed_list)
 
                 # Call filler
                 full_path = os.path.join(location, name)
                 LOG.debug('Full path is %s', full_path)
-                directories, files = filler_func(full_path)
-                LOG.debug('Got from filler:\n%s\n%s', directories, files)
+                ok, directories, files = filler_func(full_path)
+                LOG.debug('Got from filler: Good? %s, %i directories, %i files',
+                          ok, len(directories), len(files))
 
                 # Tell master that a job finished
                 conn.send('One_Job')
                 conn.send(time.time())
 
-                # If failed and retry, we will get these unusual values for directories and files
-                # directories will be the string '_retry_'
-                # files will be the tuple of parameters to be passed to the filler function on retry
-                if isinstance(directories, str) and directories == '_retry_':
+                send_results = True
+
+                # If not okay, retry
+                if not ok:
+
+                    directories.extend(prev_dirs)
+                    files.extend(prev_files)
+
+                    LOG.debug('Full dirs, and files: %s, %s', directories, files)
 
                     # Duplicate the failed list and add this thread
                     track_failed = list(failed_list)
@@ -133,36 +139,26 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
 
                     # If there are threads where we can retry this, put the input there
                     if retry_candidates:
+                        send_results = False
                         retry_queue = random.choice(retry_candidates)
                         LOG.debug('Will retry in queue %s', retry_queue)
-                        in_queues[retry_queue].put((location, name,
-                                                    [],
-                                                    [],
-                                                    track_failed))
+                        in_queues[retry_queue].put((location, name, directories, files, track_failed))
                         LOG.debug('Put in queue %s', retry_queue)
                     # Otherwise, give up and output
                     else:
                         LOG.debug('Giving up directory %s', full_path)
                         files.append(('_unlisted_', 0, 0))
-                        out_queue.put((name,
-                                       files,
-                                       directories,
-                                       len(track_failed)
-                                      )
-                                     )
 
                 # On success, we do the normal input and output queues
-                else:
-                    out_queue.put((name, files, directories, len(failed_list)))
+                if send_results:
+                    out_queue.put((name, directories, files, len(failed_list)))
 
                     # Add each directory into some input queue
                     for directory, _ in directories:
                         joined_name = os.path.join(name, directory)
-                        LOG.debug('Adding to queue: %s, in %s', joined_name, location)
                         sizes = [queue.qsize() for queue in in_queues]
                         in_queues[sizes.index(min(sizes))].\
                             put((location, joined_name, [], [], []))
-                        LOG.debug('Put in queue %s', sizes.index(min(sizes)))
 
 
                 LOG.debug('Finished one job with (%s, %s)', location, name)
@@ -194,10 +190,9 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     while building:
         try:
             # Get the info from the queue
-            name, files, directories, _ = out_queue.get(True, 1)
+            name, directories, files, _ = out_queue.get(True, 1)
 
             # Create the nodes and files
-            LOG.debug('Building %s', name)
             built = dir_info.get_node(name)
             built.add_files(files)
 
@@ -228,10 +223,8 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                     while cycle:
                         # Cycle through timestamps so that we do not have a backlog
                         timestamp = conn.recv()
-                        LOG.debug('Compare %f with %f, age: %f',
-                                  now, timestamp, now - timestamp)
-                        if now - timestamp < 10.0:
-                            LOG.debug('New enough, breaking.')
+                        if now - timestamp < 0.0:
+                            LOG.debug('Found new message, breaking.')
                             cycle = False
                         else:
                             mess = conn.recv()
@@ -297,7 +290,6 @@ class DirectoryInfo(object):
 
         :param list files: The tuples of file information
         """
-        LOG.debug('Adding %i files', len(files or []))
         self.files.extend([{
             'name': name,
             'size': size,
@@ -419,8 +411,6 @@ class DirectoryInfo(object):
         :rtype: DirectoryInfo or None
         """
 
-        LOG.debug('From node named %s, getting %s', self.name, path)
-
         # If any path left
         if path:
             split_path = path.split('/')
@@ -429,7 +419,6 @@ class DirectoryInfo(object):
             # Search for if directory exists
             for directory in self.directories:
                 if split_path[0] == directory.name:
-                    LOG.debug('Found match, now returning %s', return_name)
                     return directory.get_node(return_name, make_new)
 
             # If not, make a new directory, or None
@@ -440,7 +429,6 @@ class DirectoryInfo(object):
             else:
                 return None
 
-        LOG.debug('Returning self')
         # If no path, just return this
         return self
 
@@ -499,7 +487,6 @@ class DirectoryInfo(object):
                     if not directory.can_compare:
                         continue
 
-                    LOG.debug('About to get %s from other node.', directory.name)
                     new_other = other.get_node(directory.name, False)
                     more_files, more_dirs, more_size = directory.compare(new_other, here)
                     extra_size += more_size
@@ -513,18 +500,14 @@ class DirectoryInfo(object):
                     if not file_info['can_compare']:
                         continue
 
-                    LOG.debug('Searching for match to: %s', file_info)
                     found = False
                     for to_match in other.files:
-                        LOG.debug('Checking %s', to_match)
                         if file_info['hash'] == to_match['hash'] or \
                                 to_match['name'] == '_unlisted_':
-                            LOG.debug('Match found!')
                             found = True
                             break
 
                     if not found:
-                        LOG.debug('No match found!')
                         extra_files.append(os.path.join(path, self.name, file_info['name']))
         else:
             if self.files:

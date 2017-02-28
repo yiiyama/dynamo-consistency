@@ -23,7 +23,7 @@ def my_ls(path, location='/mnt/hadoop/cms/store'):
     full_path = os.path.join(location, path)
 
     if not os.path.exists(full_path):
-        return [], []
+        return True, [], []
 
     results = [os.path.join(full_path, res) for res in os.listdir(full_path)]
 
@@ -32,7 +32,7 @@ def my_ls(path, location='/mnt/hadoop/cms/store'):
     files = [(os.path.basename(name), os.stat(name).st_size, os.stat(name).st_mtime) for \
                  name in filter(os.path.isfile, results)]
 
-    return dirs, files
+    return True, dirs, files
 
 class TestT3Listing(unittest.TestCase):
 

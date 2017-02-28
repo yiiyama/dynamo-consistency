@@ -29,7 +29,7 @@ class XRootDLister(object):
     If the primary connection fails, then a fallback connection is used.
     """
 
-    def __init__(self, primary_door, backup_door):
+    def __init__(self, primary_door, backup_door, thread_num=0):
         """
         Set up the class with two doors.
         """
@@ -37,6 +37,7 @@ class XRootDLister(object):
         self.primary_conn = XRootD.client.FileSystem(primary_door)
         self.backup_conn = XRootD.client.FileSystem(backup_door)
         self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
+        self.log = logging.getLogger('%s--thread%i' % (__name__, thread_num))
 
     def ls_directory(self, door, path):
         """
@@ -51,14 +52,16 @@ class XRootDLister(object):
         if path[-1] != '/':
             path += '/'
 
-        LOG.debug('Listing directory with parameters: %s, %s', door, path)
+        self.log.debug('Using door at %s to list directory %s', door.url.hostname, path)
 
         status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
         directories = []
         files = []
 
-        LOG.debug('Directory listing %s', dir_list)
+        self.log.debug('For %s, directory listing good? %i', path, bool(dir_list))
+
+        ok = True
 
         if dir_list:
             for entry in dir_list.dirlist:
@@ -68,39 +71,36 @@ class XRootDLister(object):
                     files.append((entry.name.lstrip('/'), entry.statinfo.size,
                                   entry.statinfo.modtime))
 
-            LOG.debug('From %s returning %i directories and %i files.',
-                      path, len(directories), len(files))
-
         if not status.ok:
 
-            LOG.warning('While listing %s: %s', path, status.message)
+            self.log.warning('While listing %s: %s', path, status.message)
 
             error_code = self.error_re.search(status.message).group(1)
 
-            if error_code in ['!', '3005']:
-                return '_retry_', (directories, files)
+            if error_code in ['!', '3005', '3010']:
+                ok = bool(dir_list)
 
-        return directories, files
+        self.log.debug('From %s returning status %i with %i directories and %i files.',
+                  path, ok, len(directories), len(files))
 
-    def check_retry(self, directories, is_primary=True):
+        return ok, directories, files
+
+    def check_retry(self, ok, is_primary=True):
         """
         Check the output of the directory listing to determine whether
         or not to retry with the backup door.
 
-        :param directories: This is the first output from the directory listing
-                            which is used to determine whether or not to retry
-        :type directories: list or str
+        :param bool ok: This is the first output from the directory listing
+                        which is used to determine whether or not to retry
         :param bool is_primary: says if the door last listed is the primary or backup door
         :returns: whether or not to retry the listing
         :rtype: bool
         """
 
-        retry = (isinstance(directories, str) and directories == '_retry_')
+        retry = not ok
 
         if retry:
-            time.sleep(15)
-            door = self.primary_conn if is_primary else self.backup_conn
-            door = XRootD.client.FileSystem(door.url.hostname)
+            time.sleep(10)
 
         return retry
 
@@ -113,12 +113,12 @@ class XRootDLister(object):
         :rtype: tuple
         """
 
-        directories, files = self.ls_directory(self.primary_conn, path)
+        ok, directories, files = self.ls_directory(self.primary_conn, path)
 
-        if self.check_retry(directories):
-            directories, files = self.ls_directory(self.backup_conn, path)
+        if self.check_retry(ok):
+            ok, directories, files = self.ls_directory(self.backup_conn, path)
 
-        return directories, files
+        return ok, directories, files
 
 
 def get_site_tree(site):
@@ -141,7 +141,8 @@ def get_site_tree(site):
     directories = [
         datatypes.create_dirinfo(
             '/store/', directory, XRootDLister,
-            [(prim, back) for prim, back in zip(door_list[0::2], door_list[1::2])]) \
+            [(prim, back, thread_num) for prim, back, thread_num in \
+                 zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
             for directory in config.config_dict().get('DirectoryList', [])
         ]
 

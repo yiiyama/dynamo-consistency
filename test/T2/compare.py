@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     if 'list' in sys.argv:
         site_tree = getsitecontents.get_site_tree(site)
-        site_tree.save('%s_remote.pkl' % site)
+        site_tree.save('%s_remote.pkl.3' % site)
     else:
         site_tree = datatypes.get_info('%s_remote.pkl' % site)
 

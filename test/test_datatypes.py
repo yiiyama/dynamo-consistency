@@ -48,7 +48,7 @@ def my_ls(path, location=TMP_DIR):
     files = [(os.path.basename(name), os.stat(name).st_size, os.stat(name).st_mtime) for \
                  name in filter(os.path.isfile, results)]
 
-    return dirs, files
+    return True, dirs, files
 
 class TestBase(unittest.TestCase):
 
