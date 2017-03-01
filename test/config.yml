@@ -1,5 +1,5 @@
 ##!
-# The configuration file for ConsistencyChecks is a YAML file.
+# The configuration file for ConsistencyChecks is a JSON or YAML file.
 # It's keys are the following:
 #
 # - **MaxThreads** - The maximum number of threads to run the check with.
