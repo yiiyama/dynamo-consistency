@@ -1,9 +1,11 @@
+# pylint: disable=import-error
+
 """
-Tools to get the files located at a site.
+Tool to get the files located at a site.
 
 .. Warning::
 
-   Must be used on a machine with xrdfs installed.
+   Must be used on a machine with XRootD python module installed.
 
 :author: Daniel Abercrombie <dabercro@mit.edu>
 """
@@ -12,165 +14,167 @@ Tools to get the files located at a site.
 import re
 import os
 import time
-import datetime
-import subprocess
 import logging
-import random
+
+import XRootD.client
 
 from . import config
 from . import datatypes
 
 LOG = logging.getLogger(__name__)
 
-def get_site_tree(site):
+class XRootDLister(object):
     """
-    Get the information for a site, either from a cache or from XRootD.
-
-    :param str site: The site name
-    :returns: The site information
-    :rtype: DirectoryInfo
+    A class that holds two XRootD connections.
+    If the primary connection fails to list a directory,
+    then a fallback connection is used.
+    This keeps the load of listing from hitting more than half
+    of a site's doors at a time.
     """
 
-    # Get the redirector for a site
-    # The redirector is used for a double check (not implemented yet...)
-    # The redir_list is used for the original listing
+    def __init__(self, primary_door, backup_door, thread_num=None):
+        """
+        Set up the class with two doors.
 
-    _, redir_list = config.get_redirector(site)
-    LOG.debug('Full redirector list: %s', redir_list)
+        :param str primary_door: The URL of the door that will get the most load
+        :param str backup_door: The URL of the door that will be used when
+                                the primary door fails
+        :param int thread_num: This optional parameter is only used to
+                               Create a separate logger for this object
+        """
 
-    # Get the primary list of servers to hammer
-    primary_list = random.sample(redir_list, (len(redir_list) + 1)/2)
-    LOG.debug('Primary redirector list: %s', primary_list)
+        self.primary_conn = XRootD.client.FileSystem(primary_door)
+        self.backup_conn = XRootD.client.FileSystem(backup_door)
+        # This regex is used to parse the error code and propose a retry
+        self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
 
-    # Create the filler function for the DirectoryInfo
+        if thread_num is None:
+            self.log = logging.getLogger(__name__)
+        else:
+            self.log = logging.getLogger('%s--thread%i' % (__name__, thread_num))
 
-    error_code_re = re.compile(r'\[(\!|\d+|FATAL)\]')
-
-    def ls_directory(path, attempts=0, prev_stdout='', failed_list=None):
+    def ls_directory(self, door, path):
         """
         Gets the contents of the previously defined redirector at a given path
 
-        :param str path: The full path starting with ``/store/``.
-        :param int attempts: The number of previous attempts.
-                             If the total number of attempts is more than the
-                             NumberOfRetries in the config, give back a new dummy file.
-                             The young age should lead to the directory being left alone.
-        :param str prev_stdout: stdout from previous attempt
-        :param list failed_list: A list of redirectors that have not worked
-                                 for the current path.
-        :returns: A list of directories and list of file information
-        :rtype: tuple
+        :param XRootD.client.FileSystem door: The door server to use for the listing
+        :param str path: The full path, starting with ``/store/``, of the directory to list.
+        :returns: A bool indicating the success, a list of directories, and a list of files.
+                  See :py:func:`XRootDLister.list` for more details on the output.
+        :rtype: bool, list, list
         """
 
-        track_failed_list = failed_list or []
+        # FileSystem only works with ending slashes for some sites (not all, but let's be safe)
+        if path[-1] != '/':
+            path += '/'
 
-        LOG.debug('Calling ls_directory with: path=%s, attempts=%i, '
-                  'prev_stdout lines=%i, failed_list=%s', path, attempts,
-                  len([line for line in prev_stdout.split('\n') if line.strip()]),
-                  track_failed_list)
+        self.log.debug('Using door at %s to list directory %s', door.url.hostname, path)
 
-        # Get a redirector. First try the primary list, unless all primaries are in the failed list
-        if len(track_failed_list) < len(primary_list):
-            in_list = primary_list
-        # If retrying, reset the failed list and get redirector
-        elif attempts < config.config_dict().get('NumberOfRetries', 0):
-            track_failed_list = []
-            attempts += 1
-            in_list = primary_list
-        # Otherwise, use the full list
-        else:
-            in_list = redir_list
-
-        valid_redirs = [server for server in in_list if server not in track_failed_list]
-        LOG.debug('List of valid redirectors: %s', valid_redirs)
-        redirector = random.choice(valid_redirs)
-
-        LOG.debug('Using redirector %s', redirector)
-        # This should maybed be configurable
-        time.sleep(attempts * 5)
-
-        directory_listing = subprocess.Popen(['xrdfs', redirector, 'ls', '-l', path],
-                                             stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE)
+        # http://xrootd.org/doc/python/xrootd-python-0.1.0/modules/client/filesystem.html#XRootD.client.FileSystem.dirlist
+        status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
         directories = []
         files = []
 
-        stdout, stderr = directory_listing.communicate()
+        self.log.debug('For %s, directory listing good: %s', path, bool(dir_list))
 
-        # Parse the stderr
-        if stderr:
-            LOG.warning('Received error while listing %s', path)
-            LOG.warning(stderr.strip())
-            stdout += '\n' + prev_stdout
+        # Assumes the listing went well for now
+        okay = True
 
-            track_failed_list.append(redirector)
+        # If there's a directory listing, parse it
+        if dir_list:
+            for entry in dir_list.dirlist:
+                if entry.statinfo.flags & XRootD.client.flags.StatInfoFlags.IS_DIR:
+                    directories.append((entry.name.lstrip('/'), entry.statinfo.modtime))
+                else:
+                    files.append((entry.name.lstrip('/'), entry.statinfo.size,
+                                  entry.statinfo.modtime))
 
-            # If full number of attempts haven't been made, try again
-            if len(track_failed_list) < len(redir_list):
-                # Check against list of "error codes" to retry
-                error_code = error_code_re.search(stderr).group(1)
+        # If status isn't perfect, analyze the error
+        if not status.ok:
 
-                # I should actually raise an exception here
-                if error_code in ['!', '3005']:
-                    return ('_retry_', (path, attempts, stdout, track_failed_list))
+            self.log.warning('While listing %s: %s', path, status.message)
 
-            else:
-                LOG.error('Giving up on listing directory %s', path)
-                files.append(('_unlisted_', 0, 0))
+            error_code = self.error_re.search(status.message).group(1)
 
-        # Parse the stdout, skipping blank lines
+            # Retry certain error codes if there's no dir_list
+            if error_code in ['!', '3005', '3010']:
+                okay = bool(dir_list)
 
-        LOG.debug('STDOUT:\n%s', stdout)
+        self.log.debug('From %s returning status %i with %i directories and %i files.',
+                       path, okay, len(directories), len(files))
 
-        for line in [check for check in stdout.split('\n') if check.strip()]:
+        return okay, directories, files
 
-            # Ignore duplicate lines (which come up a lot)
-            elements = line.split()
+    def list(self, path):
+        """
+        Return the directory contents at the given path.
+        The ``list`` member is expected of every object passed to :py:mod:`datatypes`.
 
-            if len(elements) != 5:
-                LOG.error('Number of elements unexpected: %i', len(elements))
-                LOG.error('xrdfs %s ls -l %s', redirector, path)
-                LOG.error(stdout)
+        :param str path: The full path, starting with ``/store/``, of the directory to list.
+        :returns: A bool indicating the success, a list of directories, and a list of files.
+                  The list of directories consists of tuples of (directory name, mod time).
+                  The list of files consistents of tuples of (file name, size, mod time).
+                  The modification times are in seconds from epoch and the file size is in bytes.
+        :rtype: bool, list, list
+        """
 
-            # Get the basename only
-            name = elements[-1].split('/')[-1]
+        # Try with primary door
+        okay, directories, files = self.ls_directory(self.primary_conn, path)
 
-            # Parse the time in the output to get timestamp
-            mtime = int(
-                time.mktime(
-                    datetime.datetime.strptime(
-                        '%s %s' % (elements[1], elements[2]),
-                        '%Y-%m-%d %H:%M:%S').timetuple()
-                    )
-                )
+        # We could add sleep, reconnecting and other error handling here, if desired
+        if not okay:
+            # Try with backup door
+            okay, directories, files = self.ls_directory(self.backup_conn, path)
 
-            # Determine if directory or file
-            if elements[0][0] == 'd':
-                directories.append((name, mtime))
-            else:
-                # For files, append tuple (name, size, mtime)
-                files.append((name, int(elements[-2]), mtime))
+        return okay, directories, files
 
-        LOG.debug('From %s returning %i directories and %i files.',
-                  path, len(directories), len(files))
 
-        LOG.debug('OUTPUT:\n%s\n%s', directories, files)
-        return directories, files
+def get_site_tree(site):
+    """
+    Get the information for a site, from XRootD or a cache.
 
-    # Create DirectoryInfo for each directory to search
-    directories = [
-        datatypes.create_dirinfo('/store/', directory, ls_directory) for \
-            directory in config.config_dict().get('DirectoryList', [])
-        ]
+    :param str site: The site name
+    :returns: The site directory listing information
+    :rtype: DirectoryInfo
+    """
 
-    # Merge the DirectoryInfo
-    info = datatypes.DirectoryInfo(name='/store', to_merge=directories)
-    info.setup_hash()
+    cache_location = os.path.join(config.config_dict()['CacheLocation'],
+                                  '%s_remotelisting.pkl' % site)
 
-    # Save
-    info.save(os.path.join(config.config_dict()['CacheLocation'],
-                           '%s_remotelisting.pkl' % site))
+    # Check the cache
+    if not os.path.exists(cache_location) or \
+            (time.time() - os.stat(cache_location).st_mtime) > \
+            config.config_dict().get('InventoryAge', 0) * 24 * 3600:
+
+        # Get the redirector for a site
+        # The redirector can be used for a double check (not implemented yet...)
+        # The redir_list is used for the original listing
+
+        _, door_list = config.get_redirector(site)
+        LOG.debug('Full redirector list: %s', door_list)
+
+        # Create DirectoryInfo for each directory to search (set in configuration file)
+        # The search is done with XRootDLister objects that have two doors and the thread
+        # number as initialization arguments.
+        directories = [
+            datatypes.create_dirinfo(
+                '/store/', directory, XRootDLister,
+                [(prim, back, thread_num) for prim, back, thread_num in \
+                     zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
+                for directory in config.config_dict().get('DirectoryList', [])
+            ]
+
+        # Merge the DirectoryInfo
+        info = datatypes.DirectoryInfo(name='/store', to_merge=directories)
+        info.setup_hash()
+
+        # Save
+        info.save(cache_location)
+
+    else:
+        # Just load the cache if it's good
+        info = datatypes.get_info(cache_location)
 
     # Return the DirectoryInfo
     return info

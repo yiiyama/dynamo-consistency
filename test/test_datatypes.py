@@ -21,7 +21,6 @@ x Test size to clear
 x Ignores directories that are too new
 
 This is the development test script. Please don't touch if you're not me.
-See test_compare.py for something better documented and methodical.
 """
 
 import os
@@ -48,7 +47,7 @@ def my_ls(path, location=TMP_DIR):
     files = [(os.path.basename(name), os.stat(name).st_size, os.stat(name).st_mtime) for \
                  name in filter(os.path.isfile, results)]
 
-    return dirs, files
+    return True, dirs, files
 
 class TestBase(unittest.TestCase):
 

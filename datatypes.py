@@ -1,12 +1,13 @@
 # pylint: disable=bad-option-value, too-many-locals, too-many-branches, too-many-statements, too-complex
 #
-# Here there be dragons.
-# ...
-# This will need to be fixed, along with documentation
+# Here there be dragons, but they're tested :)
 #
 
 """
-Module contains the datatypes that are used for storage and comparison
+Module defines the datatypes that are used for storage and comparison.
+There is also a powerful create_dirinfo function that takes a filler function
+or object and uses the multiprocessing module to recursively list directories
+in parallel.
 
 :author: Daniel Abercrombie <dabercro@mit.edu>
 """
@@ -29,152 +30,277 @@ IGNORE_AGE = config.config_dict()['IgnoreAge']
 """
 The maximum age, in days, of files and directories to ignore in this check.
 This variable should be reset once in a while by deamons that run while an
-operator might be adjusting the config.yml.
+operator might be adjusting the configuration.
 """
 
-def create_dirinfo(location, name, filler):
-    """ Create the directory information in it's very own thread
 
-    :param str location: For the listing
-    :param str name: For the DirectoryInfo constructor
-    :param function filler: For the listing
-    :returns: A DirectoryInfo
-    :rtype: DirectoryInfo
+def create_dirinfo(location, first_dir, filler, object_params=None):
+    """ Create the directory information
+
+    :param str location: This is the beginning of the path where we will find ``first_dir``.
+                         For example, to find the first directory ``mc``, we also have to
+                         say where it is. In most cases, using LFNs, location would be
+                         ``/store/`` (where ``mc`` is inside).
+                         This is a path.
+    :param str first_dir: The name of the first directory that is inside the path of ``location``.
+                          This should not be a path,
+                          but the name of the directory to list recursively.
+    :param filler: This is either a function that lists the directory contents given just a path
+                   of ``os.path.join(location, first_dir)``, or it is a constructor that
+                   does the same thing with a member function called ``list``.
+                   If ``filler`` is an object constructor, the parameters for the object
+                   creation must be passed through the parameter ``object_params``.
+                   Both listings must return the following tuple:
+
+                     - A bool saying whether the listing was successful or not
+                     - A list of tuples of sub-directories and their mod times
+                     - A list of tuples files inside, their size, and their mode times
+
+    :type filler: function or constructor
+    :param list object_params: This only needs to be set when filler is an object constructor.
+                               Each element in the list is a tuple of arguments to pass
+                               to the constructor.
+    :returns: A DirectoryInfo containing everything the directory listings from
+              ``os.path.join(location, first_dir)`` with name ``first_dir``.
+    :rtype: :py:class:`DirectoryInfo`
     """
 
-    in_queue = multiprocessing.Queue()
+    LOG.debug('Called create_dirinfo(%s, %s, %s, %s)',
+              location, first_dir, filler, object_params)
+
+    # Determine the number of threads
+    if object_params is None:
+        n_threads = config.config_dict()['MaxThreads'] or multiprocessing.cpu_count()
+    else:
+        n_threads = min(len(object_params), config.config_dict()['MaxThreads'])
+
+    # First directory is location + first_dir
+    starting_dir = os.path.join(location, first_dir)
+    LOG.info('Listing directory %s with %i threads', starting_dir, n_threads)
+
+    # Initialize queue and connection lists
     out_queue = multiprocessing.Queue()
+    in_queues = []
 
-    def check_dir(retry, location, name, params, conn=None):
-        """ Checks out a location, and if it has files (or is a dead end)
-        places the name of the node in a queue for later processing
+    master_conns = []
+    slave_conns = []
 
-        :param bool retry: Specifies if this is a retried directory or not
-        :param str location: For the DirectoryInfo
-        :param str name: Name of the empty DirectoryInfo
-        :param tuple params: The parameters to pass to the filler on a retry
-        :param multithreading.Connection conn: A way to message the master thread
+    for _ in xrange(n_threads):
+        in_queues.append(multiprocessing.Queue())
+
+        con1, con2 = multiprocessing.Pipe()
+        master_conns.append(con1)
+        slave_conns.append(con2)
+
+    # Put in the first element for the queues
+    # They go like, (full path of the next listing to do,
+    #                name of sub-node to place the listing (blank for first level),
+    #                list of previous directories, list of previous files (for retries),
+    #                list of queue numbers that have failed so far)
+    random.choice(in_queues).put((starting_dir, '', [], [], []))
+
+    def run_queue(i_queue):
+        """
+        Runs over one of the queues.
+        When the queue is finished, it checks back with the master for permission to stop.
+
+        :param int i_queue: The number of the thread
         """
 
-        if retry:
-            directories, files = filler(*params)
-        else:
-            full_path = os.path.join(location, name)
-            directories, files = filler(full_path)
+        thread_log = logging.getLogger('%s--thread%i' % (__name__, i_queue))
 
-        # If failed and retry, we will get these unusual values for directories and files
-        # directories will be the string '_retry_'
-        # files will be the tuple of parameters to be passed to the filler function on retry
-        if isinstance(directories, str) and directories == '_retry_':
-            in_queue.put((True, location, name, files))
-
-        # On success, we do the normal input and output queues
-        else:
-            if conn:
-                conn.send('One_Job')
-                conn.send(time.time())
-            out_queue.put((name, files, directories))
-
-            for directory, _ in directories:
-                in_queue.put((False, location, os.path.join(name, directory), ()))
-
-    def run_queue(conn):
-        """ Runs empty_dirinfo over the queue
-
-        :param multiprocessing.Connection conn: A connection to pipe back when finished
-        """
+        thread_log.debug('Running queue: %i', i_queue)
         running = True
+
+        # Get the queue and connection for this thread
+        in_queue = in_queues[i_queue]
+        conn = slave_conns[i_queue]
+
+        if object_params:
+            # Create the object with the parameters here
+            params = object_params[i_queue]
+            thread_log.debug('Params for this object: %s', params)
+            thread_object = filler(*params)
+            filler_func = thread_object.list
+        else:
+            # Otherwise, use the filler function directly passed
+            filler_func = filler
 
         while running:
             try:
-                retry, location, name, params = in_queue.get(True, 3)
-                check_dir(retry, location, name, params, conn)
-                LOG.debug('Finished one job with (%s, %s)', location, name)
+                location, name, prev_dirs, prev_files, failed_list = in_queue.get(True, 3)
+                thread_log.debug('Getting directory with (%s, %s, %s)',
+                                 location, name, failed_list)
+
+                # Call filler
+                full_path = os.path.join(location, name)
+                thread_log.debug('Full path is %s', full_path)
+                okay, directories, files = filler_func(full_path)
+                thread_log.debug('Got from filler: Good? %s, %i directories, %i files',
+                                 okay, len(directories), len(files))
+
+                # This is used to determine whether to use the output queue or not
+                send_results = True
+
+                # If not okay, retry
+                if not okay:
+
+                    directories = list(set(directories + prev_dirs))
+                    files = list(set(files + prev_files))
+
+                    thread_log.debug('Full dirs, and files: %s, %s', directories, files)
+
+                    # Duplicate the failed list and add this thread
+                    track_failed = list(failed_list)
+                    track_failed.append(i_queue)
+                    thread_log.debug('Creating retry list, excluding %s', track_failed)
+
+                    thread_log.debug('All available queues: %s', in_queues)
+                    # Threads to retry cannot be the ones in the failed list so far
+                    retry_candidates = [queue for queue in range(n_threads) \
+                                            if queue not in track_failed]
+                    thread_log.debug('Retry candidates created: %s', retry_candidates)
+
+                    # If there are threads where we can retry this, put the input there
+                    if retry_candidates:
+                        # Don't send output until retries are finished
+                        send_results = False
+                        retry_queue = random.choice(retry_candidates)
+                        thread_log.debug('Will retry in queue %s', retry_queue)
+                        in_queues[retry_queue].put(
+                            (location, name, directories, files, track_failed))
+                        thread_log.debug('Put in queue %s', retry_queue)
+                    # Otherwise, give up and output
+                    else:
+                        thread_log.debug('Giving up directory %s', full_path)
+                        # _unlisted_ is used as a flag to tell our comparer something went wrong
+                        files.append(('_unlisted_', 0, 0))
+
+                # On success, we do the normal input and output queues
+                if send_results:
+                    # Send results to master queue
+                    out_queue.put((name, directories, files, len(failed_list)))
+
+                    # Add each directory into some input queue
+                    for directory, _ in directories:
+                        joined_name = os.path.join(name, directory)
+                        sizes = [queue.qsize() for queue in in_queues]
+                        in_queues[sizes.index(min(sizes))].\
+                            put((location, joined_name, [], [], []))
+
+
+                # Tell master that a job finished, so it can build the final object
+                conn.send('One_Job')
+                conn.send(time.time())
+
+                thread_log.debug('Finished one job with (%s, %s)', location, name)
             except Empty:
-                running = False
+                # Report empty
+                thread_log.info('Worker finished input queue')
+                conn.send('All_Job')
 
-        LOG.info('Worker finished input queue')
-        conn.send('All_Job')
-        conn.close()
+                # Check for main process
+                message = conn.recv()
+                thread_log.debug('Message from master: %s', message)
+                # If permission, close
+                if message == 'Close':
+                    conn.close()
+                    running = False
 
-    # Stick some things in the input queue
-    check_dir(False, os.path.join(location, name), '', ())
-
-    # Spawn processes
+    # Spawn processes to run on this run_queue function
     processes = []
-    connections = []
 
-    for _ in xrange(config.config_dict().get('MaxThreads') or multiprocessing.cpu_count()):
-        con1, con2 = multiprocessing.Pipe()
-
-        process = multiprocessing.Process(target=run_queue, args=(con2,))
+    for i_queue in range(n_threads):
+        process = multiprocessing.Process(target=run_queue, args=(i_queue,))
         process.start()
         processes.append(process)
-        connections.append(con1)
 
     # Build the DirectoryInfo
     building = True
-    dir_info = DirectoryInfo(name)
+    dir_info = DirectoryInfo(first_dir)
 
     while building:
         try:
-            name, files, directories = out_queue.get(True, 1)
-            LOG.debug('Building %s', name)
+            # Get the info from the queue
+            name, directories, files, _ = out_queue.get(True, 1)
+
+            # Create the nodes and files
             built = dir_info.get_node(name)
             built.add_files(files)
 
+            # Set correct node mtime for directories
             for directory, mtime in directories:
                 built.get_node(directory).mtime = mtime
 
         except Empty:
+            # When empty, check on the status of the workers
             LOG.debug('Empty queue for building.')
             LOG.info('Number of files so far built: %i', dir_info.get_num_files())
-            if connections:
-                for _ in connections:
-                    conn = random.choice(connections)
-                    message = conn.recv()
-                    if message == 'All_Job':
-                        LOG.debug('Found end to pipe.')
-                        conn.close()
-                        connections.remove(conn)
-                    elif message == 'One_Job':
-                        LOG.debug('Found one job, about to cycle')
-                        now = time.time()
-                        while True:
-                            timestamp = conn.recv()
-                            LOG.debug('Compare %f with %f, age: %f',
-                                      now, timestamp, now - timestamp)
-                            if now - timestamp < 10.0:
-                                LOG.debug('New enough, breaking.')
-                                break
+
+            # Ends only if all threads are done at the beginning of this check
+            threads_done = 0
+            for conn in master_conns:
+                LOG.debug('Waiting for thread %i', master_conns.index(conn))
+                message = conn.recv()
+                LOG.debug('Recieved message %s', message)
+                # Count the number of threads saying their finished at the beginning
+                if message == 'All_Job':
+                    threads_done += 1
+                    LOG.debug('Threads saying done: %i', threads_done)
+                    # Send back to work, just in case not all threads are done
+                    conn.send('Work')
+                elif message == 'One_Job':
+                    # This thread wasn't finished at the beginning, so threads_done
+                    # will not reach n_threads if the master reaches this point in the code
+                    LOG.debug('Found one job, about to cycle')
+                    now = time.time()
+                    cycle = True
+                    while cycle:
+                        # Cycle through timestamps so that we do not have a backlog
+                        timestamp = conn.recv()
+                        # Wait for a new job to finish
+                        if now - timestamp < 0.0:
+                            LOG.debug('Found new message, breaking.')
+                            cycle = False
+                        else:
                             mess = conn.recv()
                             if mess == 'All_Job':
                                 LOG.debug('Found end to pipe.')
-                                conn.close()
-                                connections.remove(conn)
-                                break
-                        break
-                    else:
-                        LOG.error('Weird message from pip')
-            else:
+                                conn.send('Work')
+                                cycle = False
+                else:
+                    LOG.error('Weird message from pipe')
+
+            # Check if all the threads were finished
+            if threads_done == n_threads:
+                LOG.debug('Done building')
+                # Break out of loop of checking
                 building = False
 
-    for process in processes:
-        process.join()
+    LOG.debug('Closing all connections')
+    # Tell connections to close
+    for conn in master_conns:
+        conn.send('Close')
+        conn.close()
+
+    LOG.debug('Waiting for processes')
+    # Wait for processes to join
+    for proc in processes:
+        proc.join()
 
     dir_info.setup_hash()
     return dir_info
 
 
 class DirectoryInfo(object):
-    """Stores all of the information of a directory"""
+    """Stores all of the information of the contents of a directory"""
 
     def __init__(self, name='', to_merge=None,
                  directories=None, files=None):
         """ Create the directory information
 
         :param str name: The name of the directory
-        :param list to_merge: If this is filled, the infos in the
+        :param list to_merge: If this is set, the infos in the
                               list are merged into a master DirectoryInfo.
         :param list directories: List of subdirectories inside the directory
         :param list files: List of tuples containing information about files
@@ -200,15 +326,15 @@ class DirectoryInfo(object):
         """
         Set the files for this DirectoryInfo node
 
-        :param list files: The tuples of file information
+        :param list files: The tuples of file information.
+                           Each element consists of file name, size, and mod time.
         """
-        LOG.debug('Adding %i files', len(files or []))
         self.files.extend([{
             'name': name,
             'size': size,
             'mtime': mtime,
             'hash': hashlib.sha1(
-                '%s %i' % (name, size)
+                '%s %i' % (name, size)    # We are not comparing mtime for now
                 ).hexdigest(),
             'can_compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp and
                                 name != '_unlisted_')
@@ -216,7 +342,9 @@ class DirectoryInfo(object):
 
     def add_file_list(self, file_infos):
         """
-        Add a list of tuples containing file_name, file_size to the node
+        Add a list of tuples containing file_name, file_size to the node.
+        This is most useful when you get a list of files from some other source
+        and want to easily convert that list into a :py:func:`DirectoryInfo`
 
         :param list file_infos: The list of files (full path, size in bytes)
         """
@@ -227,32 +355,40 @@ class DirectoryInfo(object):
         for name, size in file_infos:
             if directory and \
                     name.startswith(os.path.join(self.name, directory)):
+                # If in the old directory, append to the list of files
                 files.append((os.path.basename(name), size, 0))
             else:
+                # When changing directories, append the files gathered in the last directory
                 self.get_node(directory).add_files(files)
+                # Get the new directory name
                 directory = os.path.dirname(name[len(self.name):].lstrip('/'))
+                # Reset the files list
                 files = [(os.path.basename(name), size, 0)]
 
+        # Add data from the last directory
         self.get_node(directory).add_files(files)
 
 
     def setup_hash(self):
         """
-        Set the hashes and times for this DirectoryInfo
+        Set the hashes for this DirectoryInfo
         """
 
         hasher = hashlib.sha1()
 
+        # Sort the sub-directories and files
         self.directories.sort(key=lambda x: x.name)
         self.files.sort(key=lambda x: x['name'])
 
         hasher.update(self.name)
 
         for directory in self.directories:
+            # Recursively make the hash for each subdirectory first
             directory.setup_hash()
+            # Can compare if a subdirectory asks for it
             self.can_compare = self.can_compare or directory.can_compare
 
-            # Ignore newer directories
+            # Ignore newer directories or any others that don't want to be compared
             if directory.can_compare:
                 hasher.update('%s %s' % (directory.name, directory.hash))
 
@@ -260,16 +396,19 @@ class DirectoryInfo(object):
 
         for file_info in self.files:
             if file_info['can_compare']:
+                # Add files that can be compared, and set self to be compared
                 self.can_compare = True
                 hasher.update('%s %s' % (file_info['name'], file_info['hash']))
 
             LOG.debug('File included: %s size: %i can compare: %i',
                       file_info['name'], file_info['size'], int(file_info['can_compare']))
 
+        # Add empty directories that are not too new to comparison
         if not (self.directories or self.files) and self.mtime and \
                 self.mtime + IGNORE_AGE * 24 * 3600 < self.timestamp:
             self.can_compare = True
 
+        # Calculate hash
         self.hash = hasher.hexdigest()
 
 
@@ -293,12 +432,13 @@ class DirectoryInfo(object):
 
     def displays(self, path=''):
         """
-        Get the string to print out the contents of this DirectoryInfo
+        Get the string to print out the contents of this DirectoryInfo.
 
         :param str path: The full path to this DirectoryInfo instance
         :returns: The display string
         :rtype: str
         """
+        # This is in a separate function for unit test assertion errors, which likes strings
 
         if not path:
             path = self.name
@@ -310,12 +450,14 @@ class DirectoryInfo(object):
                         file_info['hash'], file_info['name']))
 
         for directory in self.directories:
+            # Recursively get displays for sub-directories
             output += '\n' + directory.displays(os.path.join(path, directory.name))
 
         return output
 
     def get_node(self, path, make_new=True):
-        """ Get the node that corresponds to the path given
+        """ Get the node that corresponds to the path given.
+        If the node does not exist yet, and ``make_new`` is True, the node is created.
 
         :param str path: Path to the desired node from current node.
                          If the path does not exist yet, empty nodes will be created.
@@ -324,8 +466,6 @@ class DirectoryInfo(object):
         :rtype: DirectoryInfo or None
         """
 
-        LOG.debug('From node %s named %s, getting %s', self, self.name, path)
-
         # If any path left
         if path:
             split_path = path.split('/')
@@ -333,13 +473,10 @@ class DirectoryInfo(object):
 
             # Search for if directory exists
             for directory in self.directories:
-                LOG.debug('Checking node named %s', directory.name)
                 if split_path[0] == directory.name:
-                    LOG.debug('Found match, now returning %s', return_name)
                     return directory.get_node(return_name, make_new)
 
             # If not, make a new directory, or None
-            LOG.debug('Did not find directory. Make new? %i', int(make_new))
             if make_new:
                 new_dir = DirectoryInfo(split_path[0])
                 self.directories.append(new_dir)
@@ -347,8 +484,7 @@ class DirectoryInfo(object):
             else:
                 return None
 
-        LOG.debug('Returning self')
-        # If no path, just return this
+        # If no path, just return self
         return self
 
     def get_num_files(self):
@@ -384,8 +520,7 @@ class DirectoryInfo(object):
         return output
 
     def compare(self, other, path=''):
-        """
-        Does one way comparison with a different tree
+        """ Does one way comparison with a different tree
 
         :param DirectoryInfo other: The directory tree to compare this one to
         :param str path: Is the path to get to this location so far
@@ -401,12 +536,15 @@ class DirectoryInfo(object):
         here = os.path.join(path, self.name)
 
         if other:
+            # If there is a match in the hash, then the nodes are effectively identical
+            # Otherwise, do these recursive comparisons
             if self.hash != other.hash:
                 for directory in self.directories:
+                    # Ignore not comparable directories (usually new ones)
                     if not directory.can_compare:
                         continue
 
-                    LOG.debug('About to get %s from other node.', directory.name)
+                    # Recursive check of extra files and directories here
                     new_other = other.get_node(directory.name, False)
                     more_files, more_dirs, more_size = directory.compare(new_other, here)
                     extra_size += more_size
@@ -414,31 +552,36 @@ class DirectoryInfo(object):
                     if new_other:
                         extra_dirs.extend(more_dirs)
                     elif '_unlisted_' not in [fi['name'] for fi in other.files]:
+                        # If the subdirectory does not exist, and '_unlisted_' not thrown
+                        # mark that whole directory as being extra.
+                        # At the moment this is redundant with all the files,
+                        # but gives a good place to prune file system directories
+                        # after files have been deleted
                         extra_dirs.append(os.path.join(here, directory.name))
 
                 for file_info in self.files:
                     if not file_info['can_compare']:
                         continue
 
-                    LOG.debug('Searching for match to: %s', file_info)
+                    # See if each file exists and has the correct hash
+                    # Say all files are fine in a directory that is even partially '_unlisted_'
                     found = False
                     for to_match in other.files:
-                        LOG.debug('Checking %s', to_match)
                         if file_info['hash'] == to_match['hash'] or \
                                 to_match['name'] == '_unlisted_':
-                            LOG.debug('Match found!')
                             found = True
                             break
 
                     if not found:
-                        LOG.debug('No match found!')
                         extra_files.append(os.path.join(path, self.name, file_info['name']))
         else:
+            # If no other node to compare, all files are extra (not in the other tree)
             if self.files:
                 for file_info in self.files:
                     extra_files.append(os.path.join(path, self.name, file_info['name']))
                     extra_size += file_info['size']
 
+            # All directories are extra too
             for directory in self.directories:
                 more_files, _, more_size = directory.compare(None, here)
                 extra_size += more_size
@@ -449,12 +592,18 @@ class DirectoryInfo(object):
     def listdir(self, *args, **kwargs):
         """
         Get the list of directory names within a DirectoryInfo.
-        Adding an argument will display the contents of the matching directory
-        that is displayed when there is one less argument.
+        Adding an argument will display the contents of the next directory.
+        For example, if ``dir.listdir()`` returns::
+
+            0: data
+            1:   mc
+
+        ``dir.listdir(1)`` then lists the contents of ``mc`` and ``dir.listdir(1, 0)``
+        lists the contents of the first subdirectory in ``mc``.
 
         :param args: Is a list of indices to list the subdirectories
         :param kwargs: Supports 'printing' which is set to a bool. Defaults as True.
-        :returns: The DirectoryInfo that is listed
+        :returns: The DirectoryInfo that is being listed
         :rtype: DirectoryInfo
         """
 
@@ -464,18 +613,22 @@ class DirectoryInfo(object):
 
             print '\nDirectories:'
 
+            # Get the formatting width for printing the directory names
             if self.directories:
                 width = max([len(di.name) for di in self.directories]) + 2
             else:
                 width = 0
 
+            # Print information for each directory
             for index, directory in enumerate(self.directories):
                 print '%i: %-{0}s %s  Num Files: %i'.format(width) % \
                     (index, directory.name, directory.hash, directory.get_num_files())
 
+        # Print the contents of a directory picked next, and return that DirectoryInfo
         if args:
             return self.directories[args[0]].listdir(*args[1:], printing=printing)
 
+        # If we got to the last directory of the args, print the files contained
         elif printing:
             print 'Files:'
             for file_info in self.files:

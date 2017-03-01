@@ -8,7 +8,14 @@ import unittest
 import logging
 import time
 
-from ConsistencyCheck import getsitecontents
+try:
+    from ConsistencyCheck import getsitecontents
+except ImportError:
+    print 'Cannot import ConsistencyCheck.getsitecontents.'
+    print 'Probably do not have XRootD installed here'
+    # Return 0 for Travis-CI
+    exit(0)
+
 from ConsistencyCheck import datatypes
 from ConsistencyCheck import config
 
@@ -17,7 +24,7 @@ def my_ls(path, location='/mnt/hadoop/cms/store'):
     full_path = os.path.join(location, path)
 
     if not os.path.exists(full_path):
-        return [], []
+        return True, [], []
 
     results = [os.path.join(full_path, res) for res in os.listdir(full_path)]
 
@@ -26,7 +33,7 @@ def my_ls(path, location='/mnt/hadoop/cms/store'):
     files = [(os.path.basename(name), os.stat(name).st_size, os.stat(name).st_mtime) for \
                  name in filter(os.path.isfile, results)]
 
-    return dirs, files
+    return True, dirs, files
 
 class TestT3Listing(unittest.TestCase):
 
@@ -48,12 +55,6 @@ class TestT3Listing(unittest.TestCase):
         remote_tree.display()
 
         self.assertEqual(local_listing.hash, remote_tree.hash)
-
-    def test_compare_inventory(self):
-#        remote_tree = getsitecontents.get_site_tree('T3_US_MIT')
-
-        # Make from inventory
-        inv_tree = None
 
 if __name__ == '__main__':
 
