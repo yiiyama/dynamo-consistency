@@ -21,7 +21,6 @@ x Test size to clear
 x Ignores directories that are too new
 
 This is the development test script. Please don't touch if you're not me.
-See test_compare.py for something better documented and methodical.
 """
 
 import os

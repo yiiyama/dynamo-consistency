@@ -53,7 +53,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     if not object_params:
         n_threads = config.config_dict()['MaxThreads'] or multiprocessing.cpu_count()
     else:
-        n_threads = len(object_params)
+        n_threads = min(len(object_params), config.config_dict()['MaxThreads'])
 
     LOG.debug('Number of threads: %i', n_threads)
 

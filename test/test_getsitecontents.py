@@ -13,6 +13,7 @@ try:
 except ImportError:
     print 'Cannot import ConsistencyCheck.getsitecontents.'
     print 'Probably do not have XRootD installed here'
+    # Return 0 for Travis-CI
     exit(0)
 
 from ConsistencyCheck import datatypes
@@ -54,12 +55,6 @@ class TestT3Listing(unittest.TestCase):
         remote_tree.display()
 
         self.assertEqual(local_listing.hash, remote_tree.hash)
-
-    def test_compare_inventory(self):
-#        remote_tree = getsitecontents.get_site_tree('T3_US_MIT')
-
-        # Make from inventory
-        inv_tree = None
 
 if __name__ == '__main__':
 
