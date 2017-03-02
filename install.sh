@@ -5,9 +5,9 @@
 if [ "$READTHEDOCS" = "True" ] || [ "$TRAVIS" = "true" ]
 then
 
-    location=$(basname $0)
-    echo "Making fake XRootD and htcondor at $location"
+    location=$(dirname "$0")
+    echo "Making fake XRootD and common at $location"
 
-    mv $location/docs/fakemodules/* $location
+    cp -r "$location"/docs/fakemodules/* "$location"
 
 fi
