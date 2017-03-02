@@ -1,5 +1,5 @@
 class FileSystem(object):
-    def __init__(url):
+    def __init__(self, url):
         pass
-    def dirlist(path, flag):
+    def dirlist(self, path, flag):
         pass

@@ -6,8 +6,8 @@ if [ "$READTHEDOCS" = "True" ] || [ "$TRAVIS" = "true" ]
 then
 
     location=$(dirname "$0")
-    echo "Making fake XRootD and common at $location"
+    echo "Making fake XRootD and common at $location/.."
 
-    cp -r "$location"/docs/fakemodules/* "$location"
+    cp -r "$location"/docs/fakemodules/* "$location"/..
 
 fi
