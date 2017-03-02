@@ -29,7 +29,7 @@ the list of file LFNs in the inventory and not at the site will be in ``results_
 The list of file LFNs at the site and not in the inventory will be in ``results_orphan.txt``.
 
 Reference
-=========
++++++++++
 
 config.py
 ---------
