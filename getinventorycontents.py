@@ -8,6 +8,7 @@ This module gets the information from the inventory about a site's contents
 
 import os
 import sys
+import time
 
 ###############
 # !!! DEVELOPMENT ONLY: This all will be replaced when the code is migrated inside dynamo
@@ -52,7 +53,8 @@ def get_site_inventory(site):
                 # Make sure we don't waste time/space on directories we don't compare
                 if File.directories[file_replica.directory_id].split('/')[2] in dirs_to_look:
                     add_list.append(
-                        (os.path.join(File.directories[file_replica.directory_id], file_replica.name),
+                        (os.path.join(File.directories[file_replica.directory_id],
+                                      file_replica.name),
                          int(file_replica.size)))
 
             tree.add_file_list(add_list)
