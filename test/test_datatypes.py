@@ -90,13 +90,14 @@ class TestBase(unittest.TestCase):
         self.assertEqual([fi['hash'] for fi in tree0._grab_first().files],
                          [fi['hash'] for fi in tree1._grab_first().files])
         self.assertEqual(tree0.get_num_files(), tree1.get_num_files())
-
+        self.assertEqual(tree0.get_num_files(True), tree1.get_num_files(True))
 
 class TestTree(TestBase):
 
     def test_num_files(self):
         self.assertEqual(self.tree.get_num_files(),
                          len(self.file_list))
+        self.assertEqual(self.tree.get_num_files(True), 0)
 
     def test_do_hash(self):
         self.assertFalse(self.tree.hash)

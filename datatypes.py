@@ -68,11 +68,13 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     LOG.debug('Called create_dirinfo(%s, %s, %s, %s)',
               location, first_dir, filler, object_params)
 
+    max_threads = config.config_dict()['MaxThreads'] or multiprocessing.cpu_count()
+
     # Determine the number of threads
     if object_params is None:
-        n_threads = config.config_dict()['MaxThreads'] or multiprocessing.cpu_count()
+        n_threads = max_threads
     else:
-        n_threads = min(len(object_params), config.config_dict()['MaxThreads'])
+        n_threads = min(len(object_params), max_threads)
 
     # First directory is location + first_dir
     starting_dir = os.path.join(location, first_dir)
@@ -368,7 +370,6 @@ class DirectoryInfo(object):
         # Add data from the last directory
         self.get_node(directory).add_files(files)
 
-
     def setup_hash(self):
         """
         Set the hashes for this DirectoryInfo
@@ -487,16 +488,19 @@ class DirectoryInfo(object):
         # If no path, just return self
         return self
 
-    def get_num_files(self):
+    def get_num_files(self, unlisted=False):
         """ Report the total number of files stored.
 
+        :param bool unlisted: If true, return number of unlisted directories,
+                              Otherwise return only successfully listed files
         :returns: The number of files in the directory tree structure
         :rtype: int
         """
 
-        num_files = len(self.files)
+        num_files = len([fi for fi in self.files \
+                             if (fi['name'] == '_unlisted_') == unlisted])
         for directory in self.directories:
-            num_files += directory.get_num_files()
+            num_files += directory.get_num_files(unlisted)
 
         return num_files
 
@@ -596,7 +600,7 @@ class DirectoryInfo(object):
         For example, if ``dir.listdir()`` returns::
 
             0: data
-            1:   mc
+            1: mc
 
         ``dir.listdir(1)`` then lists the contents of ``mc`` and ``dir.listdir(1, 0)``
         lists the contents of the first subdirectory in ``mc``.
@@ -609,8 +613,12 @@ class DirectoryInfo(object):
 
         printing = kwargs.get('printing', True)
 
-        if printing:
+        # Print the contents of a directory picked next, and return that DirectoryInfo
+        if args:
+            return self.directories[args[0]].listdir(*args[1:], printing=printing)
 
+        # If we got to the last directory of the args, print the files contained
+        elif printing:
             print '\nDirectories:'
 
             # Get the formatting width for printing the directory names
@@ -621,16 +629,13 @@ class DirectoryInfo(object):
 
             # Print information for each directory
             for index, directory in enumerate(self.directories):
-                print '%i: %-{0}s %s  Num Files: %i'.format(width) % \
-                    (index, directory.name, directory.hash, directory.get_num_files())
+                print '%i: %-{0}s Hash: %s  Num Files: %7i  Dirs Unlisted: %7i'.format(width) % \
+                    (index, directory.name, directory.hash,
+                     directory.get_num_files(), directory.get_num_files(True))
 
-        # Print the contents of a directory picked next, and return that DirectoryInfo
-        if args:
-            return self.directories[args[0]].listdir(*args[1:], printing=printing)
+            if self.files:
+                print 'Files:'
 
-        # If we got to the last directory of the args, print the files contained
-        elif printing:
-            print 'Files:'
             for file_info in self.files:
                 print file_info
 

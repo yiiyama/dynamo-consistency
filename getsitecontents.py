@@ -145,7 +145,7 @@ def get_site_tree(site):
     # Check the cache
     if not os.path.exists(cache_location) or \
             (time.time() - os.stat(cache_location).st_mtime) > \
-            config.config_dict().get('InventoryAge', 0) * 24 * 3600:
+            config.config_dict().get('ListAge', 0) * 24 * 3600:
 
         # Get the redirector for a site
         # The redirector can be used for a double check (not implemented yet...)

@@ -1,14 +1,12 @@
 {
-  "InventoryAge": 5e-05,
+  "InventoryAge": 1,
   "MaxThreads": 3,
   "ListAge": 5e-05,
   "IgnoreAge": 14,
-  "RedirectorAge": 1,
+  "RedirectorAge": 7,
   "CacheLocation": "cache",
   "Redirectors": {
-    "T2_US_MIT": "xrootd.cmsaf.mit.edu",
-    "T3_CH_PSI": "t3se01.psi.ch",
-    "T3_US_MIT": "t3serv006.mit.edu"
+    "T2_US_MIT": "xrootd.cmsaf.mit.edu"
   },
   "DirectoryList": [
     "mc",
@@ -17,10 +15,5 @@
     "results",
     "hidata",
     "himc"
-  ],
-  "WebPageLocation": "www",
-  "SiteList": [
-    "T3_US_MIT"
-  ],
-  "NumberOfRetries": 2
+  ]
 }

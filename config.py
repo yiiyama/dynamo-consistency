@@ -116,6 +116,7 @@ def get_redirector(site):
 
     # If the redirector is hardcoded, return it
     redirector = config.get('Redirectors', {}).get(site, '')
+    redirs = []
 
     # If not hard-coded, get the redirector
     if not redirector:
@@ -130,17 +131,20 @@ def get_redirector(site):
         with open(file_name, 'r') as redir_file:
             for line in redir_file:
                 if domain in line:
-                    redirector = line.strip()
-                    break
+                    redirs.append(line.strip())
+
+        redirector = redirs[0]
+    else:
+        redirs.append(redirector)
 
     # Use that site redirector to get a list of doors
     list_name = os.path.join(config['CacheLocation'], '%s_redirector_list.txt' % site)
-    _xrd_locate([redirector], list_name, max_age)
+    _xrd_locate(redirs, list_name, max_age)
     LOG.debug('Door list cached at %s', list_name)
 
     # Get the list of doors
     with open(list_name, 'r') as list_file:
-        local_list = [line.strip() for line in list_file]
+        local_list = list(set([line.strip() for line in list_file]))
 
     LOG.debug('From %s, got list %s', redirector, local_list)
 

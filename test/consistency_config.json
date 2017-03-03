@@ -16,10 +16,5 @@
     "results",
     "hidata",
     "himc"
-  ],
-  "WebPageLocation": "www",
-  "SiteList": [
-    "T3_US_MIT"
-  ],
-  "NumberOfRetries": 10
+  ]
 }
