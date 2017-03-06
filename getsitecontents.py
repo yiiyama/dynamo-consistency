@@ -154,6 +154,9 @@ def get_site_tree(site):
         _, door_list = config.get_redirector(site)
         LOG.debug('Full redirector list: %s', door_list)
 
+        # Add the first door to the end, in case we have an odd number of doors
+        door_list.append(door_list[0])
+
         # Create DirectoryInfo for each directory to search (set in configuration file)
         # The search is done with XRootDLister objects that have two doors and the thread
         # number as initialization arguments.
