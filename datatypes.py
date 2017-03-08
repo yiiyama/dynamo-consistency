@@ -593,6 +593,12 @@ class DirectoryInfo(object):
 
         return extra_files, extra_dirs, extra_size
 
+    def count_nodes(self):
+        """
+        Count the total number of nodes in this Directory Info.
+        This corresponds to approximately the number of hits.
+        """
+
     def listdir(self, *args, **kwargs):
         """
         Get the list of directory names within a DirectoryInfo.
@@ -629,7 +635,7 @@ class DirectoryInfo(object):
 
             # Print information for each directory
             for index, directory in enumerate(self.directories):
-                print '%i: %-{0}s Hash: %s  Num Files: %7i  Dirs Unlisted: %7i'.format(width) % \
+                print '%3i: %-{0}s Hash: %s  Num Files: %7i  Dirs Unlisted: %7i'.format(width) % \
                     (index, directory.name, directory.hash,
                      directory.get_num_files(), directory.get_num_files(True))
 

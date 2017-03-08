@@ -98,7 +98,8 @@ class XRootDLister(object):
             error_code = self.error_re.search(status.message).group(1)
 
             # Retry certain error codes if there's no dir_list
-            if error_code in ['!', '3005', '3010']:
+            if error_code in ['!', '3005', '3010'] or \
+                    (error_code == '3011' and len(path.split('/')) != 4):
                 okay = bool(dir_list)
 
         self.log.debug('From %s returning status %i with %i directories and %i files.',

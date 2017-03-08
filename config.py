@@ -92,11 +92,12 @@ def _xrd_locate(redirs, file_name, max_age):
 
             for global_redir in redirs:
                 # Get the locate from each redirector
+                LOG.debug('About to call: %s %s %s', 'xrdfs', global_redir, 'locate -h /store/')
                 proc = subprocess.Popen(['xrdfs', global_redir, 'locate', '-h', '/store/'],
                                         stdout=subprocess.PIPE)
 
                 for line in proc.stdout:
-                    redir_file.write(line.split(':')[0] + '\n')
+                    redir_file.write(line.split()[0] + '\n')
 
                 proc.communicate()
 
@@ -111,6 +112,7 @@ def get_redirector(site):
               and a list of xrootd door servers
     :rtype: str, list
     """
+    LOG.debug('Getting doors for %s', site)
     config = config_dict()
     max_age = config.get('RedirectorAge', 0) * 24 * 3600
 
