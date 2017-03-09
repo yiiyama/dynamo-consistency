@@ -157,7 +157,7 @@ class TestConsistentTrees(TestBase):
         master_dirinfo = datatypes.DirectoryInfo('/store', to_merge=dirinfos)
 
         self.check_equal(self.tree, master_dirinfo)
-        self.assertEqual(tree0.count_nodes(), tree1.count_nodes())
+        self.assertEqual(self.tree.count_nodes(), master_dirinfo.count_nodes())
 
     def test_newdir(self):
         empty_dir = 'mc/new/empty/0002'
