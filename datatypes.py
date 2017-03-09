@@ -595,9 +595,12 @@ class DirectoryInfo(object):
 
     def count_nodes(self):
         """
-        Count the total number of nodes in this Directory Info.
-        This corresponds to approximately the number of hits.
+        :returns: The total number of nodes in this Directory Info. This corresponds
+                  to approximately the number of listing requests required to build the data.
+        :rtype: int
         """
+
+        return sum([directory.count_nodes() for directory in self.directories], 1)
 
     def listdir(self, *args, **kwargs):
         """
