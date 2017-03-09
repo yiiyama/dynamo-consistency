@@ -15,5 +15,8 @@
     "results",
     "hidata",
     "himc"
+  ],
+  "BothList": [
+    "T1_US_FNAL"
   ]
 }

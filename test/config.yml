@@ -13,6 +13,8 @@
 #   :py:func:`CMSToolBox.siteinfo.get_domain` to redirectors found in a generic ``xrdfs locate`` call.
 # - **DirectoryList** - A list of directories inside of ``'/store/'`` to search inside.
 # - **IgnoreAge** - Ignore any files or directories with an age less than this, in days.
+# - **BothList** - Sites in this list will use the listing from their primary and backup doors.
+#   This is used because sites like T1_US_FNAL use two ports on the same host to list different files.
 #
 # Any file older than its set age must be regenerated
 #
@@ -42,3 +44,6 @@ DirectoryList:
   - himc
 
 IgnoreAge: 1
+
+BothList:
+  - T1_US_FNAL

@@ -32,7 +32,7 @@ class XRootDLister(object):
     of a site's doors at a time.
     """
 
-    def __init__(self, primary_door, backup_door, thread_num=None):
+    def __init__(self, primary_door, backup_door, thread_num=None, do_both=False):
         """
         Set up the class with two doors.
 
@@ -41,10 +41,14 @@ class XRootDLister(object):
                                 the primary door fails
         :param int thread_num: This optional parameter is only used to
                                Create a separate logger for this object
+        :param bool do_both: If true, the primary and backup doors will both
+                             be used for every listing
         """
 
         self.primary_conn = XRootD.client.FileSystem(primary_door)
         self.backup_conn = XRootD.client.FileSystem(backup_door)
+        self.do_both = do_both
+
         # This regex is used to parse the error code and propose a retry
         self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
 
@@ -68,7 +72,7 @@ class XRootDLister(object):
         if path[-1] != '/':
             path += '/'
 
-        self.log.debug('Using door at %s to list directory %s', door.url.hostname, path)
+        self.log.debug('Using door at %s to list directory %s', door.url, path)
 
         # http://xrootd.org/doc/python/xrootd-python-0.1.0/modules/client/filesystem.html#XRootD.client.FileSystem.dirlist
         status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
@@ -98,8 +102,7 @@ class XRootDLister(object):
             error_code = self.error_re.search(status.message).group(1)
 
             # Retry certain error codes if there's no dir_list
-            if error_code in ['!', '3005', '3010'] or \
-                    (error_code == '3011' and len(path.split('/')) != 4):
+            if error_code in ['!', '3005', '3010']:
                 okay = bool(dir_list)
 
         self.log.debug('From %s returning status %i with %i directories and %i files.',
@@ -127,6 +130,11 @@ class XRootDLister(object):
         if not okay:
             # Try with backup door
             okay, directories, files = self.ls_directory(self.backup_conn, path)
+        elif self.do_both:
+            okay_back, directories_back, files_back = self.ls_directory(self.backup_conn, path)
+            okay = bool(okay and okay_back)
+            directories = list(set(directories + directories_back))
+            files = list(set(files + files_back))
 
         return okay, directories, files
 
@@ -161,10 +169,12 @@ def get_site_tree(site):
         # Create DirectoryInfo for each directory to search (set in configuration file)
         # The search is done with XRootDLister objects that have two doors and the thread
         # number as initialization arguments.
+        do_both = bool(site in config.config_dict().get('BothList', []))
+
         directories = [
             datatypes.create_dirinfo(
                 '/store/', directory, XRootDLister,
-                [(prim, back, thread_num) for prim, back, thread_num in \
+                [(prim, back, thread_num, do_both) for prim, back, thread_num in \
                      zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
                 for directory in config.config_dict().get('DirectoryList', [])
             ]
