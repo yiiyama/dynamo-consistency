@@ -1,5 +1,3 @@
-# pylint: disable=import-error
-
 """
 Tool to get the files located at a site.
 
