@@ -91,7 +91,6 @@ class TestBase(unittest.TestCase):
                          [fi['hash'] for fi in tree1._grab_first().files])
         self.assertEqual(tree0.get_num_files(), tree1.get_num_files())
         self.assertEqual(tree0.get_num_files(True), tree1.get_num_files(True))
-        self.assertEqual(tree0.count_nodes(), tree1.count_nodes())
 
 class TestTree(TestBase):
 
@@ -158,6 +157,7 @@ class TestConsistentTrees(TestBase):
         master_dirinfo = datatypes.DirectoryInfo('/store', to_merge=dirinfos)
 
         self.check_equal(self.tree, master_dirinfo)
+        self.assertEqual(tree0.count_nodes(), tree1.count_nodes())
 
     def test_newdir(self):
         empty_dir = 'mc/new/empty/0002'
