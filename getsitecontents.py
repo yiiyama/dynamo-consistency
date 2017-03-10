@@ -15,6 +15,7 @@ import time
 import logging
 
 import XRootD.client
+from timeout_decorator import timeout
 
 from . import config
 from . import datatypes
@@ -55,6 +56,7 @@ class XRootDLister(object):
         else:
             self.log = logging.getLogger('%s--thread%i' % (__name__, thread_num))
 
+    @timeout(10, use_signals=False)
     def ls_directory(self, door, path):
         """
         Gets the contents of the previously defined redirector at a given path
@@ -122,14 +124,14 @@ class XRootDLister(object):
         """
 
         # Try with primary door
-        okay, directories, files = self.ls_directory(self.primary_conn, path)
+        okay, directories, files = self.ls_directory(self, self.primary_conn, path)
 
         # We could add sleep, reconnecting and other error handling here, if desired
         if not okay:
             # Try with backup door
-            okay, directories, files = self.ls_directory(self.backup_conn, path)
+            okay, directories, files = self.ls_directory(self, self.backup_conn, path)
         elif self.do_both:
-            okay_back, directories_back, files_back = self.ls_directory(self.backup_conn, path)
+            okay_back, directories_back, files_back = self.ls_directory(self, self.backup_conn, path)
             okay = bool(okay and okay_back)
             directories = list(set(directories + directories_back))
             files = list(set(files + files_back))
