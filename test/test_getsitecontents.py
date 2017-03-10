@@ -58,10 +58,13 @@ class TestT3Listing(unittest.TestCase):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) == 2:
+    if len(sys.argv) > 1:
         start = time.time()
 
-        logging.basicConfig(level=logging.DEBUG)
+        if 'info' in sys.argv:
+            logging.basicConfig(level=logging.INFO)
+        else:
+            logging.basicConfig(level=logging.DEBUG)
 
         tree = getsitecontents.get_site_tree(sys.argv[1])
         tree.display()

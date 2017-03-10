@@ -208,6 +208,8 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                 if message == 'Close':
                     conn.close()
                     running = False
+                else:
+                    thread_log.info('Worker going back to check queue')
 
     # Spawn processes to run on this run_queue function
     processes = []
@@ -237,7 +239,8 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         except Empty:
             # When empty, check on the status of the workers
             LOG.debug('Empty queue for building.')
-            LOG.info('Number of files so far built: %i', dir_info.get_num_files())
+            LOG.info('Number of files so far built: %8i  nodes: %8i',
+                     dir_info.get_num_files(), dir_info.count_nodes())
 
             # Ends only if all threads are done at the beginning of this check
             threads_done = 0
@@ -593,14 +596,20 @@ class DirectoryInfo(object):
 
         return extra_files, extra_dirs, extra_size
 
-    def count_nodes(self):
+    def count_nodes(self, empty=False):
         """
+        :param bool empty: If True, only return the number of empty nodes
         :returns: The total number of nodes in this Directory Info. This corresponds
                   to approximately the number of listing requests required to build the data.
         :rtype: int
         """
 
-        return sum([directory.count_nodes() for directory in self.directories], 1)
+        if empty and self.get_num_files() != 0:
+            count_this = 0
+        else:
+            count_this = 1
+
+        return sum([directory.count_nodes(empty) for directory in self.directories], count_this)
 
     def listdir(self, *args, **kwargs):
         """
