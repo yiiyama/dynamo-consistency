@@ -1,12 +1,16 @@
 {
-  "InventoryAge": 1,
-  "MaxThreads": 0,
+  "Timeout": 30,
+  "Retries": 3,
+  "InventoryAge": 5e-05,
+  "MinThreads": 8,
+  "MaxThreads": 8,
   "ListAge": 5e-05,
-  "IgnoreAge": 14,
-  "RedirectorAge": 7,
+  "IgnoreAge": 1,
+  "RedirectorAge": 1,
   "CacheLocation": "cache",
   "Redirectors": {
-    "T2_US_MIT": "xrootd.cmsaf.mit.edu"
+    "T3_CH_PSI": "t3se01.psi.ch",
+    "T3_US_MIT": "t3serv006.mit.edu"
   },
   "DirectoryList": [
     "mc",

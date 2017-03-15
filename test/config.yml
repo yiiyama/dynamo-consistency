@@ -3,7 +3,14 @@
 # It's keys are the following:
 #
 # - **MaxThreads** - The maximum number of threads to run the check with.
-#   If 0, the application uses as many threads as possible.
+#   If 0, the application uses as many threads as processors.
+# - **MinThreads** - The minimum number of threads. This will cause multiple connections
+#   to the same doors if the number of threads would be smaller otherwise.
+#   If MinThreads is larger than MaxThreads, MaxThreads takes precedence.
+# - **NumThreads** - This variable overwrites the values of MaxThreads and MinThreads to be the same,
+#   as long as its value is non-zero.
+#   The two are useful separately if you want to operate in a window, but this parameter can be used
+#   to quickly fix the number of threads for a given run.
 # - **CacheLocation** - The directory where all cached information is stored
 # - **InventoryAge** - The age, in days of how old the information from the inventory can be
 # - **ListAge** - The age, in days, of how old the list of files directly from the site can be
@@ -15,13 +22,22 @@
 # - **IgnoreAge** - Ignore any files or directories with an age less than this, in days.
 # - **BothList** - Sites in this list will use the listing from their primary and backup doors.
 #   This is used because sites like T1_US_FNAL use two ports on the same host to list different files.
-#
-# Any file older than its set age must be regenerated
+# - **Timeout** - This gives the amount of time, in seconds, that you want the listing to try to run
+#   on a single directory before it times out.
+# - **Retries** - Number of retries after timeouts to attempt
 #
 # :author: Daniel Abercrombie <dabercro@mit.edu>
 ##!
 
+Timeout: 30
+
+Retries: 3
+
+MinThreads: 0
+
 MaxThreads: 0
+
+NumThreads: 0
 
 CacheLocation: cache
 

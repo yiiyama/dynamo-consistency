@@ -32,6 +32,10 @@ class TestConfiguration(unittest.TestCase):
         for key in json_config.keys():
             self.assertTrue(str(key) in self.yml_config.keys())
 
+        for key in self.yml_config.keys():
+            self.assertTrue(unicode(key) in json_config.keys(),
+                            '%s not in %s' % (key, json_config.keys()))
+
     def test_is_documented(self):
         for key in self.yml_config.keys():
             with open(config.CONFIG_FILE) as config_file:

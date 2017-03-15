@@ -1,3 +1,7 @@
+# pylint: disable=too-many-function-args
+# This is needed for the timeout decorator,
+# which is currently bugged, but useful
+
 """
 Tool to get the files located at a site.
 
@@ -15,7 +19,7 @@ import time
 import logging
 
 import XRootD.client
-from timeout_decorator import timeout
+import timeout_decorator
 
 from . import config
 from . import datatypes
@@ -56,7 +60,10 @@ class XRootDLister(object):
         else:
             self.log = logging.getLogger('%s--thread%i' % (__name__, thread_num))
 
-    @timeout(10, use_signals=False)
+        self.log.info('Connections created at %s (primary) and %s (backup)',
+                      primary_door, backup_door)
+
+    @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=False)
     def ls_directory(self, door, path):
         """
         Gets the contents of the previously defined redirector at a given path
@@ -110,12 +117,13 @@ class XRootDLister(object):
 
         return okay, directories, files
 
-    def list(self, path):
+    def list(self, path, retries=0):
         """
         Return the directory contents at the given path.
         The ``list`` member is expected of every object passed to :py:mod:`datatypes`.
 
         :param str path: The full path, starting with ``/store/``, of the directory to list.
+        :param int retries: Number of retries attempted so far
         :returns: A bool indicating the success, a list of directories, and a list of files.
                   The list of directories consists of tuples of (directory name, mod time).
                   The list of files consistents of tuples of (file name, size, mod time).
@@ -123,18 +131,47 @@ class XRootDLister(object):
         :rtype: bool, list, list
         """
 
-        # Try with primary door
-        okay, directories, files = self.ls_directory(self, self.primary_conn, path)
+        #
+        # NOTE: Before messing with the self.ls_directory calls !!!
+        #
+        # The timeout decorator does this weird thing where it strips the self from the front
+        # of a method call, so it's added back in for every call here.
+        #
+        # Not a typo on my part. A bug on theirs.
+        #
 
-        # We could add sleep, reconnecting and other error handling here, if desired
-        if not okay:
-            # Try with backup door
-            okay, directories, files = self.ls_directory(self, self.backup_conn, path)
-        elif self.do_both:
-            okay_back, directories_back, files_back = self.ls_directory(self, self.backup_conn, path)
-            okay = bool(okay and okay_back)
-            directories = list(set(directories + directories_back))
-            files = list(set(files + files_back))
+        if retries == 3:
+            self.log.error('Giving up on %s due to too many retries', path)
+            return False, [], []
+
+        try:
+            # Try with primary door
+            okay, directories, files = self.ls_directory(self, self.primary_conn, path)
+
+            # We could add sleep, reconnecting and other error handling here, if desired
+            if not okay:
+                # Try with backup door
+                okay, directories, files = self.ls_directory(self, self.backup_conn, path)
+
+                okay &= (not self.do_both)
+            elif self.do_both:
+
+                okay_back, directories_back, files_back = \
+                    self.ls_directory(self, self.backup_conn, path)
+
+                okay &= okay_back
+                directories = list(set(directories + directories_back))
+                files = list(set(files + files_back))
+
+        except timeout_decorator.TimeoutError:
+            self.log.warning('Directory %s timed out.', path)
+            time.sleep(10)
+
+            # Reconnect
+            self.primary_conn = XRootD.client.FileSystem('%s' % self.primary_conn.url)
+            self.backup_conn = XRootD.client.FileSystem('%s' % self.backup_conn.url)
+
+            return self.list(path, retries + 1)
 
         return okay, directories, files
 
@@ -163,14 +200,25 @@ def get_site_tree(site):
         _, door_list = config.get_redirector(site)
         LOG.debug('Full redirector list: %s', door_list)
 
+        # Bool to determine if using both doors in each connection
+        do_both = bool(site in config.config_dict().get('BothList', []))
+
+        min_threads = config.config_dict().get('MinThreads', 0)
+
+        while min_threads > (len(door_list) + 1)/2:
+            if do_both or len(door_list) % 2:
+                door_list.extend(door_list)
+            else:
+                # If even number of redirectors and not using both, stagger them
+                door_list.extend(door_list[1:])
+                door_list.append(door_list[0])
+
         # Add the first door to the end, in case we have an odd number of doors
         door_list.append(door_list[0])
 
         # Create DirectoryInfo for each directory to search (set in configuration file)
         # The search is done with XRootDLister objects that have two doors and the thread
         # number as initialization arguments.
-        do_both = bool(site in config.config_dict().get('BothList', []))
-
         directories = [
             datatypes.create_dirinfo(
                 '/store/', directory, XRootDLister,
@@ -180,6 +228,8 @@ def get_site_tree(site):
             ]
 
         # Merge the DirectoryInfo
+        LOG.info('Got full list. Making hash of contents')
+
         info = datatypes.DirectoryInfo(name='/store', to_merge=directories)
         info.setup_hash()
 
@@ -188,6 +238,7 @@ def get_site_tree(site):
 
     else:
         # Just load the cache if it's good
+        LOG.info('Loading listing from cache: %s', cache_location)
         info = datatypes.get_info(cache_location)
 
     # Return the DirectoryInfo
