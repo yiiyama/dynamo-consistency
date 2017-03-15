@@ -1,6 +1,10 @@
 {
+  "Timeout": 60,
+  "Retries": 1,
   "InventoryAge": 5e-05,
-  "MaxThreads": 2,
+  "MinThreads": 0,
+  "MaxThreads": 0,
+  "NumThreads": 16,
   "ListAge": 5e-05,
   "IgnoreAge": 1,
   "RedirectorAge": 1,

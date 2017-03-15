@@ -60,6 +60,16 @@ def config_dict():
     else:
         raise IOError('Could not load config at ' + location)
 
+    # Overwrite any values with environment variables
+    for key in output.keys():
+        output[key] = os.environ.get(key, output[key])
+
+    num_threads = os.environ.get('NumThreads', output.get('NumThreads'))
+    # If NumThreads is non zero or not none
+    if num_threads:
+        output['MaxThreads'] = num_threads
+        output['MinThreads'] = num_threads
+
     cache_location = output.get('CacheLocation')
 
     # Create the directory holding the cache

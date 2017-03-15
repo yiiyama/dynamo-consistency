@@ -12,7 +12,10 @@ Then a configuration file should be created.
    :src: ../ConsistencyCheck/test/config.yml
    :analyzer: shell-script
 
-A check can be done simply by doing the following::
+Configuration parameters can also be quickly overwritten for a given run by
+setting an environment variable of the same name.
+
+A consistency check on a site can be done simply by doing the following::
 
     from ConsistencyCheck import config, datatypes, getsitecontents, getinventorycontents
 
