@@ -51,7 +51,7 @@ class XRootDLister(object):
         self.primary_conn = XRootD.client.FileSystem(primary_door)
         self.backup_conn = XRootD.client.FileSystem(backup_door)
         self.do_both = do_both
-        self.retries = config.config_dict().get('Retries', 1)
+        self.retries = config.config_dict().get('Retries', 0) + 1
 
         # This regex is used to parse the error code and propose a retry
         self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
@@ -124,7 +124,7 @@ class XRootDLister(object):
         The ``list`` member is expected of every object passed to :py:mod:`datatypes`.
 
         :param str path: The full path, starting with ``/store/``, of the directory to list.
-        :param int retries: Number of retries attempted so far
+        :param int retries: Number of attempts so far
         :returns: A bool indicating the success, a list of directories, and a list of files.
                   The list of directories consists of tuples of (directory name, mod time).
                   The list of files consistents of tuples of (file name, size, mod time).
@@ -141,7 +141,7 @@ class XRootDLister(object):
         # Not a typo on my part. A bug on theirs.
         #
 
-        if retries > self.retries:
+        if retries == self.tries:
             self.log.error('Giving up on %s due to too many retries', path)
             return False, [], []
 
