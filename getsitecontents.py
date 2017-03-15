@@ -51,7 +51,7 @@ class XRootDLister(object):
         self.primary_conn = XRootD.client.FileSystem(primary_door)
         self.backup_conn = XRootD.client.FileSystem(backup_door)
         self.do_both = do_both
-        self.retries = config.config_dict().get('Retries', 0) + 1
+        self.tries = config.config_dict().get('Retries', 0) + 1
 
         # This regex is used to parse the error code and propose a retry
         self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
