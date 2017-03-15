@@ -51,6 +51,7 @@ class XRootDLister(object):
         self.primary_conn = XRootD.client.FileSystem(primary_door)
         self.backup_conn = XRootD.client.FileSystem(backup_door)
         self.do_both = do_both
+        self.retries = config.config_dict().get('Retries', 1)
 
         # This regex is used to parse the error code and propose a retry
         self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
@@ -140,7 +141,7 @@ class XRootDLister(object):
         # Not a typo on my part. A bug on theirs.
         #
 
-        if retries == 3:
+        if retries > self.retries:
             self.log.error('Giving up on %s due to too many retries', path)
             return False, [], []
 
