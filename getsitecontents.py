@@ -64,7 +64,7 @@ class XRootDLister(object):
         self.log.info('Connections created at %s (primary) and %s (backup)',
                       primary_door, backup_door)
 
-    @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=False)
+    @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=True)
     def ls_directory(self, door, path):
         """
         Gets the contents of the previously defined redirector at a given path
@@ -147,18 +147,18 @@ class XRootDLister(object):
 
         try:
             # Try with primary door
-            okay, directories, files = self.ls_directory(self, self.primary_conn, path)
+            okay, directories, files = self.ls_directory(self.primary_conn, path)
 
             # We could add sleep, reconnecting and other error handling here, if desired
             if not okay:
                 # Try with backup door
-                okay, directories, files = self.ls_directory(self, self.backup_conn, path)
+                okay, directories, files = self.ls_directory(self.backup_conn, path)
 
                 okay &= (not self.do_both)
             elif self.do_both:
 
                 okay_back, directories_back, files_back = \
-                    self.ls_directory(self, self.backup_conn, path)
+                    self.ls_directory(self.backup_conn, path)
 
                 okay &= okay_back
                 directories = list(set(directories + directories_back))
