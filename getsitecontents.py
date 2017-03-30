@@ -17,6 +17,7 @@ import re
 import os
 import time
 import logging
+import random
 
 import XRootD.client
 import timeout_decorator
@@ -35,7 +36,7 @@ class XRootDLister(object):
     of a site's doors at a time.
     """
 
-    def __init__(self, primary_door, backup_door, thread_num=None, do_both=False):
+    def __init__(self, primary_door, backup_door, site, thread_num=None, do_both=False):
         """
         Set up the class with two doors.
 
@@ -132,15 +133,6 @@ class XRootDLister(object):
         :rtype: bool, list, list
         """
 
-        #
-        # NOTE: Before messing with the self.ls_directory calls !!!
-        #
-        # The timeout decorator does this weird thing where it strips the self from the front
-        # of a method call, so it's added back in for every call here.
-        #
-        # Not a typo on my part. A bug on theirs.
-        #
-
         if retries == self.tries:
             self.log.error('Giving up on %s due to too many retries', path)
             return False, [], []
@@ -166,11 +158,20 @@ class XRootDLister(object):
 
         except timeout_decorator.TimeoutError:
             self.log.warning('Directory %s timed out.', path)
-            time.sleep(10)
 
             # Reconnect
-            self.primary_conn = XRootD.client.FileSystem('%s' % self.primary_conn.url)
-            self.backup_conn = XRootD.client.FileSystem('%s' % self.backup_conn.url)
+            _, door_list = get_redirector(self.site, [self.primary_conn.url, self.backup_conn.url])
+            use_doors = random.sample(door_list, 2)
+
+            if use_doors:
+                use_doors.append(use_doors[0])
+                self.primary_conn = XRootD.client.FileSystem('%s' % use_doors[0])
+                self.backup_conn = XRootD.client.FileSystem('%s' % use_doors[1])
+            else:
+                # Swap urls
+                backup_url = str(self.backup_conn.url)
+                self.primary_conn = XRootD.client.FileSystem(backup_url)
+                self.backup_conn = XRootD.client.FileSystem('%s' % self.primary_conn.url)
 
             return self.list(path, retries + 1)
 
@@ -223,7 +224,7 @@ def get_site_tree(site):
         directories = [
             datatypes.create_dirinfo(
                 '/store/', directory, XRootDLister,
-                [(prim, back, thread_num, do_both) for prim, back, thread_num in \
+                [(prim, back, site, thread_num, do_both) for prim, back, thread_num in \
                      zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
                 for directory in config.config_dict().get('DirectoryList', [])
             ]
