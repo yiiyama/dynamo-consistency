@@ -86,6 +86,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
 
     master_conns = []
     slave_conns = []
+    send_to_master = []
 
     for _ in xrange(n_threads):
         in_queues.append(multiprocessing.Queue())
@@ -93,6 +94,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         con1, con2 = multiprocessing.Pipe()
         master_conns.append(con1)
         slave_conns.append(con2)
+        send_to_master.append(multiprocessing.Queue())
 
     # Put in the first element for the queues
     # They go like, (full path of the next listing to do,
@@ -117,6 +119,8 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         # Get the queue and connection for this thread
         in_queue = in_queues[i_queue]
         conn = slave_conns[i_queue]
+
+        done_count = 0
 
         if object_params:
             # Create the object with the parameters here
@@ -191,15 +195,20 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                             put((location, joined_name, [], [], []))
 
 
-                # Tell master that a job finished, so it can build the final object
-                conn.send('One_Job')
-                conn.send(time.time())
+                # Tell master that a job finished once in a while,
+                # so it can build the final object
+                send_to_master[i_queue].put(('O', time.time()))
+                #done_count += 1
+                #if done_count % 5 == 0:
+                #    conn.send('O')
+                #    conn.send(time.time())
 
                 thread_log.debug('Finished one job with (%s, %s)', location, name)
             except Empty:
                 # Report empty
-                thread_log.info('Worker finished input queue')
-                conn.send('All_Job')
+                thread_log.debug('Worker finished input queue')
+                send_to_master[i_queue].put(('A', 0))
+                #conn.send('All_Job')
 
                 # Check for main process
                 message = conn.recv()
@@ -209,7 +218,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                     conn.close()
                     running = False
                 else:
-                    thread_log.info('Worker going back to check queue')
+                    thread_log.debug('Worker going back to check queue')
 
     # Spawn processes to run on this run_queue function
     processes = []
@@ -246,15 +255,16 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
             threads_done = 0
             for conn in master_conns:
                 LOG.debug('Waiting for thread %i', master_conns.index(conn))
-                message = conn.recv()
+                message, timestamp = send_to_master[master_conns.index(conn)].get(True)
+
                 LOG.debug('Recieved message %s', message)
                 # Count the number of threads saying their finished at the beginning
-                if message == 'All_Job':
+                if message == 'A':
                     threads_done += 1
-                    LOG.debug('Threads saying done: %i', threads_done)
+                    LOG.info('Threads saying done: %i', threads_done)
                     # Send back to work, just in case not all threads are done
                     conn.send('Work')
-                elif message == 'One_Job':
+                elif message == 'O':
                     # This thread wasn't finished at the beginning, so threads_done
                     # will not reach n_threads if the master reaches this point in the code
                     LOG.debug('Found one job, about to cycle')
@@ -262,17 +272,17 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                     cycle = True
                     while cycle:
                         # Cycle through timestamps so that we do not have a backlog
-                        timestamp = conn.recv()
-                        # Wait for a new job to finish
-                        if now - timestamp < 0.0:
-                            LOG.debug('Found new message, breaking.')
-                            cycle = False
-                        else:
-                            mess = conn.recv()
-                            if mess == 'All_Job':
+                        try:
+                            message, timestamp = send_to_master[master_conns.index(conn)].get(True, 1)
+                            if message == 'A':
                                 LOG.debug('Found end to pipe.')
                                 conn.send('Work')
                                 cycle = False
+                            elif timestamp > now:
+                                cycle = False
+                        except Empty:
+                            cycle = False
+
                 else:
                     LOG.error('Weird message from pipe')
 
@@ -293,7 +303,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     for proc in processes:
         proc.join()
 
-    dir_info.setup_hash()
+    #dir_info.setup_hash()
     return dir_info
 
 

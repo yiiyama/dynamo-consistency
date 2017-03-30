@@ -67,8 +67,8 @@ def config_dict():
     num_threads = os.environ.get('NumThreads', output.get('NumThreads'))
     # If NumThreads is non zero or not none
     if num_threads:
-        output['MaxThreads'] = num_threads
-        output['MinThreads'] = num_threads
+        output['MaxThreads'] = int(num_threads)
+        output['MinThreads'] = int(num_threads)
 
     cache_location = output.get('CacheLocation')
 
