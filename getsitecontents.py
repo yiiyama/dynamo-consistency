@@ -1,7 +1,3 @@
-# pylint: disable=too-many-function-args
-# This is needed for the timeout decorator,
-# which is currently bugged, but useful
-
 """
 Tool to get the files located at a site.
 
