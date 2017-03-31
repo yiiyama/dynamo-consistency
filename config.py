@@ -111,7 +111,7 @@ def _xrd_locate(redirs, file_name, max_age):
 
                 proc.communicate()
 
-def get_redirector(site, banned_doors=[]):
+def get_redirector(site, banned_doors=None):
     """
     Get the redirector and xrootd door servers for a given site.
     An example valid site name is ``T2_US_MIT``.
@@ -123,6 +123,8 @@ def get_redirector(site, banned_doors=[]):
               and a list of xrootd door servers
     :rtype: str, list
     """
+    banned_doors = banned_doors or []
+
     LOG.debug('Getting doors for %s', site)
     config = config_dict()
     max_age = config.get('RedirectorAge', 0) * 24 * 3600

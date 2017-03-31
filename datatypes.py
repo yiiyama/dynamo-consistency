@@ -120,8 +120,6 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         in_queue = in_queues[i_queue]
         conn = slave_conns[i_queue]
 
-        done_count = 0
-
         if object_params:
             # Create the object with the parameters here
             params = object_params[i_queue]
@@ -198,10 +196,6 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                 # Tell master that a job finished once in a while,
                 # so it can build the final object
                 send_to_master[i_queue].put(('O', time.time()))
-                #done_count += 1
-                #if done_count % 5 == 0:
-                #    conn.send('O')
-                #    conn.send(time.time())
 
                 thread_log.debug('Finished one job with (%s, %s)', location, name)
             except Empty:
@@ -273,7 +267,8 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                     while cycle:
                         # Cycle through timestamps so that we do not have a backlog
                         try:
-                            message, timestamp = send_to_master[master_conns.index(conn)].get(True, 1)
+                            message, timestamp = \
+                                send_to_master[master_conns.index(conn)].get(True, 1)
                             if message == 'A':
                                 LOG.debug('Found end to pipe.')
                                 conn.send('Work')

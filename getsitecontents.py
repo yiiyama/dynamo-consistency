@@ -43,6 +43,7 @@ class XRootDLister(object):
         :param str primary_door: The URL of the door that will get the most load
         :param str backup_door: The URL of the door that will be used when
                                 the primary door fails
+        :param str site: The site that this connection is to.
         :param int thread_num: This optional parameter is only used to
                                Create a separate logger for this object
         :param bool do_both: If true, the primary and backup doors will both
@@ -53,6 +54,7 @@ class XRootDLister(object):
         self.backup_conn = XRootD.client.FileSystem(backup_door)
         self.do_both = do_both
         self.tries = config.config_dict().get('Retries', 0) + 1
+        self.site = site
 
         # This regex is used to parse the error code and propose a retry
         self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
@@ -160,7 +162,8 @@ class XRootDLister(object):
             self.log.warning('Directory %s timed out.', path)
 
             # Reconnect
-            _, door_list = get_redirector(self.site, [self.primary_conn.url, self.backup_conn.url])
+            _, door_list = config.get_redirector(self.site,
+                                                 [self.primary_conn.url, self.backup_conn.url])
             use_doors = random.sample(door_list, 2)
 
             if use_doors:
