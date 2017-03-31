@@ -67,8 +67,8 @@ def config_dict():
     num_threads = os.environ.get('NumThreads', output.get('NumThreads'))
     # If NumThreads is non zero or not none
     if num_threads:
-        output['MaxThreads'] = num_threads
-        output['MinThreads'] = num_threads
+        output['MaxThreads'] = int(num_threads)
+        output['MinThreads'] = int(num_threads)
 
     cache_location = output.get('CacheLocation')
 
@@ -111,17 +111,20 @@ def _xrd_locate(redirs, file_name, max_age):
 
                 proc.communicate()
 
-
-def get_redirector(site):
+def get_redirector(site, banned_doors=None):
     """
     Get the redirector and xrootd door servers for a given site.
     An example valid site name is ``T2_US_MIT``.
 
     :param str site: The site we want to contact
+    :param list banned_doors: Give a list of doors to not return.
+                              These are usually ones that just timed out.
     :returns: Public hostname of the local redirector
               and a list of xrootd door servers
     :rtype: str, list
     """
+    banned_doors = banned_doors or []
+
     LOG.debug('Getting doors for %s', site)
     config = config_dict()
     max_age = config.get('RedirectorAge', 0) * 24 * 3600
@@ -156,7 +159,8 @@ def get_redirector(site):
 
     # Get the list of doors
     with open(list_name, 'r') as list_file:
-        local_list = list(set([line.strip() for line in list_file]))
+        local_list = list(set([line.strip() for line in list_file \
+                                   if line.strip() not in banned_doors]))
 
     LOG.debug('From %s, got list %s', redirector, local_list)
 
