@@ -7,7 +7,6 @@ This module gets the information from the inventory about a site's contents
 """
 
 import os
-import sys
 import time
 
 from common.inventory import InventoryManager
