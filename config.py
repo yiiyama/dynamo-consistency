@@ -14,8 +14,6 @@ import subprocess
 import logging
 import json
 
-from CMSToolBox.siteinfo import get_domain
-
 LOG = logging.getLogger(__name__)
 CONFIG_FILE = 'consistency_config.json'
 """
@@ -30,6 +28,30 @@ A module that uses the load function on a file descriptor to return a dictionary
 If your ``CONFIG_FILE`` is not a JSON file, you'll want to change this
 also before calling :py:func:`config_dict`.
 """
+
+HOST_MAP = {
+    'T1_ES_PIC':        'pic.es',
+    'T1_US_FNAL':       'fnal.gov',
+    'T2_AT_Vienna':     'oeaw.ac.at',
+    'T2_BE_IIHE':       'iihe.ac.be',
+    'T2_BE_UCL':        'ucl.ac.be',
+    'T2_BR_SPRACE':     'sprace.org.br',
+    'T2_CH_CERN':       'eoscms-srv-b2.cern.ch',
+    'T2_CH_CSCS':       'cscs.ch',
+    'T2_DE_DESY':       'desy.de',
+    'T2_ES_CIEMAT':     'ciemat.es',
+    'T2_ES_IFCA':       'ifca.es',
+    'T2_FR_CCIN2P3':    'in2p3.fr',
+    'T2_UK_London_IC':  'ic.ac.uk',
+    'T2_US_Caltech':    'ultralight.org',
+    'T2_US_Florida':    'ufl.edu',
+    'T2_US_MIT':        'mit.edu',
+    'T2_US_Nebraska':   'unl.edu',
+    'T2_US_Purdue':     'purdue.edu',
+    'T2_US_Wisconsin':  'wisc.edu',
+    'T2_US_UCSD':       'ucsd.edu',
+    'T2_US_Vanderbilt': 'vanderbilt.edu',
+    }
 
 def config_dict():
     """
@@ -142,7 +164,7 @@ def get_redirector(site, banned_doors=None):
                     file_name, max_age)
 
         # Parse for a correct redirector
-        domain = get_domain(site)
+        domain = HOST_MAP[site]
         with open(file_name, 'r') as redir_file:
             for line in redir_file:
                 if domain in line:
