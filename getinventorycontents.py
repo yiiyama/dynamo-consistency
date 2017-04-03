@@ -1,4 +1,4 @@
-# pylint: disable=import-error, wrong-import-position
+# pylint: disable=import-error
 
 """
 This module gets the information from the inventory about a site's contents
@@ -10,16 +10,8 @@ import os
 import sys
 import time
 
-###############
-# !!! DEVELOPMENT ONLY: This all will be replaced when the code is migrated inside dynamo
-#
-from CMSToolBox.simplefiletools import load_env
-load_env('/local/dabercro/dynamo/etc/profile.d/init.sh')
-sys.path.insert(0, '/local/dabercro/dynamo/lib')
 from common.inventory import InventoryManager
 from common.dataformat import File
-#
-###############
 
 from . import datatypes
 from . import config
