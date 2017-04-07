@@ -688,6 +688,8 @@ def compare(inventory, listing, output_base):
     :param DirectoryInfo listing: The tree of files that are listed remotely
     :param str output_base: The names of the ASCII files to place the reports
                             are generated from this variable.
+    :returns: The two lists, missing and orphan files
+    :rtype: tuple
     """
 
     missing, _, _ = inventory.compare(listing)
@@ -700,3 +702,5 @@ def compare(inventory, listing, output_base):
     with open('%s_orphan.txt' % output_base, 'w') as orphan_file:
         for line in orphan:
             orphan_file.write(line + '\n')
+
+    return missing, orphan

@@ -1,11 +1,11 @@
 {
   "Timeout": 60,
   "Retries": 1,
-  "InventoryAge": 5e-05,
+  "InventoryAge": 5,
   "MinThreads": 8,
-  "MaxThreads": 8,
-  "ListAge": 5e-05,
-  "IgnoreAge": 1,
+  "MaxThreads": 16,
+  "ListAge": 7,
+  "IgnoreAge": 14,
   "RedirectorAge": 1,
   "CacheLocation": "cache",
   "Redirectors": {

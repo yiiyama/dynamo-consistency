@@ -12,27 +12,27 @@ from ConsistencyCheck import getinventorycontents
 from ConsistencyCheck import datatypes
 from ConsistencyCheck import config
 
+from common.interface.mysql import MySQL
 
 def main(site):
     start = time.time()
-
-    site_tree = getsitecontents.get_site_tree(site)
-
     webdir = '/home/dabercro/public_html/ConsistencyCheck'
 
-    try:
-        inv_tree = getinventorycontents.get_site_inventory(site)
+    site_tree = getsitecontents.get_site_tree(site)
+    inv_tree = getinventorycontents.get_site_inventory(site)
+    missing, orphan = datatypes.compare(inv_tree, site_tree, '%s_compare' % site)
 
-        missing, orphan = datatypes.compare(inv_tree, site_tree, '%s_compare' % site)
+    sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister')
+    for line in missing:
+        pass
 
+    for line in orphan:
+        sql.query('INSERT INTO `deletion_queue` (`file`, `target`, `created`) SET (%s, %s, NOW())', line, site)
 
-        shutil.copy('%s_compare_missing.txt', webdir)
-        shutil.copy('%s_compare_orphan.txt', webdir)
-    except:
-        missing = []
-        orphan = []
+    shutil.copy('%s_compare_missing.txt', webdir)
+    shutil.copy('%s_compare_orphan.txt', webdir)
 
-
+    # Runtime stats
     conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
     curs = conn.cursor()
 

@@ -8,12 +8,15 @@ This module gets the information from the inventory about a site's contents
 
 import os
 import time
+import logging
 
 from common.inventory import InventoryManager
 from common.dataformat import File
 
 from . import datatypes
 from . import config
+
+LOG = logging.getLogger(__name__)
 
 def get_site_inventory(site):
     """ Loads the contents of a site, based on the dynamo inventory
@@ -50,6 +53,7 @@ def get_site_inventory(site):
 
             tree.add_file_list(add_list)
 
+        LOG.info('Got full list. Making hash of contents')
         tree.setup_hash()
 
         # Save the list in a cache
@@ -57,6 +61,7 @@ def get_site_inventory(site):
 
     else:
         # Just load the cache if it's good
+        LOG.info('Loading listing from cache: %s', cache_location)
         tree = datatypes.get_info(cache_location)
 
     return tree
