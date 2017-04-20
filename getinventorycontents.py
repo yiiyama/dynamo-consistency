@@ -43,6 +43,7 @@ def get_site_inventory(site):
 
         for replica in replicas:
             add_list = []
+            inventory.store.load_files(replica.dataset)
             for file_replica in replica.dataset.files:
                 # Make sure we don't waste time/space on directories we don't compare
                 if File.directories[file_replica.directory_id].split('/')[2] in dirs_to_look:

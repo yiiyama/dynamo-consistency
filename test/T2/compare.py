@@ -22,15 +22,15 @@ def main(site):
     inv_tree = getinventorycontents.get_site_inventory(site)
     missing, orphan = datatypes.compare(inv_tree, site_tree, '%s_compare' % site)
 
-    sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister')
+    sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
     for line in missing:
         pass
 
     for line in orphan:
-        sql.query('INSERT INTO `deletion_queue` (`file`, `target`, `created`) SET (%s, %s, NOW())', line, site)
+        sql.query('INSERT INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
 
-    shutil.copy('%s_compare_missing.txt', webdir)
-    shutil.copy('%s_compare_orphan.txt', webdir)
+    shutil.copy('%s_compare_missing.txt' % site, webdir)
+    shutil.copy('%s_compare_orphan.txt' % site, webdir)
 
     # Runtime stats
     conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))

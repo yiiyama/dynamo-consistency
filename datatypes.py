@@ -692,8 +692,12 @@ def compare(inventory, listing, output_base):
     :rtype: tuple
     """
 
+    LOG.info('About to perform comparison. Results will be in files starting with %s',
+             output_base)
     missing, _, _ = inventory.compare(listing)
+    LOG.info('There are %i missing files', len(missing))
     orphan, _, _ = listing.compare(inventory)
+    LOG.info('There are %i orphan files', len(orphan))
 
     with open('%s_missing.txt' % output_base, 'w') as missing_file:
         for line in missing:
