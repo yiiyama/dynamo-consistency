@@ -507,8 +507,8 @@ class DirectoryInfo(object):
                 new_dir = DirectoryInfo(split_path[0])
                 self.directories.append(new_dir)
                 return new_dir.get_node(return_name, make_new)
-            else:
-                return None
+
+            return None
 
         # If no path, just return self
         return self
