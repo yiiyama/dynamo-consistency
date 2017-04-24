@@ -51,7 +51,7 @@ def get_site_inventory(site):
                 # Make sure we don't waste time/space on directories we don't compare
                 if File.directories[file_at_site.directory_id].split('/')[2] in dirs_to_look:
 
-                    last_created = replica.last_block_created if brep.is_complete \
+                    last_created = replica.last_block_created if replica.is_complete \
                                   else int(time.time())
                     add_list.append((file_at_site.fullpath(), file_at_site.size,
                                      last_created, file_at_site.block.real_name()))
