@@ -339,16 +339,26 @@ class DirectoryInfo(object):
         :param list files: The tuples of file information.
                            Each element consists of file name, size, and mod time.
         """
-        self.files.extend([{
-            'name': name,
-            'size': size,
-            'mtime': mtime,
-            'hash': hashlib.sha1(
-                '%s %i' % (name, size)    # We are not comparing mtime for now
-                ).hexdigest(),
-            'can_compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp and
-                                name != '_unlisted_')
-            } for name, size, mtime in sorted(files or [])])
+
+        for file_info in sorted(files or []):
+            name, size, mtime = file_info[:3]
+
+            if len(file_info) > 3:
+                block = file_info[3]
+            else:
+                block = ''
+
+            self.files.append({
+                'name': name,
+                'size': size,
+                'mtime': mtime,
+                'block': block,
+                'hash': hashlib.sha1(
+                    '%s %i' % (name, size)    # We are not comparing mtime for now
+                    ).hexdigest(),
+                'can_compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp and
+                                    name != '_unlisted_')
+                })
 
     def add_file_list(self, file_infos):
         """
@@ -356,24 +366,31 @@ class DirectoryInfo(object):
         This is most useful when you get a list of files from some other source
         and want to easily convert that list into a :py:func:`DirectoryInfo`
 
-        :param list file_infos: The list of files (full path, size in bytes)
+        :param list file_infos: The list of files (full path, size in bytes[, timestamp])
         """
 
         files = []
         directory = ''
 
-        for name, size in file_infos:
+        for file_info in file_infos:
+
+            name, size = file_info[:2]
+            if len(file_info) > 2:
+                timestamp = file_info[2]
+            else:
+                timestamp = 0
+
             if directory and \
                     name.startswith(os.path.join(self.name, directory)):
                 # If in the old directory, append to the list of files
-                files.append((os.path.basename(name), size, 0))
+                files.append((os.path.basename(name), size, timestamp))
             else:
                 # When changing directories, append the files gathered in the last directory
                 self.get_node(directory).add_files(files)
                 # Get the new directory name
                 directory = os.path.dirname(name[len(self.name):].lstrip('/'))
                 # Reset the files list
-                files = [(os.path.basename(name), size, 0)]
+                files = [(os.path.basename(name), size, timestamp)]
 
         # Add data from the last directory
         self.get_node(directory).add_files(files)

@@ -27,7 +27,7 @@ def main(site):
         pass
 
     for line in orphan:
-        sql.query('INSERT INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
+        sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
 
     shutil.copy('%s_compare_missing.txt' % site, webdir)
     shutil.copy('%s_compare_orphan.txt' % site, webdir)

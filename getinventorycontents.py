@@ -44,13 +44,17 @@ def get_site_inventory(site):
         for replica in replicas:
             add_list = []
             inventory.store.load_files(replica.dataset)
-            for file_replica in replica.dataset.files:
+            blocks_at_site = [brep.block for brep in replica.block_replicas]
+            for file_at_site in replica.dataset.files:
+                if file_at_site.block not in blocks_at_site:
+                    continue
                 # Make sure we don't waste time/space on directories we don't compare
-                if File.directories[file_replica.directory_id].split('/')[2] in dirs_to_look:
-                    add_list.append(
-                        (os.path.join(File.directories[file_replica.directory_id],
-                                      file_replica.name),
-                         int(file_replica.size)))
+                if File.directories[file_at_site.directory_id].split('/')[2] in dirs_to_look:
+
+                    last_created = replica.last_block_created if brep.is_complete \
+                                  else int(time.time())
+                    add_list.append((file_at_site.fullpath(), file_at_site.size,
+                                     last_created, file_at_site.block.real_name()))
 
             tree.add_file_list(add_list)
 
