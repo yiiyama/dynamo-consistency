@@ -99,6 +99,11 @@ class TestTree(TestBase):
                          len(self.file_list))
         self.assertEqual(self.tree.get_num_files(True), 0)
 
+    def test_two_lists(self):
+        self.tree.add_file_list(self.file_list)
+        self.assertEqual(self.tree.get_num_files(),
+                         len(self.file_list))
+
     def test_do_hash(self):
         self.assertFalse(self.tree.hash)
         self.tree.setup_hash()

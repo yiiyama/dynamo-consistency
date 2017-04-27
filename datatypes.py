@@ -340,7 +340,12 @@ class DirectoryInfo(object):
                            Each element consists of file name, size, and mod time.
         """
 
-        for file_info in sorted(files or []):
+        # Get the list of new files
+        existing_names = [fi['name'] for fi in self.files]
+        sorted_files = [fi for fi in sorted(files or []) \
+                            if fi[0] not in existing_names]
+
+        for file_info in sorted_files:
             name, size, mtime = file_info[:3]
 
             if len(file_info) > 3:
