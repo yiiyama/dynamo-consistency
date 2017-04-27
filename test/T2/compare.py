@@ -20,7 +20,7 @@ def main(site):
 
     site_tree = getsitecontents.get_site_tree(site)
     inv_tree = getinventorycontents.get_site_inventory(site)
-    missing, orphan = datatypes.compare(inv_tree, site_tree, '%s_compare' % site)
+    missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site)
 
     sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
     for line in missing:
@@ -36,11 +36,11 @@ def main(site):
     conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
     curs = conn.cursor()
 
-    curs.execute('REPLACE INTO stats VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    curs.execute('REPLACE INTO stats_v2 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                  (site, time.time() - start, site_tree.get_num_files(),
                   site_tree.count_nodes(), site_tree.count_nodes(True),
                   config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
-                  len(missing), len(orphan)))
+                  len(missing), m_size, len(orphan), o_size))
 
     conn.commit()
     conn.close()
@@ -48,10 +48,10 @@ def main(site):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print 'Usage: ./compare.py site-name [debug/watch]'
+        print 'Usage: ./compare.py sitename [sitename ...] [debug/watch]'
         exit(0)
 
-    site = sys.argv[1]
+    sites = sys.argv[1:-1]
 
     if 'debug' in sys.argv:
         logging.basicConfig(level=logging.DEBUG,
@@ -59,5 +59,10 @@ if __name__ == '__main__':
     elif 'watch' in sys.argv:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+    else:
+        sites.append(sys.argv[-1])
 
-    main(site)
+    print 'About to run over %s' % sites
+
+    for site in sites:
+        main(site)
