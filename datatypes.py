@@ -502,9 +502,14 @@ class DirectoryInfo(object):
             split_path = path.split('/')
             return_name = '/'.join(split_path[1:])
 
+            LOG.debug('path remaining: %s, searching for %s', path, split_path[0])
+
             # Search for if directory exists
+            LOG.debug('There are %i directories', len(self.directories))
             for directory in self.directories:
+                LOG.debug('Checking %s', directory.name)
                 if split_path[0] == directory.name:
+                    LOG.debug('Found match!')
                     return directory.get_node(return_name, make_new)
 
             # If not, make a new directory, or None
@@ -686,6 +691,28 @@ class DirectoryInfo(object):
 
         return self
 
+    def get_file(self, file_name):
+        """
+        Get the file dictionary based off the name.
+
+        :param str file_name: The LFN of the file
+        :returns: Dictionary of file information
+        :rtype: dict
+        """
+
+        exploded_name = file_name[len(self.name) + 1:].split('/')
+        desired_name = exploded_name[-1]
+        node = self.get_node('/'.join(exploded_name[:-1]))
+        LOG.debug('%s -> %s', file_name, exploded_name)
+        LOG.debug('Got node: %s with %i files', node, len(node.files))
+        for file_info in node.files:
+            LOG.debug('Checking %s', file_info)
+            if file_info['name'] == desired_name:
+                LOG.debug('Found match! Returning.')
+                return file_info
+
+        return None
+
 def get_info(file_name):
     """
     Get the DirectoryInfo from a file.
@@ -702,7 +729,7 @@ def get_info(file_name):
     return output
 
 
-def compare(inventory, listing, output_base):
+def compare(inventory, listing, output_base, orphan_check=None, missing_check=None):
     """
     Compare two different trees and output the differences into an ASCII file
 
@@ -710,6 +737,8 @@ def compare(inventory, listing, output_base):
     :param DirectoryInfo listing: The tree of files that are listed remotely
     :param str output_base: The names of the ASCII files to place the reports
                             are generated from this variable.
+    :param function orphan_check: A function that double checks each expected orphan
+    :param function missing_check: A function checks each expected missing file
     :returns: The two lists, missing and orphan files
     :rtype: tuple
     """
@@ -721,12 +750,28 @@ def compare(inventory, listing, output_base):
     orphan, _, o_size = listing.compare(inventory)
     LOG.info('There are %i orphan files', len(orphan))
 
+    miss_double = []
+    orph_double = []
+
     with open('%s_missing.txt' % output_base, 'w') as missing_file:
         for line in missing:
-            missing_file.write(line + '\n')
+            if missing_check and missing_check(line):
+                m_size -= inventory.get_file(line)['size']
+                miss_double.append(line)
+            else:
+                missing_file.write(line + '\n')
 
     with open('%s_orphan.txt' % output_base, 'w') as orphan_file:
         for line in orphan:
-            orphan_file.write(line + '\n')
+            if orphan_check and orphan_check(line):
+                o_size -= listing.get_file(line)['size']
+                orph_double.append(line)
+            else:
+                orphan_file.write(line + '\n')
+
+    if miss_double:
+        missing = [miss for miss in missing if miss not in miss_double]
+    if orph_double:
+        orphan = [orph for orph in orphan if orph not in orph_double]
 
     return missing, m_size, orphan, o_size

@@ -318,6 +318,76 @@ class TestInconsistentTrees(TestBase):
         self.assertEqual(len(file_list), 1)
         self.assertEqual(file_list[0], same_dir[0][0])
 
+    def test_double_check(self):
+        file_base = os.path.join(TMP_DIR, 'report')
+
+        check_true = lambda dummy: True
+        check_false = lambda dummy: False
+        check_miss = lambda x: x in [y[0] for y in self.missing]
+        check_orph = lambda x: x in [y[0] for y in self.orphan]
+
+        # Remove orphan
+        for orphan_check, missing_check in [
+            (check_true, None),
+            (check_true, check_false),
+            (check_orph, check_false),
+            (check_orph, check_orph)
+            ]:
+
+            missing, m_size, orphan, o_size = datatypes.compare(
+                self.tree, self.listing, file_base, orphan_check, missing_check)
+
+            self.assertEqual(len(missing), 1)
+            self.assertTrue(m_size)
+            self.assertEqual(len(orphan), 0)
+            self.assertFalse(o_size)
+
+        # Remove missing
+        for orphan_check, missing_check in [
+            (None, check_true),
+            (check_false, check_true),
+            (check_false, check_miss),
+            (check_miss, check_miss)
+            ]:
+
+            missing, m_size, orphan, o_size = datatypes.compare(
+                self.tree, self.listing, file_base, orphan_check, missing_check)
+
+            self.assertEqual(len(missing), 0)
+            self.assertFalse(m_size)
+            self.assertEqual(len(orphan), 1)
+            self.assertTrue(o_size)
+
+        # Remove both
+        for orphan_check, missing_check in [
+            (check_true, check_true),
+            (check_orph, check_miss)
+            ]:
+
+            missing, m_size, orphan, o_size = datatypes.compare(
+                self.tree, self.listing, file_base, orphan_check, missing_check)
+
+            self.assertEqual(len(missing), 0)
+            self.assertFalse(m_size)
+            self.assertEqual(len(orphan), 0)
+            self.assertFalse(o_size)
+
+        # Remove neither
+        for orphan_check, missing_check in [
+            (None, None),
+            (check_false, check_false),
+            (check_miss, check_orph)
+            ]:
+
+            missing, m_size, orphan, o_size = datatypes.compare(
+                self.tree, self.listing, file_base, orphan_check, missing_check)
+
+            self.assertEqual(len(missing), 1)
+            self.assertTrue(m_size)
+            self.assertEqual(len(orphan), 1)
+            self.assertTrue(o_size)
+
+
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:
