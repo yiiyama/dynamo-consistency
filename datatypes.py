@@ -746,6 +746,8 @@ def compare(inventory, listing, output_base, orphan_check=None, missing_check=No
     LOG.info('About to perform comparison. Results will be in files starting with %s',
              output_base)
     missing, _, m_size = inventory.compare(listing)
+    if orphan_check or missing_check:
+        LOG.info('BEFORE DOUBLE CHECK')
     LOG.info('There are %i missing files', len(missing))
     orphan, _, o_size = listing.compare(inventory)
     LOG.info('There are %i orphan files', len(orphan))
@@ -773,5 +775,10 @@ def compare(inventory, listing, output_base, orphan_check=None, missing_check=No
         missing = [miss for miss in missing if miss not in miss_double]
     if orph_double:
         orphan = [orph for orph in orphan if orph not in orph_double]
+
+    if orphan_check or missing_check:
+        LOG.info('AFTER DOUBLE CHECK')
+        LOG.info('There are %i missing files', len(missing))
+        LOG.info('There are %i orphan files', len(orphan))
 
     return missing, m_size, orphan, o_size

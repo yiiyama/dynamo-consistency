@@ -11,6 +11,7 @@ from ConsistencyCheck import getsitecontents
 from ConsistencyCheck import getinventorycontents
 from ConsistencyCheck import datatypes
 from ConsistencyCheck import config
+from ConsistencyCheck import checkphedex
 
 from common.interface.mysql import MySQL
 
@@ -20,7 +21,16 @@ def main(site):
 
     site_tree = getsitecontents.get_site_tree(site)
     inv_tree = getinventorycontents.get_site_inventory(site)
-    missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site)
+
+    # Create the function to check orphans
+    acceptable_orphans = checkphedex.set_of_deletions(site)
+    acceptable_orphans.update(getinventorycontents.set_of_ignored())
+
+    def double_check(file_name):
+        split_name = file_name.split('/')
+        return '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) in acceptable_orphans
+
+    missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site, orphan_check=double_check)
 
     sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
     for line in missing:

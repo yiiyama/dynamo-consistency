@@ -12,11 +12,39 @@ import logging
 
 from common.inventory import InventoryManager
 from common.dataformat import File
+from common.dataformat import Dataset
 
 from . import datatypes
 from . import config
 
 LOG = logging.getLogger(__name__)
+
+class InvLoader(object):
+    """
+    Creates an InventoryManager object, if needed,
+    and stores it globally for the module.
+    It also holds a list of datasets in the deletion queue.
+    """
+    def __init__(self):
+        """Initializer for the object"""
+        self.inv = None
+        self.deletions = None
+
+    def get_inventory(self):
+        """
+        Make an inventory, if needed, and return it.
+
+        :returns: Any InventoryManager in the vicinity.
+        :rtype: common.inventory.InventoryManager
+        """
+        if self.inv is None:
+            self.inv = InventoryManager()
+
+        return self.inv
+
+
+INV = InvLoader()
+
 
 def get_site_inventory(site):
     """ Loads the contents of a site, based on the dynamo inventory
@@ -35,7 +63,7 @@ def get_site_inventory(site):
 
         tree = datatypes.DirectoryInfo('/store')
 
-        inventory = InventoryManager()
+        inventory = INV.get_inventory()
         replicas = inventory.sites[site].dataset_replicas
 
         # Only look in directories in the configuration file
@@ -70,3 +98,17 @@ def get_site_inventory(site):
         tree = datatypes.get_info(cache_location)
 
     return tree
+
+
+def set_of_ignored():
+    """
+    Get the full list of IGNORED datasets from the inventory
+    """
+    inv = INV.get_inventory()
+    ignored = set()
+
+    for dataset, details in inv.datasets.iteritems():
+        if details.status == Dataset.STAT_IGNORED:
+            ignored.add(dataset)
+
+    return ignored
