@@ -355,7 +355,7 @@ class DirectoryInfo(object):
 
             self.files.append({
                 'name': name,
-                'size': size,
+                'size': long(size),
                 'mtime': mtime,
                 'block': block,
                 'hash': hashlib.sha1(
@@ -558,19 +558,23 @@ class DirectoryInfo(object):
 
         return output
 
-    def compare(self, other, path=''):
+    def compare(self, other, path='', check=None):
         """ Does one way comparison with a different tree
 
         :param DirectoryInfo other: The directory tree to compare this one to
         :param str path: Is the path to get to this location so far
+        :param check: An optional function that double checks a file name.
+                      If the checking function returns ``True`` for a file name,
+                      the file will not be included in the output.
+        :type check: function
         :returns: Tuple of list of files and directories that are present and not in the other tree
                   and the size of the files that corresponds to
-        :rtype: list, list, int
+        :rtype: list, list, long
         """
 
         extra_files = []
         extra_dirs = []
-        extra_size = 0
+        extra_size = long(0)
 
         here = os.path.join(path, self.name)
 
@@ -585,7 +589,7 @@ class DirectoryInfo(object):
 
                     # Recursive check of extra files and directories here
                     new_other = other.get_node(directory.name, False)
-                    more_files, more_dirs, more_size = directory.compare(new_other, here)
+                    more_files, more_dirs, more_size = directory.compare(new_other, here, check)
                     extra_size += more_size
                     extra_files.extend(more_files)
                     if new_other:
@@ -611,18 +615,23 @@ class DirectoryInfo(object):
                             found = True
                             break
 
-                    if not found:
-                        extra_files.append(os.path.join(path, self.name, file_info['name']))
+                    full_name = os.path.join(path, self.name, file_info['name'])
+                    LOG.debug('0:Checking file name %s with %s', full_name, check)
+                    if not found and (check is None or not check(full_name)):
+                        extra_files.append(full_name)
         else:
             # If no other node to compare, all files are extra (not in the other tree)
             if self.files:
                 for file_info in self.files:
-                    extra_files.append(os.path.join(path, self.name, file_info['name']))
-                    extra_size += file_info['size']
+                    full_name = os.path.join(path, self.name, file_info['name'])
+                    LOG.debug('1:Checking file name %s with %s', full_name, check)
+                    if check is None or not check(full_name):
+                        extra_files.append(os.path.join(path, self.name, file_info['name']))
+                        extra_size += file_info['size']
 
             # All directories are extra too
             for directory in self.directories:
-                more_files, _, more_size = directory.compare(None, here)
+                more_files, _, more_size = directory.compare(None, here, check)
                 extra_size += more_size
                 extra_files.extend(more_files)
 
@@ -745,40 +754,19 @@ def compare(inventory, listing, output_base, orphan_check=None, missing_check=No
 
     LOG.info('About to perform comparison. Results will be in files starting with %s',
              output_base)
-    missing, _, m_size = inventory.compare(listing)
-    if orphan_check or missing_check:
-        LOG.info('BEFORE DOUBLE CHECK')
+    LOG.debug('Double checking missing with %s', missing_check)
+    missing, _, m_size = inventory.compare(listing, check=missing_check)
     LOG.info('There are %i missing files', len(missing))
-    orphan, _, o_size = listing.compare(inventory)
+    LOG.debug('Double checking orphans with %s', orphan_check)
+    orphan, _, o_size = listing.compare(inventory, check=orphan_check)
     LOG.info('There are %i orphan files', len(orphan))
-
-    miss_double = []
-    orph_double = []
 
     with open('%s_missing.txt' % output_base, 'w') as missing_file:
         for line in missing:
-            if missing_check and missing_check(line):
-                m_size -= inventory.get_file(line)['size']
-                miss_double.append(line)
-            else:
-                missing_file.write(line + '\n')
+            missing_file.write(line + '\n')
 
     with open('%s_orphan.txt' % output_base, 'w') as orphan_file:
         for line in orphan:
-            if orphan_check and orphan_check(line):
-                o_size -= listing.get_file(line)['size']
-                orph_double.append(line)
-            else:
-                orphan_file.write(line + '\n')
-
-    if miss_double:
-        missing = [miss for miss in missing if miss not in miss_double]
-    if orph_double:
-        orphan = [orph for orph in orphan if orph not in orph_double]
-
-    if orphan_check or missing_check:
-        LOG.info('AFTER DOUBLE CHECK')
-        LOG.info('There are %i missing files', len(missing))
-        LOG.info('There are %i orphan files', len(orphan))
+            orphan_file.write(line + '\n')
 
     return missing, m_size, orphan, o_size
