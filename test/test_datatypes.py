@@ -388,6 +388,31 @@ class TestInconsistentTrees(TestBase):
             self.assertTrue(o_size)
 
 
+class TestUnlisted(TestBase):
+
+    unlisted_list = [
+        ('/store/mc/ttThings/0000/_unlisted', 0),
+        ('/store/mc/ttThings/0001/zxcvb.root', 50),
+        ('/store/data/runB/_unlisted_', 0),
+        ('/store/data/runB/earlyfile.root', 5),
+        ('/store/data/runA/0030/stuff.root', 10),
+        ]
+    
+    def do_more_setup(self):
+        self.unlisted_tree = datatypes.DirectoryInfo('/store')
+        self.unlisted_tree.add_file_list(self.unlisted_list)
+
+    def test_unlisted_missing(self):
+
+        missing, _, _ = self.tree.compare(self.unlisted_tree)
+        self.assertEqual(len(missing), 0)
+
+    def test_unlisted_orphan(self):
+
+        orphan, _, _ = self.unlisted_tree.compare(self.tree)
+        self.assertEqual(len(orphan), 0)
+
+
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:

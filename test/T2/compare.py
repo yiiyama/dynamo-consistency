@@ -28,7 +28,11 @@ def main(site):
 
     def double_check(file_name):
         split_name = file_name.split('/')
-        return '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) in acceptable_orphans
+        try:
+            return '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) in acceptable_orphans
+        except:
+            print 'Strange file name: %s' % file_name
+            return True
 
     missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site, orphan_check=double_check)
 

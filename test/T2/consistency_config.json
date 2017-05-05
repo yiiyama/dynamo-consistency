@@ -1,5 +1,5 @@
 {
-  "Timeout": 60,
+  "Timeout": 120,
   "Retries": 1,
   "InventoryAge": 5,
   "MinThreads": 8,

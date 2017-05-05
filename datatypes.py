@@ -576,6 +576,9 @@ class DirectoryInfo(object):
         extra_dirs = []
         extra_size = long(0)
 
+        if '_unlisted_' in [fi['name'] for fi in self.files]:
+            return extra_files, extra_dirs, extra_size
+
         here = os.path.join(path, self.name)
 
         if other:
