@@ -6,9 +6,14 @@ the list of files and deletions in PhEDEx.
 """
 
 import time
+import logging
 
 from CMSToolBox.webtools import get_json
 from . import config
+from . import datatypes
+from . import cache_tree
+
+LOG = logging.getLogger(__name__)
 
 def set_of_deletions(site):
     """
@@ -43,3 +48,33 @@ def set_of_deletions(site):
         ) if deletion_request else set()
 
     return datasets_for_deletion
+
+@cache_tree('InventoryAge', 'phedexlisting')
+def get_phedex_tree(site):
+    """
+    Get the file list tree from PhEDEx.
+    Uses the InventoryAge configuration to determine when to refresh cache.
+
+    :param str site: The site to get information from PhEDEx for.
+    :returns: A tree containing file replicas that are supposed to be at the site
+    :rtype: ConsistencyCheck.datatypes.DirectoryInfo
+    """
+
+    tree = datatypes.DirectoryInfo('/store')
+
+    for ascii_code in range(65, 91):
+        dataset = '/%s*/*/*' % chr(ascii_code)
+        LOG.info('Getting PhEDEx contents for %s', dataset)
+
+        phedex_response = get_json(
+            'cmsweb.cern.ch', '/phedex/datasvc/json/prod/filereplicas',
+            {'node': site, 'dataset': dataset},
+            use_https=True)
+
+        for block in phedex_response['phedex']['block']:
+            tree.add_file_list(
+                [(replica['name'], replica['bytes'],
+                  int(replica['time_create']), block['name']) \
+                     for replica in block['file']])
+
+    return tree
