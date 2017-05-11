@@ -62,7 +62,7 @@ def get_phedex_tree(site):
 
     tree = datatypes.DirectoryInfo('/store')
 
-    for ascii_code in range(65, 91):
+    for ascii_code in range(65, 91) + range(97, 123):
         dataset = '/%s*/*/*' % chr(ascii_code)
         LOG.info('Getting PhEDEx contents for %s', dataset)
 

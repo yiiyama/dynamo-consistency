@@ -5,11 +5,14 @@
 
 import os
 import time
+import logging
 
 from . import config
 from . import datatypes
 
 __all__ = ['config', 'datatypes', 'getsitecontents', 'getinventorycontents']
+
+LOG = logging.getLogger(__name__)
 
 def cache_tree(config_age, location_suffix):
     """
@@ -41,17 +44,20 @@ def cache_tree(config_age, location_suffix):
 
             cache_location = os.path.join(config.config_dict()['CacheLocation'],
                                           '%s_%s.pkl' % (site, location_suffix))
+            LOG.info('Checking for cache at %s', cache_location)
 
             if not os.path.exists(cache_location) or \
                     (time.time() - os.stat(cache_location).st_mtime) > \
                     config.config_dict().get(config_age, 0) * 24 * 3600:
 
+                LOG.info('Cache is no good, getting new tree')
                 tree = func(site)
                 tree.setup_hash()
                 tree.save(cache_location)
 
             else:
 
+                LOG.info('Loading tree from cache')
                 tree = datatypes.get_info(cache_location)
 
             return tree
