@@ -1,3 +1,6 @@
+# pylint: disable=missing-docstring
+# We don't really need the docstring for the functions inside the decorator
+
 """ Module used to perform Consistency Checks using XRootD.
 
 :author: Daniel Abercrombie <dabercro@mit.edu>
@@ -27,20 +30,8 @@ def cache_tree(config_age, location_suffix):
     """
 
     def func_decorator(func):
-        """
-        :param func func: A function to decorate
-        :returns: Fancy function
-        :rtype: func
-        """
 
         def do_function(site):
-            """
-            Does a tree function with a single parameter
-
-            :param str site: The site we want the tree for
-            :returns: Requested Directory tree
-            :rtype: ConsistencyCheck.datatypes.DirInfo
-            """
 
             cache_location = os.path.join(config.config_dict()['CacheLocation'],
                                           '%s_%s.pkl' % (site, location_suffix))

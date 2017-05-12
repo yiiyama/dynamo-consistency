@@ -62,6 +62,8 @@ def get_phedex_tree(site):
 
     tree = datatypes.DirectoryInfo('/store')
 
+    valid_list = config.config_dict().get('DirectoryList', [])
+
     for ascii_code in range(65, 91) + range(97, 123):
         dataset = '/%s*/*/*' % chr(ascii_code)
         LOG.info('Getting PhEDEx contents for %s', dataset)
@@ -72,9 +74,12 @@ def get_phedex_tree(site):
             use_https=True)
 
         for block in phedex_response['phedex']['block']:
+            LOG.debug('%s', block)
             tree.add_file_list(
                 [(replica['name'], replica['bytes'],
-                  int(replica['time_create']), block['name']) \
-                     for replica in block['file']])
+                  int(replica['replica'][0]['time_create'] or time.time()),
+                  block['name']) \
+                     for replica in block['file'] \
+                     if replica['name'].split('/')[2] in valid_list])
 
     return tree
