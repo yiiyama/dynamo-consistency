@@ -87,8 +87,8 @@ class TestBase(unittest.TestCase):
 
         self.assertEqual(tree0.hash, tree1.hash,
                          '%s\n=\n%s' % (tree0.displays(), tree1.displays()))
-        self.assertEqual([fi['hash'] for fi in tree0._grab_first().files],
-                         [fi['hash'] for fi in tree1._grab_first().files])
+        self.assertEqual([fi['hash'] for fi in [tree0._grab_first().files[name] for name in sorted(tree0._grab_first().files)]],
+                         [fi['hash'] for fi in [tree0._grab_first().files[name] for name in sorted(tree1._grab_first().files)]])
         self.assertEqual(tree0.get_num_files(), tree1.get_num_files())
         self.assertEqual(tree0.get_num_files(True), tree1.get_num_files(True))
 
@@ -295,6 +295,22 @@ class TestInconsistentTrees(TestBase):
 
         self.assertEqual(self.tree.hash, self.listing.hash,
                          '%s\n=\n%s' % (self.tree.displays(), self.listing.displays()))
+
+    def test_new_and_old_file(self):
+        self.tree.add_file_list(self.orphan)
+        self.listing.add_file_list(self.missing)
+
+        name, size = self.new_file[0]
+
+        self.tree.add_file_list([(name, size, 1000000000)])
+
+        self.tree.setup_hash()
+
+        orphans, _, _ = self.listing.compare(self.tree)
+        self.assertEqual(len(orphans), 0)
+
+        missing, _, _ = self.tree.compare(self.listing)
+        self.assertEqual(len(orphans), 0)
 
     def test_same_dir(self):
         self.tree.add_file_list(self.orphan)

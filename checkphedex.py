@@ -8,6 +8,8 @@ the list of files and deletions in PhEDEx.
 import time
 import logging
 
+from common.interface.mysql import MySQL
+
 from CMSToolBox.webtools import get_json
 from . import config
 from . import datatypes
@@ -64,8 +66,14 @@ def get_phedex_tree(site):
 
     valid_list = config.config_dict().get('DirectoryList', [])
 
-    for ascii_code in range(65, 91) + range(97, 123):
-        dataset = '/%s*/*/*' % chr(ascii_code)
+    sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
+    datasets = sql.query('SELECT datasets.name '
+                         'FROM sites INNER JOIN dataset_replicas INNER JOIN datasets '
+                         'WHERE dataset_replicas.dataset_id=datasets.id AND '
+                         'dataset_replicas.site_id=sites.id and sites.name=%s', site)
+
+    for primary in set([d.split('/')[1][:3] for d in datasets]):
+        dataset = '/%s*/*/*' % primary
         LOG.info('Getting PhEDEx contents for %s', dataset)
 
         phedex_response = get_json(
@@ -73,13 +81,20 @@ def get_phedex_tree(site):
             {'node': site, 'dataset': dataset},
             use_https=True)
 
+        report = 0
+
         for block in phedex_response['phedex']['block']:
             LOG.debug('%s', block)
-            tree.add_file_list(
-                [(replica['name'], replica['bytes'],
-                  int(replica['replica'][0]['time_create'] or time.time()),
-                  block['name']) \
-                     for replica in block['file'] \
-                     if replica['name'].split('/')[2] in valid_list])
+            replica_list = [(replica['name'], replica['bytes'],
+                             int(replica['replica'][0]['time_create'] or time.time()),
+                             block['name']) \
+                                for replica in block['file'] \
+                                if replica['name'].split('/')[2] in valid_list]
+
+            report += len(replica_list)
+
+            tree.add_file_list(replica_list)
+
+        LOG.info('%i files', report)
 
     return tree

@@ -300,7 +300,6 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     for proc in processes:
         proc.join()
 
-    #dir_info.setup_hash()
     return dir_info
 
 
@@ -334,7 +333,7 @@ class DirectoryInfo(object):
         self.timestamp = time.time()
         self.name = name
         self.hash = None
-        self.files = []
+        self.files = {}
         self.add_files(files)
         self.mtime = None
 
@@ -349,7 +348,7 @@ class DirectoryInfo(object):
         """
 
         # Get the list of new files
-        existing_names = [fi['name'] for fi in self.files]
+        existing_names = [fi_name for fi_name in self.files]
         sorted_files = [fi for fi in sorted(files or []) \
                             if fi[0] not in existing_names]
 
@@ -361,7 +360,7 @@ class DirectoryInfo(object):
             else:
                 block = ''
 
-            self.files.append({
+            self.files[name] = {
                 'name': name,
                 'size': long(size),
                 'mtime': mtime,
@@ -371,7 +370,7 @@ class DirectoryInfo(object):
                     ).hexdigest(),
                 'can_compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp and
                                     name != '_unlisted_')
-                })
+                }
 
     def add_file_list(self, file_infos):
         """
@@ -421,8 +420,6 @@ class DirectoryInfo(object):
         for new_index, directory in enumerate(self.directories):
             self.directory_table[directory.name] = new_index
 
-        self.files.sort(key=lambda x: x['name'])
-
         hasher.update(self.name)
 
         for directory in self.directories:
@@ -437,7 +434,7 @@ class DirectoryInfo(object):
 
         LOG.debug('Making hash for directory named %s', self.name)
 
-        for file_info in self.files:
+        for file_info in [self.files[name] for name in sorted(self.files)]:
             if file_info['can_compare']:
                 # Add files that can be compared, and set self to be compared
                 self.can_compare = True
@@ -487,7 +484,7 @@ class DirectoryInfo(object):
             path = self.name
 
         output = 'compare: %i my hash: %s path: %s' % (int(self.can_compare), self.hash, path)
-        for file_info in self.files:
+        for file_info in [self.files[name] for name in sorted(self.files)]:
             output += ('\nmtime: %i size: %i my hash:%s name: %s' %
                        (file_info['mtime'], file_info['size'],
                         file_info['hash'], file_info['name']))
@@ -540,7 +537,7 @@ class DirectoryInfo(object):
         :rtype: int
         """
 
-        num_files = len([fi for fi in self.files \
+        num_files = len([fi for fi in self.files.values() \
                              if (fi['name'] == '_unlisted_') == unlisted])
         for directory in self.directories:
             num_files += directory.get_num_files(unlisted)
@@ -584,7 +581,7 @@ class DirectoryInfo(object):
         extra_dirs = []
         extra_size = long(0)
 
-        if '_unlisted_' in [fi['name'] for fi in self.files]:
+        if self.files.get('_unlisted_'):
             return extra_files, extra_dirs, extra_size
 
         here = os.path.join(path, self.name)
@@ -613,27 +610,25 @@ class DirectoryInfo(object):
                         # after files have been deleted
                         extra_dirs.append(os.path.join(here, directory.name))
 
-                for file_info in self.files:
+                for file_info in self.files.values():
                     if not file_info['can_compare']:
                         continue
 
                     # See if each file exists and has the correct hash
                     # Say all files are fine in a directory that is even partially '_unlisted_'
-                    found = False
-                    for to_match in other.files:
-                        if file_info['hash'] == to_match['hash'] or \
-                                to_match['name'] == '_unlisted_':
+                    found = bool(other.files.get('_unlisted_'))
+                    to_match = other.files.get(file_info['name'])
+                    if not found and to_match:
+                        if file_info['hash'] == to_match['hash']:
                             found = True
-                            break
 
                     full_name = os.path.join(path, self.name, file_info['name'])
-                    LOG.debug('0:Checking file name %s with %s', full_name, check)
                     if not found and (check is None or not check(full_name)):
                         extra_files.append(full_name)
         else:
             # If no other node to compare, all files are extra (not in the other tree)
             if self.files:
-                for file_info in self.files:
+                for file_info in self.files.values():
                     full_name = os.path.join(path, self.name, file_info['name'])
                     LOG.debug('1:Checking file name %s with %s', full_name, check)
                     if check is None or not check(full_name):
@@ -706,7 +701,7 @@ class DirectoryInfo(object):
             if self.files:
                 print 'Files:'
 
-            for file_info in self.files:
+            for file_info in [self.files[name] for name in sorted(self.files)]:
                 print file_info
 
         return self

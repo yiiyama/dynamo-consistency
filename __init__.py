@@ -43,7 +43,9 @@ def cache_tree(config_age, location_suffix):
 
                 LOG.info('Cache is no good, getting new tree')
                 tree = func(site)
+                LOG.info('Making hash')
                 tree.setup_hash()
+                LOG.info('Saving tree at %s', cache_location)
                 tree.save(cache_location)
 
             else:
