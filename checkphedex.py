@@ -1,3 +1,5 @@
+# pylint: disable=import-error
+
 """
 A module that provides functions to check the comparison results to
 the list of files and deletions in PhEDEx.
