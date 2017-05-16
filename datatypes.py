@@ -528,6 +528,10 @@ class DirectoryInfo(object):
 
         :param bool unlisted: If true, return number of unlisted directories,
                               Otherwise return only successfully listed files
+        :param bool place_new: If true, pretend there's one more file inside
+                               any new directory.
+                               This prevents listing of empty directories to include
+                               directories that should not actually be deleted.
         :returns: The number of files in the directory tree structure
         :rtype: int
         """
