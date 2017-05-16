@@ -43,7 +43,7 @@ def main(site):
     for line in missing:
         pass
 
-    for line in orphan + inv_tree.empty_nodes_list():
+    for line in orphan + site_tree.empty_nodes_list():
         sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
 
     shutil.copy('%s_compare_missing.txt' % site, webdir)
