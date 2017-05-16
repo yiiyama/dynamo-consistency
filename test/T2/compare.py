@@ -53,7 +53,7 @@ def main(site):
     conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
     curs = conn.cursor()
 
-    curs.execute('REPLACE INTO stats_v2 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    curs.execute('REPLACE INTO stats_v3 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME())',
                  (site, time.time() - start, site_tree.get_num_files(),
                   site_tree.count_nodes(), site_tree.count_nodes(True),
                   config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
