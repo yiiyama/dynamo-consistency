@@ -230,8 +230,6 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         try:
             # Get the info from the queue
             name, directories, files, _ = out_queue.get(True, 1)
-            LOG.debug('From out_queue, got %i directories and %i files for %s',
-                      len(directories), len(files), name)
 
             # Create the nodes and files
             built = dir_info.get_node(name)
@@ -325,12 +323,6 @@ class DirectoryInfo(object):
         else:
             self.directories = directories or []
 
-        # A dictionary that holds the links to list
-        self.directory_table = {}
-
-        for index, directory in enumerate(self.directories):
-            self.directory_table[directory.name] = index
-
         self.timestamp = time.time()
         self.name = name
         self.hash = None
@@ -417,10 +409,6 @@ class DirectoryInfo(object):
 
         # Sort the sub-directories and files
         self.directories.sort(key=lambda x: x.name)
-
-        for new_index, directory in enumerate(self.directories):
-            self.directory_table[directory.name] = new_index
-
         self.files.sort(key=lambda x: x['name'])
 
         hasher.update(self.name)
@@ -514,15 +502,19 @@ class DirectoryInfo(object):
             split_path = path.split('/')
             return_name = '/'.join(split_path[1:])
 
+            LOG.debug('path remaining: %s, searching for %s', path, split_path[0])
+
             # Search for if directory exists
-            index = self.directory_table.get(split_path[0])
-            if index is not None:
-                return self.directories[index].get_node(return_name, make_new)
+            LOG.debug('There are %i directories', len(self.directories))
+            for directory in self.directories:
+                LOG.debug('Checking %s', directory.name)
+                if split_path[0] == directory.name:
+                    LOG.debug('Found match!')
+                    return directory.get_node(return_name, make_new)
 
             # If not, make a new directory, or None
             if make_new:
                 new_dir = DirectoryInfo(split_path[0])
-                self.directory_table[split_path[0]] = len(self.directories)
                 self.directories.append(new_dir)
                 return new_dir.get_node(return_name, make_new)
 

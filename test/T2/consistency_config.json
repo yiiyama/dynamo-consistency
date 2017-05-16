@@ -4,7 +4,7 @@
   "InventoryAge": 5,
   "MinThreads": 4,
   "MaxThreads": 8,
-  "ListAge": 7,
+  "ListAge": 5,
   "IgnoreAge": 14,
   "RedirectorAge": 1,
   "CacheLocation": "cache",
