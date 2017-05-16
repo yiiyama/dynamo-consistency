@@ -523,7 +523,7 @@ class DirectoryInfo(object):
         # If no path, just return self
         return self
 
-    def get_num_files(self, unlisted=False):
+    def get_num_files(self, unlisted=False, place_new=False):
         """ Report the total number of files stored.
 
         :param bool unlisted: If true, return number of unlisted directories,
@@ -535,7 +535,10 @@ class DirectoryInfo(object):
         num_files = len([fi for fi in self.files \
                              if (fi['name'] == '_unlisted_') == unlisted])
         for directory in self.directories:
-            num_files += directory.get_num_files(unlisted)
+            num_files += directory.get_num_files(unlisted, place_new)
+
+        if place_new and not self.can_compare:
+            num_files += 1
 
         return num_files
 
@@ -654,6 +657,23 @@ class DirectoryInfo(object):
             count_this = 1
 
         return sum([directory.count_nodes(empty) for directory in self.directories], count_this)
+
+    def empty_nodes_list(self):
+        """
+        :returns: The list of empty directories to delete
+        :rtype: list
+        """
+
+        if not self.can_compare:
+            return []
+
+        to_return = [os.path.join(self.name, empty) for empty in \
+                         sum([directory.empty_nodes_list() for directory in self.directories],
+                             [])]
+
+        count_self = [] if self.get_num_files(place_new=True) else [self.name]
+
+        return to_return + count_self
 
     def listdir(self, *args, **kwargs):
         """
