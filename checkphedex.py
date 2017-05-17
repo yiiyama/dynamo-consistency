@@ -122,6 +122,6 @@ def get_phedex_tree(site):
     for dataset in [d for d in datasets if d.split('/')[1][:3] in separate]:
         success = add_files(dataset, 5)
         if not success:
-            LOG.critical('Cannot get %s from PhEDEx. Do not trust results...' % dataset)
+            LOG.critical('Cannot get %s from PhEDEx. Do not trust results...', dataset)
 
     return tree
