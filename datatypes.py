@@ -474,8 +474,8 @@ class DirectoryInfo(object):
         if not path:
             path = self.name
 
-        output = 'compare: %i mtime: %i my hash: %s path: %s' % \
-            (int(self.can_compare), self.mtime, self.hash, path)
+        output = 'compare: %i mtime: %s my hash: %s path: %s' % \
+            (int(self.can_compare), str(self.mtime), self.hash, path)
         for file_info in self.files:
             output += ('\nmtime: %i size: %i my hash:%s name: %s' %
                        (file_info['mtime'], file_info['size'],
