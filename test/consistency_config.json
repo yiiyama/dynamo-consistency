@@ -4,7 +4,7 @@
   "InventoryAge": 5e-05,
   "MinThreads": 0,
   "MaxThreads": 0,
-  "NumThreads": 16,
+  "NumThreads": 1,
   "ListAge": 5e-05,
   "IgnoreAge": 1,
   "RedirectorAge": 1,

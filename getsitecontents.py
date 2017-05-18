@@ -10,8 +10,6 @@ Tool to get the files located at a site.
 
 
 import re
-import os
-import time
 import logging
 import random
 
@@ -20,6 +18,7 @@ import timeout_decorator
 
 from . import config
 from . import datatypes
+from . import cache_tree
 
 LOG = logging.getLogger(__name__)
 
@@ -177,70 +176,52 @@ class XRootDLister(object):
         return okay, directories, files
 
 
+@cache_tree('ListAge', 'remotelisting')
 def get_site_tree(site):
     """
     Get the information for a site, from XRootD or a cache.
 
     :param str site: The site name
     :returns: The site directory listing information
-    :rtype: DirectoryInfo
+    :rtype: ConsistencyCheck.datatypes.DirectoryInfo
     """
 
-    cache_location = os.path.join(config.config_dict()['CacheLocation'],
-                                  '%s_remotelisting.pkl' % site)
+    # Get the redirector for a site
+    # The redirector can be used for a double check (not implemented yet...)
+    # The redir_list is used for the original listing
 
-    # Check the cache
-    if not os.path.exists(cache_location) or \
-            (time.time() - os.stat(cache_location).st_mtime) > \
-            config.config_dict().get('ListAge', 0) * 24 * 3600:
+    _, door_list = config.get_redirector(site)
+    LOG.debug('Full redirector list: %s', door_list)
 
-        # Get the redirector for a site
-        # The redirector can be used for a double check (not implemented yet...)
-        # The redir_list is used for the original listing
+    # Bool to determine if using both doors in each connection
+    do_both = bool(site in config.config_dict().get('BothList', []))
 
-        _, door_list = config.get_redirector(site)
-        LOG.debug('Full redirector list: %s', door_list)
+    min_threads = config.config_dict().get('MinThreads', 0)
 
-        # Bool to determine if using both doors in each connection
-        do_both = bool(site in config.config_dict().get('BothList', []))
+    while min_threads > (len(door_list) + 1)/2:
+        if do_both or len(door_list) % 2:
+            door_list.extend(door_list)
+        else:
+            # If even number of redirectors and not using both, stagger them
+            door_list.extend(door_list[1:])
+            door_list.append(door_list[0])
 
-        min_threads = config.config_dict().get('MinThreads', 0)
+    # Add the first door to the end, in case we have an odd number of doors
+    door_list.append(door_list[0])
 
-        while min_threads > (len(door_list) + 1)/2:
-            if do_both or len(door_list) % 2:
-                door_list.extend(door_list)
-            else:
-                # If even number of redirectors and not using both, stagger them
-                door_list.extend(door_list[1:])
-                door_list.append(door_list[0])
+    # Create DirectoryInfo for each directory to search (set in configuration file)
+    # The search is done with XRootDLister objects that have two doors and the thread
+    # number as initialization arguments.
+    directories = [
+        datatypes.create_dirinfo(
+            '/store/', directory, XRootDLister,
+            [(prim, back, site, thread_num, do_both) for prim, back, thread_num in \
+                 zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
+            for directory in config.config_dict().get('DirectoryList', [])
+        ]
 
-        # Add the first door to the end, in case we have an odd number of doors
-        door_list.append(door_list[0])
-
-        # Create DirectoryInfo for each directory to search (set in configuration file)
-        # The search is done with XRootDLister objects that have two doors and the thread
-        # number as initialization arguments.
-        directories = [
-            datatypes.create_dirinfo(
-                '/store/', directory, XRootDLister,
-                [(prim, back, site, thread_num, do_both) for prim, back, thread_num in \
-                     zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
-                for directory in config.config_dict().get('DirectoryList', [])
-            ]
-
-        # Merge the DirectoryInfo
-        LOG.info('Got full list. Making hash of contents')
-
-        info = datatypes.DirectoryInfo(name='/store', to_merge=directories)
-        info.setup_hash()
-
-        # Save
-        info.save(cache_location)
-
-    else:
-        # Just load the cache if it's good
-        LOG.info('Loading listing from cache: %s', cache_location)
-        info = datatypes.get_info(cache_location)
+    # Merge the DirectoryInfo
+    info = datatypes.DirectoryInfo(name='/store', to_merge=directories)
 
     # Return the DirectoryInfo
     return info

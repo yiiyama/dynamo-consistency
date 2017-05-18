@@ -99,6 +99,11 @@ class TestTree(TestBase):
                          len(self.file_list))
         self.assertEqual(self.tree.get_num_files(True), 0)
 
+    def test_two_lists(self):
+        self.tree.add_file_list(self.file_list)
+        self.assertEqual(self.tree.get_num_files(),
+                         len(self.file_list))
+
     def test_do_hash(self):
         self.assertFalse(self.tree.hash)
         self.tree.setup_hash()
@@ -312,6 +317,101 @@ class TestInconsistentTrees(TestBase):
         self.assertTrue(file_list)
         self.assertEqual(len(file_list), 1)
         self.assertEqual(file_list[0], same_dir[0][0])
+
+    def test_double_check(self):
+        file_base = os.path.join(TMP_DIR, 'report')
+
+        check_true = lambda dummy: True
+        check_false = lambda dummy: False
+        check_miss = lambda x: x in [y[0] for y in self.missing]
+        check_orph = lambda x: x in [y[0] for y in self.orphan]
+
+        # Remove orphan
+        for orphan_check, missing_check in [
+            (check_true, None),
+            (check_true, check_false),
+            (check_orph, check_false),
+            (check_orph, check_orph)
+            ]:
+
+            missing, m_size, orphan, o_size = datatypes.compare(
+                self.tree, self.listing, file_base, orphan_check, missing_check)
+
+            self.assertEqual(len(missing), 1)
+            self.assertTrue(m_size)
+            self.assertEqual(len(orphan), 0)
+            self.assertFalse(o_size)
+
+        # Remove missing
+        for orphan_check, missing_check in [
+            (None, check_true),
+            (check_false, check_true),
+            (check_false, check_miss),
+            (check_miss, check_miss)
+            ]:
+
+            missing, m_size, orphan, o_size = datatypes.compare(
+                self.tree, self.listing, file_base, orphan_check, missing_check)
+
+            self.assertEqual(len(missing), 0)
+            self.assertFalse(m_size)
+            self.assertEqual(len(orphan), 1)
+            self.assertTrue(o_size)
+
+        # Remove both
+        for orphan_check, missing_check in [
+            (check_true, check_true),
+            (check_orph, check_miss)
+            ]:
+
+            missing, m_size, orphan, o_size = datatypes.compare(
+                self.tree, self.listing, file_base, orphan_check, missing_check)
+
+            self.assertEqual(len(missing), 0)
+            self.assertFalse(m_size)
+            self.assertEqual(len(orphan), 0)
+            self.assertFalse(o_size)
+
+        # Remove neither
+        for orphan_check, missing_check in [
+            (None, None),
+            (check_false, check_false),
+            (check_miss, check_orph)
+            ]:
+
+            missing, m_size, orphan, o_size = datatypes.compare(
+                self.tree, self.listing, file_base, orphan_check, missing_check)
+
+            self.assertEqual(len(missing), 1)
+            self.assertTrue(m_size)
+            self.assertEqual(len(orphan), 1)
+            self.assertTrue(o_size)
+
+
+class TestUnlisted(TestBase):
+
+    unlisted_list = [
+        ('/store/mc/ttThings/0000/_unlisted', 0),
+        ('/store/mc/ttThings/0001/zxcvb.root', 50),
+        ('/store/data/runB/_unlisted_', 0),
+        ('/store/data/runB/earlyfile.root', 5),
+        ('/store/data/runA/0030/stuff.root', 10),
+        ]
+    
+    def do_more_setup(self):
+        self.unlisted_tree = datatypes.DirectoryInfo('/store')
+        self.unlisted_tree.add_file_list(self.unlisted_list)
+
+    def test_unlisted_missing(self):
+
+        missing, _, _ = self.tree.compare(self.unlisted_tree)
+        self.assertEqual(len(missing), 0)
+
+    def test_unlisted_orphan(self):
+
+        orphan, _, _ = self.unlisted_tree.compare(self.tree)
+        self.assertEqual(len(orphan), 0)
+
 
 if __name__ == '__main__':
 

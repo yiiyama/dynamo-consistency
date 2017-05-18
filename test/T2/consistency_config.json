@@ -1,13 +1,13 @@
 {
-  "Timeout": 60,
+  "Timeout": 120,
   "Retries": 1,
-  "InventoryAge": 5e-05,
-  "MinThreads": 8,
+  "InventoryAge": 5,
+  "MinThreads": 4,
   "MaxThreads": 8,
-  "ListAge": 5e-05,
-  "IgnoreAge": 1,
+  "ListAge": 5,
+  "IgnoreAge": 14,
   "RedirectorAge": 1,
-  "CacheLocation": "cache",
+  "CacheLocation": "/home/dabercro/OpsSpace/ConsistencyCheck/test/T2/cache",
   "Redirectors": {
     "T3_CH_PSI": "t3se01.psi.ch",
     "T3_US_MIT": "t3serv006.mit.edu"

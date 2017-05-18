@@ -339,16 +339,31 @@ class DirectoryInfo(object):
         :param list files: The tuples of file information.
                            Each element consists of file name, size, and mod time.
         """
-        self.files.extend([{
-            'name': name,
-            'size': size,
-            'mtime': mtime,
-            'hash': hashlib.sha1(
-                '%s %i' % (name, size)    # We are not comparing mtime for now
-                ).hexdigest(),
-            'can_compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp and
-                                name != '_unlisted_')
-            } for name, size, mtime in sorted(files or [])])
+
+        # Get the list of new files
+        existing_names = [fi['name'] for fi in self.files]
+        sorted_files = [fi for fi in sorted(files or []) \
+                            if fi[0] not in existing_names]
+
+        for file_info in sorted_files:
+            name, size, mtime = file_info[:3]
+
+            if len(file_info) > 3:
+                block = file_info[3]
+            else:
+                block = ''
+
+            self.files.append({
+                'name': name,
+                'size': long(size),
+                'mtime': mtime,
+                'block': block,
+                'hash': hashlib.sha1(
+                    '%s %i' % (name, size)    # We are not comparing mtime for now
+                    ).hexdigest(),
+                'can_compare': bool(mtime + IGNORE_AGE * 24 * 3600 < self.timestamp and
+                                    name != '_unlisted_')
+                })
 
     def add_file_list(self, file_infos):
         """
@@ -356,24 +371,31 @@ class DirectoryInfo(object):
         This is most useful when you get a list of files from some other source
         and want to easily convert that list into a :py:func:`DirectoryInfo`
 
-        :param list file_infos: The list of files (full path, size in bytes)
+        :param list file_infos: The list of files (full path, size in bytes[, timestamp])
         """
 
         files = []
         directory = ''
 
-        for name, size in file_infos:
+        for file_info in file_infos:
+
+            name, size = file_info[:2]
+            if len(file_info) > 2:
+                timestamp = file_info[2]
+            else:
+                timestamp = 0
+
             if directory and \
                     name.startswith(os.path.join(self.name, directory)):
                 # If in the old directory, append to the list of files
-                files.append((os.path.basename(name), size, 0))
+                files.append((os.path.basename(name), size, timestamp))
             else:
                 # When changing directories, append the files gathered in the last directory
                 self.get_node(directory).add_files(files)
                 # Get the new directory name
                 directory = os.path.dirname(name[len(self.name):].lstrip('/'))
                 # Reset the files list
-                files = [(os.path.basename(name), size, 0)]
+                files = [(os.path.basename(name), size, timestamp)]
 
         # Add data from the last directory
         self.get_node(directory).add_files(files)
@@ -452,7 +474,8 @@ class DirectoryInfo(object):
         if not path:
             path = self.name
 
-        output = 'compare: %i my hash: %s path: %s' % (int(self.can_compare), self.hash, path)
+        output = 'compare: %i mtime: %s my hash: %s path: %s' % \
+            (int(self.can_compare), str(self.mtime), self.hash, path)
         for file_info in self.files:
             output += ('\nmtime: %i size: %i my hash:%s name: %s' %
                        (file_info['mtime'], file_info['size'],
@@ -480,9 +503,14 @@ class DirectoryInfo(object):
             split_path = path.split('/')
             return_name = '/'.join(split_path[1:])
 
+            LOG.debug('path remaining: %s, searching for %s', path, split_path[0])
+
             # Search for if directory exists
+            LOG.debug('There are %i directories', len(self.directories))
             for directory in self.directories:
+                LOG.debug('Checking %s', directory.name)
                 if split_path[0] == directory.name:
+                    LOG.debug('Found match!')
                     return directory.get_node(return_name, make_new)
 
             # If not, make a new directory, or None
@@ -490,17 +518,21 @@ class DirectoryInfo(object):
                 new_dir = DirectoryInfo(split_path[0])
                 self.directories.append(new_dir)
                 return new_dir.get_node(return_name, make_new)
-            else:
-                return None
+
+            return None
 
         # If no path, just return self
         return self
 
-    def get_num_files(self, unlisted=False):
+    def get_num_files(self, unlisted=False, place_new=False):
         """ Report the total number of files stored.
 
         :param bool unlisted: If true, return number of unlisted directories,
                               Otherwise return only successfully listed files
+        :param bool place_new: If true, pretend there's one more file inside
+                               any new directory.
+                               This prevents listing of empty directories to include
+                               directories that should not actually be deleted.
         :returns: The number of files in the directory tree structure
         :rtype: int
         """
@@ -508,7 +540,10 @@ class DirectoryInfo(object):
         num_files = len([fi for fi in self.files \
                              if (fi['name'] == '_unlisted_') == unlisted])
         for directory in self.directories:
-            num_files += directory.get_num_files(unlisted)
+            num_files += directory.get_num_files(unlisted, place_new)
+
+        if place_new and not self.can_compare:
+            num_files += 1
 
         return num_files
 
@@ -531,19 +566,26 @@ class DirectoryInfo(object):
 
         return output
 
-    def compare(self, other, path=''):
+    def compare(self, other, path='', check=None):
         """ Does one way comparison with a different tree
 
         :param DirectoryInfo other: The directory tree to compare this one to
         :param str path: Is the path to get to this location so far
+        :param check: An optional function that double checks a file name.
+                      If the checking function returns ``True`` for a file name,
+                      the file will not be included in the output.
+        :type check: function
         :returns: Tuple of list of files and directories that are present and not in the other tree
                   and the size of the files that corresponds to
-        :rtype: list, list, int
+        :rtype: list, list, long
         """
 
         extra_files = []
         extra_dirs = []
-        extra_size = 0
+        extra_size = long(0)
+
+        if '_unlisted_' in [fi['name'] for fi in self.files]:
+            return extra_files, extra_dirs, extra_size
 
         here = os.path.join(path, self.name)
 
@@ -558,7 +600,7 @@ class DirectoryInfo(object):
 
                     # Recursive check of extra files and directories here
                     new_other = other.get_node(directory.name, False)
-                    more_files, more_dirs, more_size = directory.compare(new_other, here)
+                    more_files, more_dirs, more_size = directory.compare(new_other, here, check)
                     extra_size += more_size
                     extra_files.extend(more_files)
                     if new_other:
@@ -584,18 +626,23 @@ class DirectoryInfo(object):
                             found = True
                             break
 
-                    if not found:
-                        extra_files.append(os.path.join(path, self.name, file_info['name']))
+                    full_name = os.path.join(path, self.name, file_info['name'])
+                    LOG.debug('0:Checking file name %s with %s', full_name, check)
+                    if not found and (check is None or not check(full_name)):
+                        extra_files.append(full_name)
         else:
             # If no other node to compare, all files are extra (not in the other tree)
             if self.files:
                 for file_info in self.files:
-                    extra_files.append(os.path.join(path, self.name, file_info['name']))
-                    extra_size += file_info['size']
+                    full_name = os.path.join(path, self.name, file_info['name'])
+                    LOG.debug('1:Checking file name %s with %s', full_name, check)
+                    if check is None or not check(full_name):
+                        extra_files.append(os.path.join(path, self.name, file_info['name']))
+                        extra_size += file_info['size']
 
             # All directories are extra too
             for directory in self.directories:
-                more_files, _, more_size = directory.compare(None, here)
+                more_files, _, more_size = directory.compare(None, here, check)
                 extra_size += more_size
                 extra_files.extend(more_files)
 
@@ -615,6 +662,23 @@ class DirectoryInfo(object):
             count_this = 1
 
         return sum([directory.count_nodes(empty) for directory in self.directories], count_this)
+
+    def empty_nodes_list(self):
+        """
+        :returns: The list of empty directories to delete
+        :rtype: list
+        """
+
+        if not self.can_compare:
+            return []
+
+        to_return = [os.path.join(self.name, empty) for empty in \
+                         sum([directory.empty_nodes_list() for directory in self.directories],
+                             [])]
+
+        count_self = [] if self.get_num_files(place_new=True) else [self.name]
+
+        return to_return + count_self
 
     def listdir(self, *args, **kwargs):
         """
@@ -664,6 +728,28 @@ class DirectoryInfo(object):
 
         return self
 
+    def get_file(self, file_name):
+        """
+        Get the file dictionary based off the name.
+
+        :param str file_name: The LFN of the file
+        :returns: Dictionary of file information
+        :rtype: dict
+        """
+
+        exploded_name = file_name[len(self.name) + 1:].split('/')
+        desired_name = exploded_name[-1]
+        node = self.get_node('/'.join(exploded_name[:-1]))
+        LOG.debug('%s -> %s', file_name, exploded_name)
+        LOG.debug('Got node: %s with %i files', node, len(node.files))
+        for file_info in node.files:
+            LOG.debug('Checking %s', file_info)
+            if file_info['name'] == desired_name:
+                LOG.debug('Found match! Returning.')
+                return file_info
+
+        return None
+
 def get_info(file_name):
     """
     Get the DirectoryInfo from a file.
@@ -680,7 +766,7 @@ def get_info(file_name):
     return output
 
 
-def compare(inventory, listing, output_base):
+def compare(inventory, listing, output_base, orphan_check=None, missing_check=None):
     """
     Compare two different trees and output the differences into an ASCII file
 
@@ -688,10 +774,20 @@ def compare(inventory, listing, output_base):
     :param DirectoryInfo listing: The tree of files that are listed remotely
     :param str output_base: The names of the ASCII files to place the reports
                             are generated from this variable.
+    :param function orphan_check: A function that double checks each expected orphan
+    :param function missing_check: A function checks each expected missing file
+    :returns: The two lists, missing and orphan files
+    :rtype: tuple
     """
 
-    missing, _, _ = inventory.compare(listing)
-    orphan, _, _ = listing.compare(inventory)
+    LOG.info('About to perform comparison. Results will be in files starting with %s',
+             output_base)
+    LOG.debug('Double checking missing with %s', missing_check)
+    missing, _, m_size = inventory.compare(listing, check=missing_check)
+    LOG.info('There are %i missing files', len(missing))
+    LOG.debug('Double checking orphans with %s', orphan_check)
+    orphan, _, o_size = listing.compare(inventory, check=orphan_check)
+    LOG.info('There are %i orphan files', len(orphan))
 
     with open('%s_missing.txt' % output_base, 'w') as missing_file:
         for line in missing:
@@ -700,3 +796,5 @@ def compare(inventory, listing, output_base):
     with open('%s_orphan.txt' % output_base, 'w') as orphan_file:
         for line in orphan:
             orphan_file.write(line + '\n')
+
+    return missing, m_size, orphan, o_size
