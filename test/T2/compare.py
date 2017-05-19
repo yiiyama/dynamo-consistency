@@ -28,7 +28,14 @@ def main(site):
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
-#    acceptable_orphans.update(getinventorycontents.set_of_ignored())
+
+    inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
+    inv_datasets = inv_sql.query('SELECT datasets.name '
+                                 'FROM sites INNER JOIN dataset_replicas INNER JOIN datasets '
+                                 'WHERE dataset_replicas.dataset_id=datasets.id AND '
+                                 'dataset_replicas.site_id=sites.id and sites.name=%s', site)
+
+    acceptable_orphans.update(inv_datasets)
 
     def double_check(file_name):
         split_name = file_name.split('/')
