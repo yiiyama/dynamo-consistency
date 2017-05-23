@@ -22,5 +22,9 @@
   ],
   "BothList": [
     "T1_US_FNAL"
+  ],
+  "GlobalRedirectors": [
+    "xrootd-redic.pi.infn.it",
+    "cmsxrootd1.fnal.gov"
   ]
 }

@@ -83,6 +83,52 @@ def config_dict():
     return output
 
 
+def locate_file(file_name, redirs=None):
+    """
+    Find servers for a file.
+
+    :param str file_name: Name of the file to locate
+    :param list redirs: Global redirectors to start from.
+                        If blank, gets them from the configuration file.
+    :returns: List of hostnames that hold the file
+    :rtype: list
+    """
+
+    # The final list of hosts. Only include Server ReadWrite
+    output = []
+    # This is where we store Manager ReadWrite responses.
+    # Call these recursively to get the servers behind them.
+    managers = []
+
+    if redirs is None:
+        redirs = config_dict()['GlobalRedirectors']
+
+    for redir in redirs:
+        LOG.debug('About to call: %s %s %s %s', 'xrdfs', redir, 'locate -h', file_name)
+        proc = subprocess.Popen(['xrdfs', redir, 'locate', '-h', file_name],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        stdout, stderr = proc.communicate()
+
+        if stderr:
+            LOG.error('Error in locate call:\n%s', stderr)
+
+        LOG.debug('Stdout:\n%s', stdout)
+
+        for line in [line for line in stdout.split('\n') if line.strip()]:
+            explode = line.split()
+            if explode[1] == 'Server':
+                output.append(explode[0])
+            else:
+                managers.append(explode[0])
+
+    # Recursively call managers
+    if managers:
+        output.extend(locate_file(file_name, managers))
+
+    return output
+
+
 def _xrd_locate(redirs, file_name, max_age):
     """
     Dump the redirectors from a xrdfs locate call into a file.
@@ -138,7 +184,7 @@ def get_redirector(site, banned_doors=None):
         # First check the cache
         file_name = os.path.join(config['CacheLocation'], 'redirector_list.txt')
 
-        _xrd_locate(['xrootd-redic.pi.infn.it', 'cmsxrootd1.fnal.gov'],
+        _xrd_locate(config['GlobalRedirectors'],
                     file_name, max_age)
 
         # Parse for a correct redirector

@@ -13,14 +13,13 @@ from ConsistencyCheck import datatypes
 from ConsistencyCheck import config
 from ConsistencyCheck import checkphedex
 
+from CMSToolBox.webtools import get_json
+from CMSToolBox.siteinfo import get_site
 from common.interface.mysql import MySQL
 
 def main(site):
     start = time.time()
     webdir = '/home/dabercro/public_html/ConsistencyCheck'
-
-    sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
-    sql.query('DELETE FROM `deletion_queue` WHERE `target`=%s', site)
 
     site_tree = getsitecontents.get_site_tree(site)
     inv_tree = checkphedex.get_phedex_tree(site)
@@ -28,7 +27,14 @@ def main(site):
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
-#    acceptable_orphans.update(getinventorycontents.set_of_ignored())
+
+    inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
+    inv_datasets = inv_sql.query('SELECT datasets.name '
+                                 'FROM sites INNER JOIN dataset_replicas INNER JOIN datasets '
+                                 'WHERE dataset_replicas.dataset_id=datasets.id AND '
+                                 'dataset_replicas.site_id=sites.id and sites.name=%s', site)
+
+    acceptable_orphans.update(inv_datasets)
 
     def double_check(file_name):
         split_name = file_name.split('/')
@@ -38,10 +44,32 @@ def main(site):
             print 'Strange file name: %s' % file_name
             return True
 
+    # Do the comparison
     missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site, orphan_check=double_check)
 
+    # Reset things for site in register
+    sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
+    sql.query('DELETE FROM `deletion_queue` WHERE `target`=%s', site)
+    sql.query('DELETE FROM `transfer_queue` WHERE `target`=%s', site)
+
     for line in missing:
-        pass
+        # First, get potential locations of the file
+        response = get_json(
+            'cmsweb.cern.ch', '/phedex/datasvc/json/prod/filereplicas', {'lfn': line}, use_https=True)
+        sites = [replica['node'] for replica in response['phedex']['block'][0]['file'][0]['replica'] \
+                     if replica['node'] != site]
+
+        # Get actual locations of the file
+        hosts = config.locate_file(line)
+        physical_sites = [get_site(host) for host in hosts]
+
+        for source in sites:
+            if source in physical_sites:
+
+                sql.query(
+                    'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
+                    line, source, site)
+                break
 
     for line in orphan + site_tree.empty_nodes_list():
         sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
@@ -55,7 +83,7 @@ def main(site):
 
     curs.execute('REPLACE INTO stats_v3 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME())',
                  (site, time.time() - start, site_tree.get_num_files(),
-                  site_tree.count_nodes(), site_tree.count_nodes(True),
+                  site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
                   config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
                   len(missing), m_size, len(orphan), o_size))
 
