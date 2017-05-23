@@ -16,6 +16,8 @@
 # - **InventoryAge** - The age, in days, of how old the information from the inventory can be
 # - **ListAge** - The age, in days, of how old the list of files directly from the site can be
 # - **RedirectorAge** - The age, in days, of how old the information about redirectors can be
+# - **GlobalRedirectors** - The redirectors to start all locate calls from, unless looking
+#   for a site that is listed in the **Redirectors** configuration.
 # - **Redirectors** - A dictionary with keys of sites with hard-coded redirector locations.
 #   If a site is not listed in this way, the redirector is found by matching domains from
 #   :py:func:`CMSToolBox.siteinfo.get_domain` to redirectors found in a generic ``xrdfs locate`` call.
@@ -64,3 +66,7 @@ IgnoreAge: 1
 
 BothList:
   - T1_US_FNAL
+
+GlobalRedirectors:
+  - xrootd-redic.pi.infn.it
+  - cmsxrootd1.fnal.gov
