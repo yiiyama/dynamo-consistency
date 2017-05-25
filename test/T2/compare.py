@@ -22,8 +22,7 @@ def main(site):
     webdir = '/home/dabercro/public_html/ConsistencyCheck'
 
     site_tree = getsitecontents.get_site_tree(site)
-    inv_tree = checkphedex.get_phedex_tree(site)
-#    inv_tree = getinventorycontents.get_site_inventory(site)
+    inv_tree = getinventorycontents.get_db_listing(site)
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
