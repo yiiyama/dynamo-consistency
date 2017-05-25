@@ -113,6 +113,8 @@ def get_db_listing(site):
     # Get list of files
     curs = inv_sql._connection.cursor()
 
+    LOG.info('About to make MySQL query for files at %s', site)
+
     curs.execute('SELECT files.name, files.size, dataset_replicas.last_block_created '
                  'FROM block_replicas '
                  'INNER JOIN sites ON block_replicas.site_id = sites.id '
@@ -122,6 +124,8 @@ def get_db_listing(site):
                  'AND dataset_replicas.site_id = sites.id '
                  'WHERE block_replicas.is_complete = 1 AND sites.name = %s '
                  'ORDER BY files.name ASC', (site,))
+
+    LOG.info('MySQL query returned')
 
     dirs_to_look = iter(sorted(config.config_dict()['DirectoryList']))
 
