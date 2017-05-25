@@ -365,6 +365,8 @@ class DirectoryInfo(object):
                                     name != '_unlisted_')
                 })
 
+        self.files.sort(key=lambda x: x['name'])
+
     def add_file_list(self, file_infos):
         """
         Add a list of tuples containing file_name, file_size to the node.

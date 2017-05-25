@@ -22,17 +22,17 @@ def main(site):
     webdir = '/home/dabercro/public_html/ConsistencyCheck'
 
     site_tree = getsitecontents.get_site_tree(site)
-    inv_tree = checkphedex.get_phedex_tree(site)
-#    inv_tree = getinventorycontents.get_site_inventory(site)
+    inv_tree = getinventorycontents.get_db_listing(site)
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
 
     inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
-    inv_datasets = inv_sql.query('SELECT datasets.name '
-                                 'FROM sites INNER JOIN dataset_replicas INNER JOIN datasets '
-                                 'WHERE dataset_replicas.dataset_id=datasets.id AND '
-                                 'dataset_replicas.site_id=sites.id and sites.name=%s', site)
+    inv_datasets = inv_sql.query('SELECT datasets.name FROM sites '
+                                 'INNER JOIN dataset_replicas ON dataset_replicas.site_id=sites.id '
+                                 'INNER JOIN datasets ON dataset_replicas.dataset_id=datasets.id'
+                                 'WHERE sites.name=%s', site)
+    inv_sql.close()
 
     acceptable_orphans.update(inv_datasets)
 
@@ -74,6 +74,7 @@ def main(site):
     for line in orphan + site_tree.empty_nodes_list():
         sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
 
+    sql.close()
     shutil.copy('%s_compare_missing.txt' % site, webdir)
     shutil.copy('%s_compare_orphan.txt' % site, webdir)
 

@@ -1,4 +1,4 @@
-# pylint: disable=import-error
+# pylint: disable=import-error, protected-access
 
 """
 This module gets the information from the inventory about a site's contents
@@ -12,6 +12,7 @@ import logging
 from common.inventory import InventoryManager
 from common.dataformat import File
 from common.dataformat import Dataset
+from common.interface.mysql import MySQL
 
 from . import datatypes
 from . import config
@@ -95,3 +96,56 @@ def set_of_ignored():
             ignored.add(dataset)
 
     return ignored
+
+
+def get_db_listing(site):
+    """
+    Get the list of files from dynamo database directly from MySQL.
+
+    :param str site: The name of the site to load
+    :returns: The file replicas that are supposed to be at a site
+    :rtype: ConsistencyCheck.datatypes.DirectoryInfo
+    """
+
+    inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
+
+    # Get list of files
+    curs = inv_sql._connection.cursor()
+
+    LOG.info('About to make MySQL query for files at %s', site)
+
+    curs.execute('SELECT files.name, files.size, dataset_replicas.last_block_created '
+                 'FROM block_replicas '
+                 'INNER JOIN sites ON block_replicas.site_id = sites.id '
+                 'INNER JOIN files ON block_replicas.block_id = files.block_id '
+                 'INNER JOIN blocks ON block_replicas.block_id = blocks.id '
+                 'INNER JOIN dataset_replicas ON blocks.dataset_id = dataset_replicas.dataset_id '
+                 'AND dataset_replicas.site_id = sites.id '
+                 'WHERE block_replicas.is_complete = 1 AND sites.name = %s '
+                 'ORDER BY files.name ASC', (site,))
+
+    LOG.info('MySQL query returned')
+
+    dirs_to_look = iter(sorted(config.config_dict()['DirectoryList']))
+
+    files_to_add = []
+    look_dir = ''
+    name, size, date_time = curs.fetchone() or ('', 0, None)
+
+    while name:
+        current_directory = name.split('/')[2]
+        try:
+            while look_dir < current_directory:
+                look_dir = next(dirs_to_look)
+        except StopIteration:
+            break
+
+        if current_directory == look_dir:
+            files_to_add.append((name, size, time.mktime(date_time.timetuple())))
+
+        name, size, date_time = curs.fetchone() or ('', 0, None)
+
+    tree = datatypes.DirectoryInfo('/store')
+    tree.add_file_list(files_to_add)
+
+    return tree

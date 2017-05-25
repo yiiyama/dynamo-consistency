@@ -1,7 +1,7 @@
 {
   "Timeout": 120,
   "Retries": 1,
-  "InventoryAge": 5,
+  "InventoryAge": 1,
   "MinThreads": 4,
   "MaxThreads": 8,
   "ListAge": 5,
