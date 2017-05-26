@@ -30,7 +30,7 @@ def main(site):
     inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
     inv_datasets = inv_sql.query('SELECT datasets.name FROM sites '
                                  'INNER JOIN dataset_replicas ON dataset_replicas.site_id=sites.id '
-                                 'INNER JOIN datasets ON dataset_replicas.dataset_id=datasets.id'
+                                 'INNER JOIN datasets ON dataset_replicas.dataset_id=datasets.id '
                                  'WHERE sites.name=%s', site)
     inv_sql.close()
 
@@ -52,24 +52,25 @@ def main(site):
     sql.query('DELETE FROM `deletion_queue` WHERE `target`=%s', site)
     sql.query('DELETE FROM `transfer_queue` WHERE `target`=%s', site)
 
-    for line in missing:
-        # First, get potential locations of the file
-        response = get_json(
-            'cmsweb.cern.ch', '/phedex/datasvc/json/prod/filereplicas', {'lfn': line}, use_https=True)
-        sites = [replica['node'] for replica in response['phedex']['block'][0]['file'][0]['replica'] \
-                     if replica['node'] != site]
+    if len(missing) < 100:
+        for line in missing:
+            # First, get potential locations of the file
+            response = get_json(
+                'cmsweb.cern.ch', '/phedex/datasvc/json/prod/filereplicas', {'lfn': line}, use_https=True)
+            sites = [replica['node'] for replica in response['phedex']['block'][0]['file'][0]['replica'] \
+                         if replica['node'] != site]
 
-        # Get actual locations of the file
-        hosts = config.locate_file(line)
-        physical_sites = [get_site(host) for host in hosts]
+            # Get actual locations of the file
+            hosts = config.locate_file(line)
+            physical_sites = [get_site(host) for host in hosts]
 
-        for source in sites:
-            if source in physical_sites:
+            for source in sites:
+                if source in physical_sites:
 
-                sql.query(
-                    'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
-                    line, source, site)
-                break
+                    sql.query(
+                        'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
+                        line, source, site)
+                    break
 
     for line in orphan + site_tree.empty_nodes_list():
         sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
@@ -108,7 +109,7 @@ if __name__ == '__main__':
     else:
         sites.append(sys.argv[-1])
 
-    print 'About to run over %s' % sites
+    logging.getLogger(__name__).info('About to run over %s', sites)
 
     for site in sites:
         main(site)

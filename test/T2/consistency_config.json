@@ -1,12 +1,12 @@
 {
-  "Timeout": 120,
+  "Timeout": 300,
   "Retries": 1,
-  "InventoryAge": 1,
+  "InventoryAge": 2,
   "MinThreads": 4,
   "MaxThreads": 8,
   "ListAge": 5,
   "IgnoreAge": 14,
-  "RedirectorAge": 1,
+  "RedirectorAge": 50,
   "CacheLocation": "/home/dabercro/OpsSpace/ConsistencyCheck/test/T2/cache",
   "Redirectors": {
     "T3_CH_PSI": "t3se01.psi.ch",

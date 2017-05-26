@@ -98,6 +98,7 @@ def set_of_ignored():
     return ignored
 
 
+@cache_tree('InventoryAge', 'mysqllisting')
 def get_db_listing(site):
     """
     Get the list of files from dynamo database directly from MySQL.
