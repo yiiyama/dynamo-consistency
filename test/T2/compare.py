@@ -32,9 +32,9 @@ def main(site):
                                  'INNER JOIN dataset_replicas ON dataset_replicas.site_id=sites.id '
                                  'INNER JOIN datasets ON dataset_replicas.dataset_id=datasets.id '
                                  'WHERE sites.name=%s', site)
-    inv_sql.close()
 
     acceptable_orphans.update(inv_datasets)
+    acceptable_orphans.update(inv_sql.query('SELECT name FROM datasets WHERE status=%s', 'IGNORED'))
 
     def double_check(file_name):
         split_name = file_name.split('/')
@@ -48,34 +48,29 @@ def main(site):
     missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site, orphan_check=double_check)
 
     # Reset things for site in register
-    sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
-    sql.query('DELETE FROM `deletion_queue` WHERE `target`=%s', site)
-    sql.query('DELETE FROM `transfer_queue` WHERE `target`=%s', site)
+    reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
+    reg_sql.query('DELETE FROM `deletion_queue` WHERE `target`=%s', site)
+    reg_sql.query('DELETE FROM `transfer_queue` WHERE `target`=%s', site)
 
-    if len(missing) < 100:
-        for line in missing:
-            # First, get potential locations of the file
-            response = get_json(
-                'cmsweb.cern.ch', '/phedex/datasvc/json/prod/filereplicas', {'lfn': line}, use_https=True)
-            sites = [replica['node'] for replica in response['phedex']['block'][0]['file'][0]['replica'] \
-                         if replica['node'] != site]
+    for line in missing:
 
-            # Get actual locations of the file
-            hosts = config.locate_file(line)
-            physical_sites = [get_site(host) for host in hosts]
+        sites = inv_sql.query(
+            'SELECT sites.name FROM sites '
+            'INNER JOIN block_replicas ON sites.id = block_replicas.site_id '
+            'INNER JOIN files ON block_replicas.block_id = files.block_id '
+            'WHERE files.name = %s AND sites.name != %s',
+            line, site)
 
-            for source in sites:
-                if source in physical_sites:
-
-                    sql.query(
-                        'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
-                        line, source, site)
-                    break
+        if sites:
+            reg_sql.query(
+                'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
+                line, sites[0], site)
 
     for line in orphan + site_tree.empty_nodes_list():
-        sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
+        reg_sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
 
-    sql.close()
+    inv_sql.close()
+    reg_sql.close()
     shutil.copy('%s_compare_missing.txt' % site, webdir)
     shutil.copy('%s_compare_orphan.txt' % site, webdir)
 
