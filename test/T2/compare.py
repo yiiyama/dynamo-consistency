@@ -23,6 +23,7 @@ def main(site):
 
     site_tree = getsitecontents.get_site_tree(site)
     inv_tree = getinventorycontents.get_db_listing(site)
+#    inv_tree = checkphedex.get_phedex_tree(site)
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
@@ -36,6 +37,10 @@ def main(site):
     acceptable_orphans.update(inv_datasets)
     acceptable_orphans.update(inv_sql.query('SELECT name FROM datasets WHERE status=%s', 'IGNORED'))
 
+    protected_unmerged = get_json('cmst2.web.cern.ch', '/cmst2/unified/listProtectedLFN.txt')
+    acceptable_orphans.update(['/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) for split_name in \
+                                   [name.split('/') for name in protected_unmerged['protected']]])
+
     def double_check(file_name):
         split_name = file_name.split('/')
         try:
@@ -48,7 +53,11 @@ def main(site):
     missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site, orphan_check=double_check)
 
     # Reset things for site in register
-    reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
+    if site == 'T2_US_MIT':
+        reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
+    else:
+        reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
+
     reg_sql.query('DELETE FROM `deletion_queue` WHERE `target`=%s', site)
     reg_sql.query('DELETE FROM `transfer_queue` WHERE `target`=%s', site)
 
@@ -62,9 +71,10 @@ def main(site):
             line, site)
 
         if sites:
-            reg_sql.query(
-                'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
-                line, sites[0], site)
+            for location in sites:
+                reg_sql.query(
+                    'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
+                    line, location, site)
 
     for line in orphan + site_tree.empty_nodes_list():
         reg_sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
