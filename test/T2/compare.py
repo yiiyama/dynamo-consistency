@@ -46,7 +46,7 @@ def main(site):
         try:
             return '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) in acceptable_orphans
         except:
-            print 'Strange file name: %s' % file_name
+            logging.getLogger(__name__).warning('Strange file name: %s', file_name)
             return True
 
     # Do the comparison
