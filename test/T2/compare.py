@@ -58,8 +58,8 @@ def main(site):
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
 
-    reg_sql.query('DELETE FROM `deletion_queue` WHERE `target`=%s', site)
-    reg_sql.query('DELETE FROM `transfer_queue` WHERE `target`=%s', site)
+#    reg_sql.query('DELETE FROM `deletion_queue` WHERE `site`=%s', site)
+#    reg_sql.query('DELETE FROM `transfer_queue` WHERE `site_to`=%s', site)
 
     for line in missing:
 
@@ -73,11 +73,11 @@ def main(site):
         if sites:
             for location in sites:
                 reg_sql.query(
-                    'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
+                    'INSERT IGNORE INTO `transfer_queue` (`file`, `site_from`, `site_to`, `status`, `reqid`) VALUES (%s, %s, %s, \'new\', 0)',
                     line, location, site)
 
     for line in orphan + site_tree.empty_nodes_list():
-        reg_sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
+        reg_sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `site`, `created`) VALUES (%s, %s, NOW())', line, site)
 
     inv_sql.close()
     reg_sql.close()

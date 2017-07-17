@@ -142,6 +142,7 @@ def get_db_listing(site):
             break
 
         if current_directory == look_dir:
+            LOG.debug('Adding file: %s, %i', name, size)
             files_to_add.append((name, size, time.mktime(date_time.timetuple())))
 
         name, size, date_time = curs.fetchone() or ('', 0, None)

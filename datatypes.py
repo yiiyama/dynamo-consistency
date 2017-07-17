@@ -396,6 +396,8 @@ class DirectoryInfo(object):
                 self.get_node(directory).add_files(files)
                 # Get the new directory name
                 directory = os.path.dirname(name[len(self.name):].lstrip('/'))
+                if directory[-1] != '/':
+                    directory += '/'
                 # Reset the files list
                 files = [(os.path.basename(name), size, timestamp)]
 
