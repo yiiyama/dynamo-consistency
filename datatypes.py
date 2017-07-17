@@ -1,6 +1,6 @@
 # pylint: disable=bad-option-value, too-many-locals, too-many-branches, too-many-statements, too-complex
 #
-# Here there be dragons, but they're tested :)
+# Here there be dragons
 #
 
 """
@@ -387,17 +387,16 @@ class DirectoryInfo(object):
             else:
                 timestamp = 0
 
-            if directory and \
-                    name.startswith(os.path.join(self.name, directory)):
+            new_dir = os.path.dirname(name[len(self.name):].lstrip('/'))
+
+            if directory == new_dir:
                 # If in the old directory, append to the list of files
                 files.append((os.path.basename(name), size, timestamp))
             else:
                 # When changing directories, append the files gathered in the last directory
                 self.get_node(directory).add_files(files)
                 # Get the new directory name
-                directory = os.path.dirname(name[len(self.name):].lstrip('/'))
-                if directory[-1] != '/':
-                    directory += '/'
+                directory = new_dir
                 # Reset the files list
                 files = [(os.path.basename(name), size, timestamp)]
 

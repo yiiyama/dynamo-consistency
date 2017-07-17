@@ -60,8 +60,8 @@ class TestBase(unittest.TestCase):
         ('/store/mc/ttThings/0001/zxcvb.root', 50),
         ('/store/mc/ttThings/0000/doulb.root', 30),
         ('/store/mc/ttThings/00000/extra_zero.root', 30),
-        ('/store/data/runB/0001/missi.root', 45),
         ('/store/data/runB/earlyfile.root', 5),
+        ('/store/data/runB/0001/missi.root', 45),
         ('/store/data/runA/0030/stuff.root', 10),
         ]
 
