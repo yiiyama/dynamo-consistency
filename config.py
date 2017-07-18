@@ -74,8 +74,8 @@ def config_dict(make_dir=True):
     cache_location = output.get('CacheLocation')
 
     # Create the directory holding the cache
-    if cache_location and make_dir:
-        if not os.path.exists(cache_location):
+    if cache_location:
+        if not os.path.exists(cache_location) and make_dir:
             os.makedirs(cache_location)
     else:
         raise KeyError('Configuration dictionary does not have a Cache Location set. '
