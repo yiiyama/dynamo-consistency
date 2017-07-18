@@ -10,6 +10,7 @@ import os
 import time
 import logging
 
+from functools import wraps
 from . import config
 from . import datatypes
 
@@ -31,6 +32,7 @@ def cache_tree(config_age, location_suffix):
 
     def func_decorator(func):
 
+        @wraps(func)
         def do_function(site):
 
             cache_location = os.path.join(config.config_dict()['CacheLocation'],

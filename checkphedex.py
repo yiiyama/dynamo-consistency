@@ -133,6 +133,10 @@ def check_for_datasets(site, orphan_list_file):
     according to PhEDEx, but has files marked as orphans according to our check.
     For now, we are trying to ignore any orphans that belong to any dataset at all
     subscribed to a given site.
+    Datasets where that is violated are printed to the terminal.
+
+    :param str site: The name of the site to check
+    :param list orphan_list_file: List of LFNs that are listed as orphans at the site
     """
 
     datasets = set()
