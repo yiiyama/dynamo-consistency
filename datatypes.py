@@ -1,6 +1,6 @@
 # pylint: disable=bad-option-value, too-many-locals, too-many-branches, too-many-statements, too-complex
 #
-# Here there be dragons, but they're tested :)
+# Here there be dragons
 #
 
 """
@@ -387,15 +387,16 @@ class DirectoryInfo(object):
             else:
                 timestamp = 0
 
-            if directory and \
-                    name.startswith(os.path.join(self.name, directory)):
+            new_dir = os.path.dirname(name[len(self.name):].lstrip('/'))
+
+            if directory == new_dir:
                 # If in the old directory, append to the list of files
                 files.append((os.path.basename(name), size, timestamp))
             else:
                 # When changing directories, append the files gathered in the last directory
                 self.get_node(directory).add_files(files)
                 # Get the new directory name
-                directory = os.path.dirname(name[len(self.name):].lstrip('/'))
+                directory = new_dir
                 # Reset the files list
                 files = [(os.path.basename(name), size, timestamp)]
 
@@ -424,8 +425,6 @@ class DirectoryInfo(object):
             # Ignore newer directories or any others that don't want to be compared
             if directory.can_compare:
                 hasher.update('%s %s' % (directory.name, directory.hash))
-
-        LOG.debug('Making hash for directory named %s', self.name)
 
         for file_info in self.files:
             if file_info['can_compare']:
@@ -505,14 +504,9 @@ class DirectoryInfo(object):
             split_path = path.split('/')
             return_name = '/'.join(split_path[1:])
 
-            LOG.debug('path remaining: %s, searching for %s', path, split_path[0])
-
             # Search for if directory exists
-            LOG.debug('There are %i directories', len(self.directories))
             for directory in self.directories:
-                LOG.debug('Checking %s', directory.name)
                 if split_path[0] == directory.name:
-                    LOG.debug('Found match!')
                     return directory.get_node(return_name, make_new)
 
             # If not, make a new directory, or None
@@ -629,7 +623,7 @@ class DirectoryInfo(object):
                             break
 
                     full_name = os.path.join(path, self.name, file_info['name'])
-                    LOG.debug('0:Checking file name %s with %s', full_name, check)
+
                     if not found and (check is None or not check(full_name)):
                         extra_files.append(full_name)
         else:
@@ -637,7 +631,7 @@ class DirectoryInfo(object):
             if self.files:
                 for file_info in self.files:
                     full_name = os.path.join(path, self.name, file_info['name'])
-                    LOG.debug('1:Checking file name %s with %s', full_name, check)
+
                     if check is None or not check(full_name):
                         extra_files.append(os.path.join(path, self.name, file_info['name']))
                         extra_size += file_info['size']
@@ -742,12 +736,10 @@ class DirectoryInfo(object):
         exploded_name = file_name[len(self.name) + 1:].split('/')
         desired_name = exploded_name[-1]
         node = self.get_node('/'.join(exploded_name[:-1]))
-        LOG.debug('%s -> %s', file_name, exploded_name)
-        LOG.debug('Got node: %s with %i files', node, len(node.files))
+
         for file_info in node.files:
-            LOG.debug('Checking %s', file_info)
+
             if file_info['name'] == desired_name:
-                LOG.debug('Found match! Returning.')
                 return file_info
 
         return None
