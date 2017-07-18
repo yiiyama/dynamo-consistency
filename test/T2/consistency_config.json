@@ -5,7 +5,7 @@
   "MinThreads": 2,
   "MaxThreads": 2,
   "ListAge": 5,
-  "IgnoreAge": 14,
+  "IgnoreAge": 7,
   "RedirectorAge": 50,
   "CacheLocation": "/home/dabercro/OpsSpace/ConsistencyCheck/test/T2/cache",
   "Redirectors": {
