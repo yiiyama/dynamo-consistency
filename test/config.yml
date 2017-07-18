@@ -1,6 +1,4 @@
 ##!
-# The configuration file for ConsistencyChecks is a JSON or YAML file.
-# It's keys are the following:
 #
 # - **MaxThreads** - The maximum number of threads to run the check with.
 #   If 0, the application can use as many threads as processors.
@@ -29,8 +27,9 @@
 #   on a single directory before it times out.
 # - **Retries** - Number of retries after timeouts to attempt
 #
-# :author: Daniel Abercrombie <dabercro@mit.edu>
 ##!
+
+# :author: Daniel Abercrombie <dabercro@mit.edu>
 
 Timeout: 30
 

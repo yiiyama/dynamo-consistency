@@ -31,8 +31,9 @@ If your ``CONFIG_FILE`` is not a JSON file, you'll want to change this
 also before calling :py:func:`config_dict`.
 """
 
-def config_dict():
+def config_dict(make_dir=True):
     """
+    :param bool make_dir: Create the cache directory if it's missing
     :returns: the configuration file in a dictionary
     :rtype: str
     :raises IOError: when it cannot find the configuration file
@@ -74,7 +75,7 @@ def config_dict():
 
     # Create the directory holding the cache
     if cache_location:
-        if not os.path.exists(cache_location):
+        if not os.path.exists(cache_location) and make_dir:
             os.makedirs(cache_location)
     else:
         raise KeyError('Configuration dictionary does not have a Cache Location set. '
