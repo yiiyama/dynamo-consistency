@@ -17,6 +17,8 @@ from CMSToolBox.webtools import get_json
 from CMSToolBox.siteinfo import get_site
 from common.interface.mysql import MySQL
 
+LOG = logging.getLogger(__name__)
+
 def main(site):
     start = time.time()
     webdir = '/home/dabercro/public_html/ConsistencyCheck'
@@ -41,12 +43,15 @@ def main(site):
     acceptable_orphans.update(['/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) for split_name in \
                                    [name.split('/') for name in protected_unmerged['protected']]])
 
+    LOG.debug('Acceptable orphans: \n%s\n', '\n'.join(acceptable_orphans))
+
     def double_check(file_name):
+        LOG.debug('Checking file_name: %s', file_name)
         split_name = file_name.split('/')
         try:
             return '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) in acceptable_orphans
         except:
-            print 'Strange file name: %s' % file_name
+            LOG.warning('Strange file name: %s', file_name)
             return True
 
     # Do the comparison
@@ -58,8 +63,8 @@ def main(site):
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
 
-    reg_sql.query('DELETE FROM `deletion_queue` WHERE `target`=%s', site)
-    reg_sql.query('DELETE FROM `transfer_queue` WHERE `target`=%s', site)
+#    reg_sql.query('DELETE FROM `deletion_queue` WHERE `site`=%s', site)
+#    reg_sql.query('DELETE FROM `transfer_queue` WHERE `site_to`=%s', site)
 
     for line in missing:
 
@@ -73,11 +78,11 @@ def main(site):
         if sites:
             for location in sites:
                 reg_sql.query(
-                    'INSERT IGNORE INTO `transfer_queue` (`file`, `source`, `target`, `created`) VALUES (%s, %s, %s, NOW())',
+                    'INSERT IGNORE INTO `transfer_queue` (`file`, `site_from`, `site_to`, `status`, `reqid`) VALUES (%s, %s, %s, \'new\', 0)',
                     line, location, site)
 
     for line in orphan + site_tree.empty_nodes_list():
-        reg_sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `target`, `created`) VALUES (%s, %s, NOW())', line, site)
+        reg_sql.query('INSERT IGNORE INTO `deletion_queue` (`file`, `site`, `created`) VALUES (%s, %s, NOW())', line, site)
 
     inv_sql.close()
     reg_sql.close()
@@ -114,7 +119,7 @@ if __name__ == '__main__':
     else:
         sites.append(sys.argv[-1])
 
-    logging.getLogger(__name__).info('About to run over %s', sites)
+    LOG.info('About to run over %s', sites)
 
     for site in sites:
         main(site)
