@@ -125,3 +125,31 @@ def get_phedex_tree(site):
             LOG.critical('Cannot get %s from PhEDEx. Do not trust results...', dataset)
 
     return tree
+
+
+def check_for_datasets(site, orphan_list_file):
+    """
+    Checks PhEDEx exhaustively to see if a dataset should exist at a site,
+    according to PhEDEx, but has files marked as orphans according to our check.
+    For now, we are trying to ignore any orphans that belong to any dataset at all
+    subscribed to a given site.
+    """
+
+    datasets = set()
+
+    with open(orphan_list_file) as orphans:
+        for line in orphans:
+            split_name = line.split('/')
+            dataset = '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5])
+
+            if dataset not in datasets:
+                phedex_response = get_json(
+                    'cmsweb.cern.ch', '/phedex/datasvc/json/prod/filereplicas',
+                    {'node': site, 'dataset': dataset},
+                    use_https=True)
+
+                num_files = sum(len(block['file']) for block in phedex_response['phedex']['block'])
+
+                datasets.add(dataset)
+
+                print num_files, dataset
