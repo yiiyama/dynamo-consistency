@@ -41,7 +41,7 @@ def cache_tree(config_age, location_suffix):
 
             if not os.path.exists(cache_location) or \
                     (time.time() - os.stat(cache_location).st_mtime) > \
-                    config.config_dict().get(config_age, 0) * 24 * 3600:
+                    float(config.config_dict().get(config_age, 0)) * 24 * 3600:
 
                 LOG.info('Cache is no good, getting new tree')
                 tree = func(site)
