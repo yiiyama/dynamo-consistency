@@ -115,15 +115,19 @@ def get_db_listing(site):
 
     LOG.info('About to make MySQL query for files at %s', site)
 
-    curs.execute('SELECT files.name, files.size, dataset_replicas.last_block_created '
-                 'FROM block_replicas '
-                 'INNER JOIN sites ON block_replicas.site_id = sites.id '
-                 'INNER JOIN files ON block_replicas.block_id = files.block_id '
-                 'INNER JOIN blocks ON block_replicas.block_id = blocks.id '
-                 'INNER JOIN dataset_replicas ON blocks.dataset_id = dataset_replicas.dataset_id '
-                 'AND dataset_replicas.site_id = sites.id '
-                 'WHERE block_replicas.is_complete = 1 AND sites.name = %s '
-                 'ORDER BY files.name ASC', (site,))
+    curs.execute(
+        """
+        SELECT files.name, files.size, dataset_replicas.last_block_created
+        FROM block_replicas
+        INNER JOIN sites ON block_replicas.site_id = sites.id
+        INNER JOIN files ON block_replicas.block_id = files.block_id
+        INNER JOIN blocks ON block_replicas.block_id = blocks.id
+        INNER JOIN dataset_replicas ON blocks.dataset_id = dataset_replicas.dataset_id
+        AND dataset_replicas.site_id = sites.id
+        WHERE block_replicas.is_complete = 1 AND sites.name = %s
+        ORDER BY files.name ASC
+        """,
+        (site,))
 
     LOG.info('MySQL query returned')
 

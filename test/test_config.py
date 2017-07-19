@@ -26,7 +26,7 @@ class TestConfiguration(unittest.TestCase):
         config.LOADER = json
 
         # Test the example, and also the T2 production for now.
-        for config_file in ['consistency_config.json', 'T2/consistency_config.json']:
+        for config_file in ['consistency_config.json', '../prod/consistency_config.json']:
 
             config.CONFIG_FILE = os.path.join(os.path.dirname(__file__),
                                           config_file)

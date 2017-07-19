@@ -8,22 +8,6 @@ This tool requires ``dynamo`` and ``xrdfs`` to be installed separately.
 
 .. _consistency-config-ref:
 
-Configuration
-+++++++++++++
-
-A configuration file should be created.
-The configuration file for ConsistencyChecks is a JSON or YAML file with the following keys
-
-.. autoanysrc:: phony
-   :src: ../ConsistencyCheck/test/config.yml
-   :analyzer: shell-script
-
-Configuration parameters can also be quickly overwritten for a given run by
-setting an environment variable of the same name.
-The configuration in production is the following.
-
-.. program-output:: cat ../ConsistencyCheck/test/T2/consistency_config.json
-
 Running the Tool
 ++++++++++++++++
 
@@ -43,13 +27,31 @@ In this example,
 the list of file LFNs in the inventory and not at the site will be in ``results_missing.txt``.
 The list of file LFNs at the site and not in the inventory will be in ``results_orphan.txt``.
 
+Configuration
++++++++++++++
+
+A configuration file should be created before pointing to it, like above.
+The configuration file for ConsistencyChecks is a JSON or YAML file with the following keys
+
+.. autoanysrc:: phony
+   :src: ../ConsistencyCheck/test/config.yml
+   :analyzer: shell-script
+
+Configuration parameters can also be quickly overwritten for a given run by
+setting an environment variable of the same name.
+
 Production
 ----------
 
-The following description was written on July 18, 2017.
+The configuration in production is the following.
+
+.. program-output:: cat ../ConsistencyCheck/prod/consistency_config.json
+
+.. Note::
+   The following script description was last updated on July 19, 2017.
 
 The production script,
-located at ``ConsistencyCheck/test/T2/compare.py`` at the time of writing,
+located at ``ConsistencyCheck/prod/compare.py`` at the time of writing,
 goes through the following steps for each site.
 
   #. It gathers the site tree by calling :py:func:`ConsistencyCheck.getsitecontents.get_site_tree()`.
@@ -57,9 +59,9 @@ goes through the following steps for each site.
   #. It creates a list of datasets to not report orphans in.
      This list consists of the following.
 
-     - Deletion requests fetched by :py:func:`ConsistencyCheck.checkphedex.set_of_deletetion()`.
-     - A dataset that has any files on the site, as listed by the dynamo MySQL database.
-     - Any datasets that have the status flag set to ``'IGNORED'`` in the dynamo database.
+     - Deletion requests fetched from PhEDEx by :py:func:`ConsistencyCheck.checkphedex.set_of_deletetion()`
+     - A dataset that has any files on the site, as listed by the dynamo MySQL database
+     - Any datasets that have the status flag set to ``'IGNORED'`` in the dynamo database
      - Datasets merging datasets that are
        `protected by Unified <https://cmst2.web.cern.ch/cmst2/unified/listProtectedLFN.txt>`_
 
@@ -73,12 +75,14 @@ goes through the following steps for each site.
   #. For each missing file, every possible source site as listed by the dynamo database,
      (not counting the site where missing), is entered in the transfer queue.
   #. Every orphan file and every empty directory that is not too new is entered in the deletion queue.
-  #. ``.txt`` file lists of orphan and missing files are moved to my web space
-     and the stats database is updated.
 
-.. Warning::
-   The production script no longer cleans out site entries in the deletion or transfer queues.
-   Some other tool is expected to handle that.
+     .. Warning::
+        The production script no longer cleans out site entries in the deletion or transfer queues.
+        Some other tool is expected to handle that.
+
+  #. Creates a text file that contains the missing blocks and groups.
+  #. ``.txt`` file lists and details of orphan and missing files are moved to the web space
+     and the stats database is updated.
 
 Reference
 +++++++++
