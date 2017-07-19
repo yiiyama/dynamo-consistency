@@ -3,6 +3,8 @@ ConsistencyCheck
 
 |build|
 
+.. contents:: :local:
+
 Compares files on site to files in the dynamo inventory.
 This tool requires ``dynamo`` and ``xrdfs`` to be installed separately.
 
@@ -40,8 +42,8 @@ The configuration file for ConsistencyChecks is a JSON or YAML file with the fol
 Configuration parameters can also be quickly overwritten for a given run by
 setting an environment variable of the same name.
 
-Production
-----------
+Production Settings
++++++++++++++++++++
 
 The configuration in production is the following.
 
@@ -86,6 +88,8 @@ goes through the following steps for each site.
 
 Reference
 +++++++++
+
+The following is a full reference to the submodules inside of the :py:mod:`ConsistencyCheck` module.
 
 config.py
 ---------
