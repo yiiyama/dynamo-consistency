@@ -24,8 +24,8 @@ def main(site):
     start = time.time()
     webdir = '/home/dabercro/public_html/ConsistencyCheck'
 
-#    site_tree = getsitecontents.get_site_tree(site)
-#    inv_tree = getinventorycontents.get_db_listing(site)
+    site_tree = getsitecontents.get_site_tree(site)
+    inv_tree = getinventorycontents.get_db_listing(site)
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
@@ -59,7 +59,7 @@ def main(site):
             return True
 
     # Do the comparison
-#    missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site, orphan_check=double_check)
+    missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site, orphan_check=double_check)
 
     # Reset things for site in register
     if site == 'T2_US_MIT':
@@ -67,35 +67,35 @@ def main(site):
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
 
-#    for line in missing:
-#
-#        sites = inv_sql.query(
-#            """
-#            SELECT sites.name FROM sites
-#            INNER JOIN block_replicas ON sites.id = block_replicas.site_id
-#            INNER JOIN files ON block_replicas.block_id = files.block_id
-#            WHERE files.name = %s AND sites.name != %s
-#            """,
-#            line, site)
+    for line in missing:
 
-#        if sites:
-#            for location in sites:
-#                reg_sql.query(
-#                    """
-#                    INSERT IGNORE INTO `transfer_queue`
-#                    (`file`, `site_from`, `site_to`, `status`, `reqid`)
-#                    VALUES (%s, %s, %s, 'new', 0)
-#                    """,
-#                    line, location, site)
-#
-#    for line in orphan + site_tree.empty_nodes_list():
-#        reg_sql.query(
-#            """
-#            INSERT IGNORE INTO `deletion_queue`
-#            (`file`, `site`, `created`) VALUES
-#            (%s, %s, NOW())
-#            """,
-#            line, site)
+        sites = inv_sql.query(
+            """
+            SELECT sites.name FROM sites
+            INNER JOIN block_replicas ON sites.id = block_replicas.site_id
+            INNER JOIN files ON block_replicas.block_id = files.block_id
+            WHERE files.name = %s AND sites.name != %s
+            """,
+            line, site)
+
+        if sites:
+            for location in sites:
+                reg_sql.query(
+                    """
+                    INSERT IGNORE INTO `transfer_queue`
+                    (`file`, `site_from`, `site_to`, `status`, `reqid`)
+                    VALUES (%s, %s, %s, 'new', 0)
+                    """,
+                    line, location, site)
+
+    for line in orphan + site_tree.empty_nodes_list():
+        reg_sql.query(
+            """
+            INSERT IGNORE INTO `deletion_queue`
+            (`file`, `site`, `created`) VALUES
+            (%s, %s, NOW())
+            """,
+            line, site)
 
     reg_sql.close()
 
