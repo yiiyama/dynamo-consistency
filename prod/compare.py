@@ -67,6 +67,8 @@ def main(site):
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
 
+    no_source_files = []
+
     for line in missing:
 
         sites = inv_sql.query(
@@ -75,6 +77,8 @@ def main(site):
             INNER JOIN block_replicas ON sites.id = block_replicas.site_id
             INNER JOIN files ON block_replicas.block_id = files.block_id
             WHERE files.name = %s AND sites.name != %s
+            AND sites.status != 'morgue' AND sites.status != 'unknown'
+            AND block_replicas.is_complete = 1
             """,
             line, site)
 
@@ -87,6 +91,15 @@ def main(site):
                     VALUES (%s, %s, %s, 'new', 0)
                     """,
                     line, location, site)
+
+        else:
+            no_source_files.append(line)
+
+
+    with open('%s_missing_nosite.txt' % site, 'w') as nosite:
+        for line in no_source_files:
+            nosite.write(line + '\n')
+
 
     for line in orphan + site_tree.empty_nodes_list():
         reg_sql.query(
@@ -110,22 +123,24 @@ def main(site):
             split_name = line.split('/')
             dataset = '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5])
 
-            block, group = inv_sql.query(
+            output = inv_sql.query(
                 """
-                SELECT blocks.name, groups.name FROM blocks
+                SELECT blocks.name, IFNULL(groups.name, 'Unsubscribed') FROM blocks
                 INNER JOIN files ON files.block_id = blocks.id
                 INNER JOIN block_replicas ON block_replicas.block_id = files.block_id
                 INNER JOIN sites ON block_replicas.site_id = sites.id
-                INNER JOIN groups ON block_replicas.group_id = groups.id
+                LEFT JOIN groups ON block_replicas.group_id = groups.id
                 WHERE files.name = %s AND sites.name = %s
                 """,
-                line.strip(), site)[0]
+                line.strip(), site)
 
-            if not block:
+            if not output:
                 print ('SELECT blocks.name FROM blocks '
                        'INNER JOIN files ON files.block_id = blocks.id '
                        'WHERE files.name = %s' % line)
                 exit(1)
+
+            block, group = output[0]
 
             track_missing_blocks[dataset]['errors'] += 1
             track_missing_blocks[dataset]['blocks'][block]['errors'] += 1
@@ -145,6 +160,7 @@ def main(site):
                                        dataset, block_name))
 
     shutil.copy('%s_missing_datasets.txt' % site, webdir)
+    shutil.copy('%s_missing_nosite.txt' % site, webdir)
     shutil.copy('%s_compare_missing.txt' % site, webdir)
     shutil.copy('%s_compare_orphan.txt' % site, webdir)
 
@@ -152,11 +168,11 @@ def main(site):
     conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
     curs = conn.cursor()
 
-    curs.execute('REPLACE INTO stats_v3 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"))',
+    curs.execute('REPLACE INTO stats_v4 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
                  (site, time.time() - start, site_tree.get_num_files(),
                   site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
                   config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
-                  len(missing), m_size, len(orphan), o_size))
+                  len(missing), m_size, len(orphan), o_size, len(no_source_files)))
 
     conn.commit()
     conn.close()
