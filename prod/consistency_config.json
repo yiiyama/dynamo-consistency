@@ -6,7 +6,7 @@
   "ListAge": 5,
   "IgnoreAge": 7,
   "RedirectorAge": 50,
-  "CacheLocation": "/home/dabercro/OpsSpace/ConsistencyCheck/prod/cache",
+  "CacheLocation": "/scratch5/dabercro/consistency_cache",
   "Redirectors": {
     "T3_CH_PSI": "t3se01.psi.ch",
     "T3_US_MIT": "t3serv006.mit.edu"

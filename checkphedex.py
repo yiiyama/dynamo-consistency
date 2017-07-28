@@ -29,7 +29,7 @@ def set_of_deletions(site):
     """
 
     created_since = int(
-        time.time() - config.config_dict().get('IgnoreAge', 0) * 24 * 3600)
+        time.time() - float(config.config_dict().get('IgnoreAge', 0)) * 24 * 3600)
 
 
     # Get deletion requests in PhEDEx

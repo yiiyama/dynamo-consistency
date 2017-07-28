@@ -117,7 +117,7 @@ def get_db_listing(site):
 
     curs.execute(
         """
-        SELECT files.name, files.size, dataset_replicas.last_block_created
+        SELECT files.name, files.size
         FROM block_replicas
         INNER JOIN sites ON block_replicas.site_id = sites.id
         INNER JOIN files ON block_replicas.block_id = files.block_id
@@ -135,7 +135,7 @@ def get_db_listing(site):
 
     files_to_add = []
     look_dir = ''
-    name, size, date_time = curs.fetchone() or ('', 0, None)
+    name, size = curs.fetchone() or ('', 0)
 
     while name:
         current_directory = name.split('/')[2]
@@ -147,9 +147,9 @@ def get_db_listing(site):
 
         if current_directory == look_dir:
             LOG.debug('Adding file: %s, %i', name, size)
-            files_to_add.append((name, size, time.mktime(date_time.timetuple())))
+            files_to_add.append((name, size))
 
-        name, size, date_time = curs.fetchone() or ('', 0, None)
+        name, size = curs.fetchone() or ('', 0)
 
     tree = datatypes.DirectoryInfo('/store')
     tree.add_file_list(files_to_add)

@@ -26,7 +26,7 @@ from Queue import Empty
 from . import config
 
 LOG = logging.getLogger(__name__)
-IGNORE_AGE = config.config_dict()['IgnoreAge']
+IGNORE_AGE = float(config.config_dict()['IgnoreAge'])
 """
 The maximum age, in days, of files and directories to ignore in this check.
 This variable should be reset once in a while by deamons that run while an
