@@ -118,6 +118,11 @@ def get_db_listing(site):
     tree = datatypes.DirectoryInfo('/store')
 
     def add_to_tree(curs):
+        """
+        Add cursor contents to the dynamo listing tree
+
+        :param MySQLdb.cursor curs: The cursor which just completed a query to fetch
+        """
         dirs_to_look = iter(sorted(config.config_dict()['DirectoryList']))
 
         files_to_add = []
