@@ -109,8 +109,8 @@ def main(site):
         reg_sql.query(
             """
             INSERT IGNORE INTO `deletion_queue`
-            (`file`, `site`, `created`) VALUES
-            (%s, %s, NOW())
+            (`file`, `site`, `status`) VALUES
+            (%s, %s, 'new')
             """,
             line, site)
 
