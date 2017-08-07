@@ -29,6 +29,7 @@ def main(site):
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
+    acceptable_missing = checkphedex.set_of_deletions(site)
 
     inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
     inv_datasets = inv_sql.query(
@@ -49,17 +50,20 @@ def main(site):
 
     LOG.debug('Acceptable orphans: \n%s\n', '\n'.join(acceptable_orphans))
 
-    def double_check(file_name):
+    def double_check(file_name, acceptable=acceptable_orphans):
         LOG.debug('Checking file_name: %s', file_name)
         split_name = file_name.split('/')
         try:
-            return '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) in acceptable_orphans
+            return '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) in acceptable
         except:
             LOG.warning('Strange file name: %s', file_name)
             return True
 
+    check_missing = lambda x: double_check(x, acceptable_missing)
+
     # Do the comparison
-    missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site, orphan_check=double_check)
+    missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site,
+                                                        orphan_check=double_check, missing_check=check_missing)
 
     # Reset things for site in register
     if site == 'T2_US_MIT':
@@ -105,8 +109,8 @@ def main(site):
         reg_sql.query(
             """
             INSERT IGNORE INTO `deletion_queue`
-            (`file`, `site`, `created`) VALUES
-            (%s, %s, NOW())
+            (`file`, `site`, `status`) VALUES
+            (%s, %s, 'new')
             """,
             line, site)
 
@@ -135,9 +139,15 @@ def main(site):
                 line.strip(), site)
 
             if not output:
-                print ('SELECT blocks.name FROM blocks '
-                       'INNER JOIN files ON files.block_id = blocks.id '
-                       'WHERE files.name = %s' % line)
+                print ("""
+                SELECT blocks.name, IFNULL(groups.name, 'Unsubscribed') FROM blocks
+                INNER JOIN files ON files.block_id = blocks.id
+                INNER JOIN block_replicas ON block_replicas.block_id = files.block_id
+                INNER JOIN sites ON block_replicas.site_id = sites.id
+                LEFT JOIN groups ON block_replicas.group_id = groups.id
+                WHERE files.name = %s AND sites.name = %s
+                """ % (line.strip(), site))
+
                 exit(1)
 
             block, group = output[0]

@@ -115,6 +115,40 @@ def get_db_listing(site):
 
     LOG.info('About to make MySQL query for files at %s', site)
 
+    tree = datatypes.DirectoryInfo('/store')
+
+    def add_to_tree(curs):
+        """
+        Add cursor contents to the dynamo listing tree
+
+        :param MySQLdb.cursor curs: The cursor which just completed a query to fetch
+        """
+        dirs_to_look = iter(sorted(config.config_dict()['DirectoryList']))
+
+        files_to_add = []
+        look_dir = ''
+        row = curs.fetchone()
+
+        while row:
+            name, size = row[0:2]
+            timestamp = time.mktime(row[2].timetuple()) if len(row) == 3 else 0
+
+            current_directory = name.split('/')[2]
+            try:
+                while look_dir < current_directory:
+                    look_dir = next(dirs_to_look)
+            except StopIteration:
+                break
+
+            if current_directory == look_dir:
+                LOG.debug('Adding file: %s, %i', name, size)
+
+                files_to_add.append((name, size, timestamp))
+
+            row = curs.fetchone()
+
+        tree.add_file_list(files_to_add)
+
     curs.execute(
         """
         SELECT files.name, files.size
@@ -129,29 +163,24 @@ def get_db_listing(site):
         """,
         (site,))
 
+    add_to_tree(curs)
+
+    curs.execute(
+        """
+        SELECT files.name, files.size, NOW()
+        FROM block_replicas
+        INNER JOIN sites ON block_replicas.site_id = sites.id
+        INNER JOIN files ON block_replicas.block_id = files.block_id
+        INNER JOIN blocks ON block_replicas.block_id = blocks.id
+        INNER JOIN dataset_replicas ON blocks.dataset_id = dataset_replicas.dataset_id
+        AND dataset_replicas.site_id = sites.id
+        WHERE block_replicas.is_complete = 0 AND sites.name = %s
+        ORDER BY files.name ASC
+        """,
+        (site,))
+
+    add_to_tree(curs)
+
     LOG.info('MySQL query returned')
-
-    dirs_to_look = iter(sorted(config.config_dict()['DirectoryList']))
-
-    files_to_add = []
-    look_dir = ''
-    name, size = curs.fetchone() or ('', 0)
-
-    while name:
-        current_directory = name.split('/')[2]
-        try:
-            while look_dir < current_directory:
-                look_dir = next(dirs_to_look)
-        except StopIteration:
-            break
-
-        if current_directory == look_dir:
-            LOG.debug('Adding file: %s, %i', name, size)
-            files_to_add.append((name, size))
-
-        name, size = curs.fetchone() or ('', 0)
-
-    tree = datatypes.DirectoryInfo('/store')
-    tree.add_file_list(files_to_add)
 
     return tree

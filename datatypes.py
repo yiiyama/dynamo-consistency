@@ -768,8 +768,14 @@ def compare(inventory, listing, output_base, orphan_check=None, missing_check=No
     :param DirectoryInfo listing: The tree of files that are listed remotely
     :param str output_base: The names of the ASCII files to place the reports
                             are generated from this variable.
-    :param function orphan_check: A function that double checks each expected orphan
+    :param function orphan_check: A function that double checks each expected orphan.
+                                  The function takes as an input, an LFN.
+                                  If the function returns true, the LFN will not be
+                                  listed as an orphan.
     :param function missing_check: A function checks each expected missing file
+                                   The function takes as an input, an LFN.
+                                   If the function returns true, the LFN will not be
+                                   listed as missing.
     :returns: The two lists, missing and orphan files
     :rtype: tuple
     """
