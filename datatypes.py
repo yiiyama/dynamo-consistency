@@ -588,7 +588,11 @@ class DirectoryInfo(object):
         if other:
             # If there is a match in the hash, then the nodes are effectively identical
             # Otherwise, do these recursive comparisons
-            if self.hash != other.hash:
+
+            logging.debug('Hashes: %s -- %s, can compare: %i -- %i',
+                          self.hash, other.hash, self.can_compare, other.can_compare)
+
+            if self.hash != other.hash and (other is None or other.can_compare):
                 for directory in self.directories:
                     # Ignore not comparable directories (usually new ones)
                     if not directory.can_compare:
@@ -628,7 +632,7 @@ class DirectoryInfo(object):
                         extra_files.append(full_name)
         else:
             # If no other node to compare, all files are extra (not in the other tree)
-            if self.files:
+            if self.files and (other is None or other.can_compare):
                 for file_info in self.files:
                     full_name = os.path.join(path, self.name, file_info['name'])
 
