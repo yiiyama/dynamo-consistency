@@ -65,6 +65,10 @@ def main(site):
     missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site,
                                                         orphan_check=double_check, missing_check=check_missing)
 
+    if len(missing) > 1000:
+        logging.error('Too many missing files: %i, you should investigate.', len(missing))
+        exit(10)
+
     # Reset things for site in register
     if site == 'T2_US_MIT':
         reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')

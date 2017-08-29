@@ -3,7 +3,7 @@
   "Retries": 1,
   "InventoryAge": 1,
   "NumThreads": 2,
-  "ListAge": 5,
+  "ListAge": 3,
   "IgnoreAge": 7,
   "RedirectorAge": 50,
   "CacheLocation": "/scratch5/dabercro/consistency_cache",

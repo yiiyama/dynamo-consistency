@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import sys
 
 from ConsistencyCheck.checkphedex import check_for_datasets
