@@ -24,8 +24,8 @@ def main(site):
     start = time.time()
     webdir = '/home/dabercro/public_html/ConsistencyCheck'
 
-    site_tree = getsitecontents.get_site_tree(site)
     inv_tree = getinventorycontents.get_db_listing(site)
+    site_tree = getsitecontents.get_site_tree(site)
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
@@ -65,7 +65,9 @@ def main(site):
     missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site,
                                                         orphan_check=double_check, missing_check=check_missing)
 
-    if len(missing) > 1000:
+    logging.info('Missing size: %i, Orphan site: %i', m_size, o_size)
+
+    if len(missing) > int(os.environ.get('MaxMissing', 1000)):
         logging.error('Too many missing files: %i, you should investigate.', len(missing))
         exit(10)
 
