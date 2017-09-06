@@ -72,7 +72,7 @@ def main(site):
         exit(10)
 
     # Reset things for site in register
-    if site == 'T2_US_MIT':
+    if site in ['T2_US_MIT', 'T2_US_Nebraska']:
         reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
