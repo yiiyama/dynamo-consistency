@@ -65,14 +65,14 @@ def main(site):
     missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site,
                                                         orphan_check=double_check, missing_check=check_missing)
 
-    logging.info('Missing size: %i, Orphan site: %i', m_size, o_size)
+    LOG.info('Missing size: %i, Orphan site: %i', m_size, o_size)
 
     if len(missing) > int(os.environ.get('MaxMissing', 1000)):
-        logging.error('Too many missing files: %i, you should investigate.', len(missing))
+        LOG.error('Too many missing files: %i, you should investigate.', len(missing))
         exit(10)
 
     # Reset things for site in register
-    if site in ['T2_US_MIT', 'T2_US_Nebraska']:
+    if site in []: #'T2_US_MIT', 'T2_US_Nebraska']:
         reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
@@ -102,6 +102,8 @@ def main(site):
                     """,
                     line, location, site)
 
+                LOG.info('Copying %s from %s', line, location)
+
         else:
             no_source_files.append(line)
 
@@ -119,6 +121,9 @@ def main(site):
             (%s, %s, 'new')
             """,
             line, site)
+
+        LOG.info('Deleting %s', line)
+
 
     reg_sql.close()
 
@@ -184,6 +189,7 @@ def main(site):
     conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
     curs = conn.cursor()
 
+    curs.execute('INSERT INTO stats_v4_history SELECT * FROM stats_v4 WHERE site=?', (site, ))
     curs.execute('REPLACE INTO stats_v4 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
                  (site, time.time() - start, site_tree.get_num_files(),
                   site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
