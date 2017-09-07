@@ -27,5 +27,6 @@
   "GlobalRedirectors": [
     "xrootd-redic.pi.infn.it",
     "cmsxrootd1.fnal.gov"
-  ]
+  ],
+  "SaveCache": 0
 }

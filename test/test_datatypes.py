@@ -30,7 +30,6 @@ import shutil
 import unittest
 import logging
 
-from ConsistencyCheck import config
 from ConsistencyCheck import datatypes
 
 TMP_DIR = 'TempConsistency'

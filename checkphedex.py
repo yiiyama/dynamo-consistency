@@ -137,9 +137,14 @@ def check_for_datasets(site, orphan_list_file):
 
     :param str site: The name of the site to check
     :param list orphan_list_file: List of LFNs that are listed as orphans at the site
+    :returns: The list of number of files and datasets for each dataset that is
+              supposed to have at least 1 file at the site.
+    :rtype: list of tuples
     """
 
     datasets = set()
+
+    output = []
 
     with open(orphan_list_file) as orphans:
         for line in orphans:
@@ -157,3 +162,8 @@ def check_for_datasets(site, orphan_list_file):
                 datasets.add(dataset)
 
                 print num_files, dataset
+
+                if num_files:
+                    output.append((num_files, dataset))
+
+    return output

@@ -8,6 +8,7 @@
 
 import os
 import time
+import datetime
 import logging
 
 from functools import wraps
@@ -42,6 +43,13 @@ def cache_tree(config_age, location_suffix):
             if not os.path.exists(cache_location) or \
                     (time.time() - os.stat(cache_location).st_mtime) > \
                     float(config.config_dict().get(config_age, 0)) * 24 * 3600:
+
+                if config.config_dict().get('SaveCache') and os.path.exists(cache_location):
+                    os.rename(cache_location,
+                              '%s.%s' % (cache_location,
+                                         datetime.datetime.fromtimestamp(time.time()).\
+                                             strftime('%y%m%d'))
+                             )
 
                 LOG.info('Cache is no good, getting new tree')
                 tree = func(site)

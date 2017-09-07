@@ -26,6 +26,7 @@
 # - **Timeout** - This gives the amount of time, in seconds, that you want the listing to try to run
 #   on a single directory before it times out.
 # - **Retries** - Number of retries after timeouts to attempt
+# - **SaveCache** - If set and evaluates to True, copies old cached directory trees instead of overwriting
 #
 ##!
 
@@ -69,3 +70,5 @@ BothList:
 GlobalRedirectors:
   - xrootd-redic.pi.infn.it
   - cmsxrootd1.fnal.gov
+
+SaveCache: 0

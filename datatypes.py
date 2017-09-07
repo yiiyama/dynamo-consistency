@@ -588,7 +588,11 @@ class DirectoryInfo(object):
         if other:
             # If there is a match in the hash, then the nodes are effectively identical
             # Otherwise, do these recursive comparisons
-            if self.hash != other.hash:
+
+            logging.debug('Hashes: %s -- %s, can compare: %i -- %i',
+                          self.hash, other.hash, self.can_compare, other.can_compare)
+
+            if self.hash != other.hash and (other is None or other.can_compare):
                 for directory in self.directories:
                     # Ignore not comparable directories (usually new ones)
                     if not directory.can_compare:
@@ -625,10 +629,11 @@ class DirectoryInfo(object):
                     full_name = os.path.join(path, self.name, file_info['name'])
 
                     if not found and (check is None or not check(full_name)):
+                        extra_size += file_info['size']
                         extra_files.append(full_name)
         else:
             # If no other node to compare, all files are extra (not in the other tree)
-            if self.files:
+            if self.files and (other is None or other.can_compare):
                 for file_info in self.files:
                     full_name = os.path.join(path, self.name, file_info['name'])
 
@@ -760,7 +765,7 @@ def get_info(file_name):
     return output
 
 
-def compare(inventory, listing, output_base, orphan_check=None, missing_check=None):
+def compare(inventory, listing, output_base=None, orphan_check=None, missing_check=None):
     """
     Compare two different trees and output the differences into an ASCII file
 
@@ -785,16 +790,19 @@ def compare(inventory, listing, output_base, orphan_check=None, missing_check=No
     LOG.debug('Double checking missing with %s', missing_check)
     missing, _, m_size = inventory.compare(listing, check=missing_check)
     LOG.info('There are %i missing files', len(missing))
+    LOG.info('Size: %i', m_size)
     LOG.debug('Double checking orphans with %s', orphan_check)
     orphan, _, o_size = listing.compare(inventory, check=orphan_check)
     LOG.info('There are %i orphan files', len(orphan))
+    LOG.info('Size: %i', o_size)
 
-    with open('%s_missing.txt' % output_base, 'w') as missing_file:
-        for line in missing:
-            missing_file.write(line + '\n')
+    if output_base:
+        with open('%s_missing.txt' % output_base, 'w') as missing_file:
+            for line in missing:
+                missing_file.write(line + '\n')
 
-    with open('%s_orphan.txt' % output_base, 'w') as orphan_file:
-        for line in orphan:
-            orphan_file.write(line + '\n')
+        with open('%s_orphan.txt' % output_base, 'w') as orphan_file:
+            for line in orphan:
+                orphan_file.write(line + '\n')
 
     return missing, m_size, orphan, o_size

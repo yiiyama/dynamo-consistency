@@ -24,8 +24,8 @@ def main(site):
     start = time.time()
     webdir = '/home/dabercro/public_html/ConsistencyCheck'
 
-    site_tree = getsitecontents.get_site_tree(site)
     inv_tree = getinventorycontents.get_db_listing(site)
+    site_tree = getsitecontents.get_site_tree(site)
 
     # Create the function to check orphans
     acceptable_orphans = checkphedex.set_of_deletions(site)
@@ -65,8 +65,14 @@ def main(site):
     missing, m_size, orphan, o_size = datatypes.compare(inv_tree, site_tree, '%s_compare' % site,
                                                         orphan_check=double_check, missing_check=check_missing)
 
+    logging.info('Missing size: %i, Orphan site: %i', m_size, o_size)
+
+    if len(missing) > int(os.environ.get('MaxMissing', 1000)):
+        logging.error('Too many missing files: %i, you should investigate.', len(missing))
+        exit(10)
+
     # Reset things for site in register
-    if site == 'T2_US_MIT':
+    if site in ['T2_US_MIT', 'T2_US_Nebraska']:
         reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
