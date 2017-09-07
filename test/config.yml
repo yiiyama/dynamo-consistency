@@ -27,6 +27,7 @@
 #   on a single directory before it times out.
 # - **Retries** - Number of retries after timeouts to attempt
 # - **SaveCache** - If set and evaluates to True, copies old cached directory trees instead of overwriting
+# - **UseLoadBalancer** - A list of sites where the main redirector of the site is used
 #
 ##!
 
@@ -72,3 +73,6 @@ GlobalRedirectors:
   - cmsxrootd1.fnal.gov
 
 SaveCache: 0
+
+UseLoadBalancer:
+  - T2_US_Vanderbilt

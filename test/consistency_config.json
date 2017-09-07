@@ -28,5 +28,8 @@
     "xrootd-redic.pi.infn.it",
     "cmsxrootd1.fnal.gov"
   ],
-  "SaveCache": 0
+  "SaveCache": 0,
+  "UseLoadBalancer": [
+    "T2_US_Vanderbilt"
+  ]
 }
