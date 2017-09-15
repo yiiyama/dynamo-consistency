@@ -49,7 +49,7 @@ def cache_tree(config_age, location_suffix):
                               '%s.%s' % (cache_location,
                                          datetime.datetime.fromtimestamp(
                                              os.stat(cache_location).st_mtime).strftime('%y%m%d')
-                                         )
+                                        )
                              )
 
                 LOG.info('Cache is no good, getting new tree')
