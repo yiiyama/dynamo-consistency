@@ -12,7 +12,7 @@ error_reporting(E_ALL);
     $results = $db->query('SELECT * FROM ' . $table . ' ORDER BY site');
   } else {
 
-    $isgood = $which_sites == 'bad' ? '0' : '1';
+    $isgood = ($which_sites == 'need_checked' || $which_sites == 'bad') ? '0' : '1';
     $results = $db->query('SELECT * FROM ' . $table .
                           ' INNER JOIN sites on sites.site = ' . $table . 
                           '.site WHERE isgood = ' . $isgood . ' ORDER BY site');

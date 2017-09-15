@@ -11,7 +11,7 @@
         <h1 style="margin:0em;padding:1em;">Consistency Check Summary</h1>
 
         <a href="?sites=good"><span class="topbutton">Debugged sites</span></a>
-        <a href="?sites=bad"><span class="topbutton">Sites that need debugged or hand checking</span></a>
+        <a href="?sites=need_checked"><span class="topbutton">Sites that need debugged or hand checking</span></a>
         <a href="?sites=all"><span class="topbutton">All sites</span></a>
       </center>
     </div>
@@ -38,9 +38,6 @@
             Empty Nodes
           </th>
           <th>
-            Num Procs
-          </th>
-          <th>
             Num Missing
           </th>
           <th>
@@ -59,12 +56,12 @@
 <?php
          while ($row = $results->fetchArray()) {
            $bad_background = ' style="background-color:#ef6f6f;"';
-           $background_missing = ($row['missing'] > $row['files']/10) ? $bad_background : '';
+           $background_missing = ($row['missing'] > 100) ? $bad_background : '';
            $background_nosource = ($row['nosource'] > $row['files']/10) ? $bad_background : '';
            $background_orphan = ($row['orphan'] > $row['files']/10) ? $bad_background : '';
            printf (
-             '<tr><td>%s</td><td>%s</td><td>%.0f</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td%s><a href="%s_missing_datasets.txt">blocks</a> <a href="%s_compare_missing.txt">%d</a></td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td></tr>',
-             $row['entered'], $row['site'], $row['time']/60., $row['files'], $row['nodes'], $row['emtpy'], $row['cores'],
+             '<tr><td>%s</td><td>%s</td><td>%.0f</td><td>%d</td><td>%d</td><td>%d</td><td%s><a href="%s_missing_datasets.txt">blocks</a> <a href="%s_compare_missing.txt">%d</a></td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td></tr>',
+             $row['entered'], $row['site'], $row['time']/60., $row['files'], $row['nodes'], $row['emtpy'],
              $background_missing, $row['site'], $row['site'], $row['missing'],
              $background_nosource, $row['site'], $row['nosource'], $row['m_size']/pow(1024.,4),
              $background_orphan, $row['site'], $row['orphan'], $row['o_size']/pow(1024.,4));
@@ -120,11 +117,6 @@
     The number of directories that have no files in them.
     That is, this is how many "internal" nodes are not parents, grandparents, etc. of any "external" files nodes.
     (If you're picky that means the lowest level directories themselves are external nodes.)
-
-    <h3>Num Procs</h3>
-
-    The number of processes that were used in the listing.
-    Each process creates its own connection with an XRootD door at the target site.
 
     <h3>Num Missing</h3>
 

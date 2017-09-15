@@ -4,7 +4,7 @@
   "InventoryAge": 1,
   "NumThreads": 2,
   "ListAge": 2,
-  "IgnoreAge": 7,
+  "IgnoreAge": 14,
   "RedirectorAge": 50,
   "CacheLocation": "/scratch5/dabercro/consistency_cache",
   "Redirectors": {
@@ -28,6 +28,7 @@
   ],
   "SaveCache": 1,
   "UseLoadBalancer": [
-    "T2_US_Vanderbilt"
+    "T2_US_Vanderbilt",
+    "T2_US_Florida"
   ]
 }

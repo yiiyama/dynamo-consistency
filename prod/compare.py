@@ -67,12 +67,12 @@ def main(site):
 
     LOG.info('Missing size: %i, Orphan site: %i', m_size, o_size)
 
-    if len(missing) > int(os.environ.get('MaxMissing', 1000)):
+    if len(missing) > int(os.environ.get('MaxMissing', 10000)):
         LOG.error('Too many missing files: %i, you should investigate.', len(missing))
         exit(10)
 
     # Reset things for site in register
-    if site in []: #'T2_US_MIT', 'T2_US_Nebraska']:
+    if os.environ.get('serv009'):
         reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
@@ -89,6 +89,7 @@ def main(site):
             WHERE files.name = %s AND sites.name != %s
             AND sites.status != 'morgue' AND sites.status != 'unknown'
             AND block_replicas.is_complete = 1
+            AND sites.storage_type != 'mss'
             """,
             line, site)
 
@@ -113,7 +114,11 @@ def main(site):
             nosite.write(line + '\n')
 
 
-    for line in orphan + site_tree.empty_nodes_list():
+    # Only get the empty nodes that are not in the inventory tree
+    for line in orphan + \
+            [empty_node for empty_node in site_tree.empty_nodes_list() \
+                 if not inv_tree.get_node('/'.join(empty_node.split('/')[2:]),
+                                          make_new=False)]:
         reg_sql.query(
             """
             INSERT IGNORE INTO `deletion_queue`
