@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 
 def main(site):
     start = time.time()
-    webdir = '/home/dabercro/public_html/ConsistencyCheck'
+    webdir = os.path.join(os.environ['HOME'], 'public_html/ConsistencyCheck')
 
     inv_tree = getinventorycontents.get_db_listing(site)
     site_tree = getsitecontents.get_site_tree(site)
@@ -185,24 +185,25 @@ def main(site):
                                       (block['errors'], block['group'],
                                        dataset, block_name))
 
-    shutil.copy('%s_missing_datasets.txt' % site, webdir)
-    shutil.copy('%s_missing_nosite.txt' % site, webdir)
-    shutil.copy('%s_compare_missing.txt' % site, webdir)
-    shutil.copy('%s_compare_orphan.txt' % site, webdir)
+    if site_tree.get_num_files():
+        shutil.copy('%s_missing_datasets.txt' % site, webdir)
+        shutil.copy('%s_missing_nosite.txt' % site, webdir)
+        shutil.copy('%s_compare_missing.txt' % site, webdir)
+        shutil.copy('%s_compare_orphan.txt' % site, webdir)
 
-    # Update the runtime stats on the stats page
-    conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
-    curs = conn.cursor()
+        # Update the runtime stats on the stats page
+        conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
+        curs = conn.cursor()
 
-    curs.execute('INSERT INTO stats_v4_history SELECT * FROM stats_v4 WHERE site=?', (site, ))
-    curs.execute('REPLACE INTO stats_v4 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
-                 (site, time.time() - start, site_tree.get_num_files(),
-                  site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
-                  config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
-                  len(missing), m_size, len(orphan), o_size, len(no_source_files)))
+        curs.execute('INSERT INTO stats_v4_history SELECT * FROM stats_v4 WHERE site=?', (site, ))
+        curs.execute('REPLACE INTO stats_v4 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
+                     (site, time.time() - start, site_tree.get_num_files(),
+                      site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
+                      config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
+                      len(missing), m_size, len(orphan), o_size, len(no_source_files)))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
 
 if __name__ == '__main__':
