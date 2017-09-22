@@ -190,13 +190,17 @@ def get_site_tree(site):
     # The redirector can be used for a double check (not implemented yet...)
     # The redir_list is used for the original listing
 
-    _, door_list = config.get_redirector(site)
+    balancer, door_list = config.get_redirector(site)
     LOG.debug('Full redirector list: %s', door_list)
 
     # Bool to determine if using both doors in each connection
     do_both = bool(site in config.config_dict().get('BothList', []))
 
     min_threads = config.config_dict().get('MinThreads', 0)
+
+    if site in config.config_dict().get('UseLoadBalancer', []):
+        min_threads = 1
+        door_list = [balancer]
 
     while min_threads > (len(door_list) + 1)/2:
         if do_both or len(door_list) % 2:

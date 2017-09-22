@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 
 def main(site):
     start = time.time()
-    webdir = '/home/dabercro/public_html/ConsistencyCheck'
+    webdir = os.path.join(os.environ['HOME'], 'public_html/ConsistencyCheck')
 
     inv_tree = getinventorycontents.get_db_listing(site)
     site_tree = getsitecontents.get_site_tree(site)
@@ -67,12 +67,12 @@ def main(site):
 
     LOG.info('Missing size: %i, Orphan site: %i', m_size, o_size)
 
-    if len(missing) > int(os.environ.get('MaxMissing', 1000)):
+    if len(missing) > int(os.environ.get('MaxMissing', 10000)):
         LOG.error('Too many missing files: %i, you should investigate.', len(missing))
         exit(10)
 
     # Reset things for site in register
-    if site in []: #'T2_US_MIT', 'T2_US_Nebraska']:
+    if os.environ.get('serv009'):
         reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
     else:
         reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
@@ -89,6 +89,7 @@ def main(site):
             WHERE files.name = %s AND sites.name != %s
             AND sites.status != 'morgue' AND sites.status != 'unknown'
             AND block_replicas.is_complete = 1
+            AND sites.storage_type != 'mss'
             """,
             line, site)
 
@@ -113,7 +114,11 @@ def main(site):
             nosite.write(line + '\n')
 
 
-    for line in orphan + site_tree.empty_nodes_list():
+    # Only get the empty nodes that are not in the inventory tree
+    for line in orphan + \
+            [empty_node for empty_node in site_tree.empty_nodes_list() \
+                 if not inv_tree.get_node('/'.join(empty_node.split('/')[2:]),
+                                          make_new=False)]:
         reg_sql.query(
             """
             INSERT IGNORE INTO `deletion_queue`
@@ -180,24 +185,25 @@ def main(site):
                                       (block['errors'], block['group'],
                                        dataset, block_name))
 
-    shutil.copy('%s_missing_datasets.txt' % site, webdir)
-    shutil.copy('%s_missing_nosite.txt' % site, webdir)
-    shutil.copy('%s_compare_missing.txt' % site, webdir)
-    shutil.copy('%s_compare_orphan.txt' % site, webdir)
+    if site_tree.get_num_files():
+        shutil.copy('%s_missing_datasets.txt' % site, webdir)
+        shutil.copy('%s_missing_nosite.txt' % site, webdir)
+        shutil.copy('%s_compare_missing.txt' % site, webdir)
+        shutil.copy('%s_compare_orphan.txt' % site, webdir)
 
-    # Update the runtime stats on the stats page
-    conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
-    curs = conn.cursor()
+        # Update the runtime stats on the stats page
+        conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
+        curs = conn.cursor()
 
-    curs.execute('INSERT INTO stats_v4_history SELECT * FROM stats_v4 WHERE site=?', (site, ))
-    curs.execute('REPLACE INTO stats_v4 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
-                 (site, time.time() - start, site_tree.get_num_files(),
-                  site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
-                  config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
-                  len(missing), m_size, len(orphan), o_size, len(no_source_files)))
+        curs.execute('INSERT INTO stats_v4_history SELECT * FROM stats_v4 WHERE site=?', (site, ))
+        curs.execute('REPLACE INTO stats_v4 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
+                     (site, time.time() - start, site_tree.get_num_files(),
+                      site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
+                      config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
+                      len(missing), m_size, len(orphan), o_size, len(no_source_files)))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
 
 if __name__ == '__main__':
