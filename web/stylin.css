@@ -1,13 +1,20 @@
 .topbutton {
     float: left;
     padding: 1em 0em 1em 0em;
-    background-color:#dddddd;
+    background-color: #dddddd;
     width: 33.3333%;
     box-sizing: border-box;
-    color:#000000;
+    color: #000000;
 }
 
 .topbutton:hover {
-    background-color:#777777;
-    color:#ffffff;
+    background-color: #777777;
+    color: #ffffff;
+}
+
+body {
+    max-width: 80em;
+    margin: auto;
+    background-color: #ffffff;
+    padding: 1em;
 }

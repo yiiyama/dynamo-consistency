@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 
 def main(site):
     start = time.time()
-    webdir = os.path.join(os.environ['HOME'], 'public_html/ConsistencyCheck')
+    webdir = config.config_dict()['WebDir']
 
     inv_tree = getinventorycontents.get_db_listing(site)
     site_tree = getsitecontents.get_site_tree(site)
@@ -195,8 +195,8 @@ def main(site):
         conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
         curs = conn.cursor()
 
-        curs.execute('INSERT INTO stats_v4_history SELECT * FROM stats_v4 WHERE site=?', (site, ))
-        curs.execute('REPLACE INTO stats_v4 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
+        curs.execute('INSERT INTO stats_history SELECT * FROM stats WHERE site=?', (site, ))
+        curs.execute('REPLACE INTO stats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
                      (site, time.time() - start, site_tree.get_num_files(),
                       site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
                       config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
