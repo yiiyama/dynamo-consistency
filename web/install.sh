@@ -24,6 +24,6 @@ fi
 
 test -d $TARGET || mkdir -p $TARGET
 
-cp output.html stats.php stylin.css $TARGET
+cp output.html stats.php stylin.css explanations.html $TARGET
 
 exit $?

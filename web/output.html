@@ -4,7 +4,7 @@
     <meta http-equiv="refresh" content="1800">
     <link rel="stylesheet" type="text/css" href="stylin.css"/>
   </head>
-  <body style="max-width:80em;margin:auto;background-color:#ffffff;padding:1em;">
+  <body>
 
     <div style="background-color:#ccffff;padding-top:1em;margin:0em;">
       <center>
@@ -60,9 +60,9 @@
            $background_nosource = ($row['nosource'] > $row['files']/10) ? $bad_background : '';
            $background_orphan = ($row['orphan'] > $row['files']/10) ? $bad_background : '';
            printf (
-             '<tr><td>%s</td><td>%s</td><td>%.0f</td><td>%d</td><td>%d</td><td>%d</td><td%s><a href="%s_missing_datasets.txt">blocks</a> <a href="%s_compare_missing.txt">%d</a></td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td></tr>',
+             '<tr><td>%s</td><td>%s</td><td>%.0f</td><td>%d</td><td>%d</td><td>%d</td><td%s><a href="%s_compare_missing.txt">%d</a> [<a href="%s_missing_datasets.txt">blocks</a>]</td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td></tr>',
              $row['entered'], $row['site'], $row['time']/60., $row['files'], $row['nodes'], $row['emtpy'],
-             $background_missing, $row['site'], $row['site'], $row['missing'],
+             $background_missing, $row['site'], $row['missing'], $row['site'],
              $background_nosource, $row['site'], $row['nosource'], $row['m_size']/pow(1024.,4),
              $background_orphan, $row['site'], $row['orphan'], $row['o_size']/pow(1024.,4));
            printf("\n");
@@ -71,84 +71,16 @@
       </table>
     </div>
 
-    <h3>Last Update</h3>
+    <h2>Documentation</h2>
 
-    The time that the previous Consistency Check finished.
+    <p>
+      Explanations of columns are given <a href="explanations.html">here</a>.
+    </p>
 
-    <h3>Site Name</h3>
-
-    Name of the site as stored in PhEDEx and DDM.
-
-    <h3>Time [min]</h3>
-
-    The amount of time for the entire check to finish.
-    A check includes the following steps.
-    Each takes at least a minute, though the first step is generally much longer:
-
-    <ul>
-      <li>
-        Generate a listing of the site contents.
-        For most sites, this takes the majority of the time.
-        Listings are also cached for a few days,
-        so the contribution from this step may be low at times due to interactive tests.
-      <li>
-        Get the site contents according to dynamo database,
-        (which is a basically faster MySQL copy of PhEDEx).
-      <li>
-        Hash the contents of both listings for speedy comparisons.
-        This hashing takes a couple of minutes for each (remote and dynamo) directory tree.
-      <li>
-        Compare the trees and enter inconsistencies into our registry.
-    </ul>
-
-    <h3>Number Files</h3>
-
-    This is the total number of files that were confirmed as existing at the site.
-    They were each successfully identified by an XRootD call.
-
-    <h3>Number Nodes</h3>
-
-    This the total number of directories that are included in the listing.
-    They are the "internal" nodes of the trees to compare.
-    (I'll call files "external" nodes. You'll see why these are in quotes in a second.)
-
-    <h3>Empty Nodes</h3>
-
-    The number of directories that have no files in them.
-    That is, this is how many "internal" nodes are not parents, grandparents, etc. of any "external" files nodes.
-    (If you're picky that means the lowest level directories themselves are external nodes.)
-
-    <h3>Num Missing</h3>
-
-    Number of files that appear to be missing at the site.
-    The links labels "blocks" shows a summary of the number of files missing from each block containing missing files.
-    The other link is just a list of file LFNs that are missing.
-
-    <h3>No Source</h3>
-
-    Number of missing files that are not supposed to be on disk at any other site, according to PhEDEx.
-    These files must be recovered using tape copies.
-    The link is a list of file LFNs that are missing.
-
-    <h3>Num Orphan</h3>
-
-    The number of files that exist at a site that PhEDEx does not know about.
-    These files can be deleted.
-    The link is a list of file LFNs that are orphans.
-
-    <h3>Size [TB]</h3>
-
-    There are two columns with this heading.
-    The first time shows the reported collective size of files that are missing.
-    The second time shows the spaced used by orphan files that can be recovered through deletion.
-
-    <h2>Additional Documentation</h2>
-
-    Details of the Consistency Check implementation can be seen
-    <a href="http://cms-comp-ops-tools.readthedocs.io/en/latest/consistencycheck.html" target="_blank">here</a>.
-
-    <div style="margin:4em;">
-    </div>
+    <p>
+      Details of the Consistency Check implementation can be seen
+      <a href="http://cms-comp-ops-tools.readthedocs.io/en/latest/consistencycheck.html" target="_blank">here</a>.
+    </p>
 
   </body>
 </html>

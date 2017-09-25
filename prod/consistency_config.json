@@ -29,5 +29,7 @@
   "SaveCache": 1,
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
-  ]
+  ],
+  "WebDir": "/var/www/html/dynamo/consistency",
+  "MaxMissing": 10000
 }

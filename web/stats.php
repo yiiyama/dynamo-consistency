@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 
   $which_sites = isset($_GET['sites']) ? $_GET['sites'] : 'good';
 
-  $table = 'stats_v4';
+  $table = 'stats';
   $db = new SQLite3('stats.db');
 
   if($which_sites == 'all') {
