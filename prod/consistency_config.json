@@ -30,5 +30,7 @@
   "UseLoadBalancer": [
     "T2_US_Vanderbilt",
     "T2_US_Florida"
-  ]
+  ],
+  "WebDir": "/home/dabercro/public_html/ConsistencyCheck",
+  "MaxMissing": 10000
 }

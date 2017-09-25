@@ -1,5 +1,9 @@
 #! /usr/bin/env python
 
+#
+# Author: Daniel Abercrombie <dabercro@mit.edu>
+#
+
 import logging
 import sys
 import os
@@ -8,6 +12,29 @@ import shutil
 import time
 
 from collections import defaultdict
+
+
+# Stick this here before dynamo sets the logging config
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print 'Usage: ./compare.py sitename [sitename ...] [debug/watch]'
+        exit(0)
+
+    sites = sys.argv[1:-1]
+
+    # Set the logging level based on the verbosity option
+
+    logging_format = '%(asctime)s:%(levelname)s:%(name)s: %(message)s'
+
+    if 'debug' in sys.argv:
+        logging.basicConfig(level=logging.DEBUG, format=logging_format)
+    elif 'watch' in sys.argv:
+        logging.basicConfig(level=logging.INFO, format=logging_format)
+
+    # If no valid verbosity level, assume the last arg was a sitename
+    else:
+        sites.append(sys.argv[-1])
+
 
 from ConsistencyCheck import getsitecontents
 from ConsistencyCheck import getinventorycontents
@@ -22,7 +49,7 @@ LOG = logging.getLogger(__name__)
 
 def main(site):
     start = time.time()
-    webdir = os.path.join(os.environ['HOME'], 'public_html/ConsistencyCheck')
+    webdir = config.config_dict()['WebDir']
 
     inv_tree = getinventorycontents.get_db_listing(site)
     site_tree = getsitecontents.get_site_tree(site)
@@ -67,15 +94,13 @@ def main(site):
 
     LOG.info('Missing size: %i, Orphan site: %i', m_size, o_size)
 
-    if len(missing) > int(os.environ.get('MaxMissing', 10000)):
+    # Whether or not to skip entering missing files into the registry
+    skip_enter = len(missing) > int(config.config_dict()['MaxMissing'])
+    if skip_enter:
         LOG.error('Too many missing files: %i, you should investigate.', len(missing))
-        exit(10)
 
-    # Reset things for site in register
-    if os.environ.get('serv009'):
-        reg_sql = MySQL(config_file='/home/dabercro/my.cnf', db='dynamoregister', config_group='mysql-t3serv009')
-    else:
-        reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
+    # Enter things for site in registry
+    reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister', config_group='mysql-dynamo')
 
     no_source_files = []
 
@@ -94,6 +119,9 @@ def main(site):
             line, site)
 
         if sites:
+            if skip_enter:
+                continue
+
             for location in sites:
                 reg_sql.query(
                     """
@@ -195,8 +223,8 @@ def main(site):
         conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
         curs = conn.cursor()
 
-        curs.execute('INSERT INTO stats_v4_history SELECT * FROM stats_v4 WHERE site=?', (site, ))
-        curs.execute('REPLACE INTO stats_v4 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
+        curs.execute('INSERT INTO stats_history SELECT * FROM stats WHERE site=?', (site, ))
+        curs.execute('REPLACE INTO stats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?)',
                      (site, time.time() - start, site_tree.get_num_files(),
                       site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
                       config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
@@ -207,25 +235,6 @@ def main(site):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print 'Usage: ./compare.py sitename [sitename ...] [debug/watch]'
-        exit(0)
-
-    sites = sys.argv[1:-1]
-
-    # Set the logging level based on the verbosity option
-
-    logging_format = '%(asctime)s:%(levelname)s:%(name)s: %(message)s'
-
-    if 'debug' in sys.argv:
-        logging.basicConfig(level=logging.DEBUG, format=logging_format)
-    elif 'watch' in sys.argv:
-        logging.basicConfig(level=logging.INFO, format=logging_format)
-
-    # If no valid verbosity level, assume the last arg was a sitename
-    else:
-        sites.append(sys.argv[-1])
-
     LOG.info('About to run over %s', sites)
 
     for site in sites:

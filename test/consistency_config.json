@@ -31,5 +31,7 @@
   "SaveCache": 0,
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
-  ]
+  ],
+  "WebDir": "www",
+  "MaxMissing": 100
 }
