@@ -32,5 +32,6 @@
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
   ],
-  "WebDir": "www"
+  "WebDir": "www",
+  "MaxMissing": 100
 }

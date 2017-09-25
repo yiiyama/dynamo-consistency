@@ -29,6 +29,8 @@
 # - **SaveCache** - If set and evaluates to True, copies old cached directory trees instead of overwriting
 # - **UseLoadBalancer** - A list of sites where the main redirector of the site is used
 # - **WebDir** - The directory where text files and the sqlite3 database live
+# - **MaxMissing** - If more files than this number are missing,
+#   the missing files will not be entered into the transfer queue
 #
 ##!
 
@@ -79,3 +81,5 @@ UseLoadBalancer:
   - T2_US_Vanderbilt
 
 WebDir: www
+
+MaxMissing: 100
