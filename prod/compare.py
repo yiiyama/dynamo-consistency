@@ -62,14 +62,14 @@ def main(site):
 
     # Orphan files cannot belong to any dataset that should be at the site
     inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
-    acceptable_orphans = inv_sql.query(
-        """
-        SELECT datasets.name FROM sites
-        INNER JOIN dataset_replicas ON dataset_replicas.site_id=sites.id
-        INNER JOIN datasets ON dataset_replicas.dataset_id=datasets.id
-        WHERE sites.name=%s
-        """,
-        site)
+    acceptable_orphans = set(inv_sql.query(
+            """
+            SELECT datasets.name FROM sites
+            INNER JOIN dataset_replicas ON dataset_replicas.site_id=sites.id
+            INNER JOIN datasets ON dataset_replicas.dataset_id=datasets.id
+            WHERE sites.name=%s
+            """,
+            site))
 
     # Orphan files may be a result of deletion requests
     acceptable_orphans.update(acceptable_missing)
