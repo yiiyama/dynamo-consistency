@@ -305,7 +305,16 @@ def main(site):
                 LOG.error('The following SQL statement failed: %s',
                           blocks_query % (line.strip(), site))
                 LOG.error('Most likely cause is dynamo update between the listing and now')
-                exit(1)
+                from_phedex = get_json('cmsweb.cern.ch', '/phedex/datasvc/json/prod/filereplicas',
+                                       params={'node': site, 'LFN': line.strip()}, use_cert=True)
+
+                try:
+                    output = [(from_phedex['phedex']['block'][0]['name'].split('#')[1],
+                               from_phedex['phedex']['block'][0]['replica'][0]['group'])]
+                except IndexError:
+                    LOG.error('File replica not in PhEDEx either!')
+                    LOG.error('Skipping block level report for this file.')
+                    continue
 
             block, group = output[0]
 
