@@ -155,34 +155,33 @@
   \frametitle{Consistency improvements made in past month}
 
   \centering
-  \begin{tabular}{l | r | r}
-    \hline
-    Site & \multicolumn{1}{l|}{Recovered [TB]} & \multicolumn{1}{l}{Removed [TB]} \\
-    & \multicolumn{1}{l|}{(was missing)} & \multicolumn{1}{l}{(was orphan)} \\
-    \hline
-    T2\_AT\_Vienna & 0.1 & 54 \\
-    T2\_DE\_DESY & 0 & 100 \\
-    T2\_US\_Caltech & 0 & 120 \\
-    \hline
-    T2\_US\_Florida & 300 (not all us) & 2 \\
-    T2\_US\_Nebraska & 10 & 275 \\
-%    T2\_US\_MIT &  \\ I literally don't remember
-    T2\_US\_Purdue & 0.5 & 5 \\
-    \hline
-    T2\_US\_UCSD & 16 & 75 \\
-    T2\_US\_Vanderbilt & 0 & 157 \\
-    T2\_US\_Wisconsin & 0 & 2 \\
-    \hline
-  \end{tabular}
-
-% MAKE COLUMN FOR EMPTY DIRECTORIES
+  {\scriptsize
+    \begin{tabular}{l | r | r | r}
+      \hline
+      Site & Directories & \multicolumn{1}{l|}{Recovered [TB]} & \multicolumn{1}{l}{Removed [TB]} \\
+      & removed & \multicolumn{1}{l|}{(was missing)} & \multicolumn{1}{l}{(was orphan)} \\
+      \hline
+      T2\_AT\_Vienna & 65,000 & 0.1 & 54 \\
+      T2\_DE\_DESY & 16,000 & 0 & 100 \\
+%      T2\_US\_Caltech & 100,000 & 0 & 120 \\
+      T2\_US\_Florida & 17,000 & 300 (not all us) & 2 \\
+      \hline
+      T2\_US\_Nebraska & 100,000 & 10 & 275 \\
+%      T2\_US\_MIT &  \\ I literally don't remember
+      T2\_US\_Purdue & 0 & 0.5 & 5 \\
+      \hline
+      T2\_US\_UCSD & 350,000 & 16 & 75 \\
+      T2\_US\_Vanderbilt & 110,000 & 0 & 157 \\
+      T2\_US\_Wisconsin & 0 & 0 & 2 \\
+      \hline
+    \end{tabular}
+  }
 
   \vspace{8pt}
   \begin{itemize}
   \item T2\_US\_MIT was fixed during development, so we don't have full logs,
     but it had ~10s of TB of inconsistencies all recovered now
   \item Hundreds of thousands of empty directories have also been removed
-    \textcolor{red}{Note to me: add column}
   \end{itemize}
 
 \end{frame}
