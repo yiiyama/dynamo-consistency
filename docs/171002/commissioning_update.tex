@@ -1,10 +1,11 @@
 \documentclass{beamer}
 
 \author[Dynamo Team]{
-  Daniel Abercrombie \\
+  \underline{Daniel Abercrombie} \\
   Maxim Goncharov \\
   Yutaro Iiyama \\
-  Benedikt Maier
+  Benedikt Maier \\
+  Christoph Paus
 }
 
 \title{\bf \sffamily Dynamo -- Consistency Check}
@@ -119,9 +120,10 @@
   \item Missing and orphan files entered into registry
   \item Files handled in three ways:
     \begin{enumerate}
-    \item Orphans are directly deleted
-    \item Missing files on disk transfered with FTS
-    \item Missing files only on tape locally invalidated
+    \item Orphans are directly deleted (including empty directories)
+    \item Missing files available on other T2 disks are copied
+    \item Missing files only on tape are locally invalidated in PhEDEx \\
+      (will cause file to be recovered from tape)
     \end{enumerate}
   \end{itemize}
 
@@ -191,10 +193,11 @@
 
   \begin{itemize}
   \item In the past month, we have recovered around half a petabyte of disk space
-    with minimal site admin or operator manual activity
+    from US T2 sites with no site admin or operator manual activity
   \item Recovering missing files is also progressing smoothly,
-    using Florida's special case to stress test both FTS and invalidation tools
-  \item After initial recoveries, quantity of requests will decrease
+    using Florida's special case to stress test both file transfer
+    and PhEDEx invalidation tools
+  \item After first round, quantity of requests will decrease
   \item A few European sites are also benefitting already
   \end{itemize}
 
