@@ -116,6 +116,7 @@ class TestTree(TestBase):
         self.check_equal(self.tree, tree0)
 
     def test_empty_compare(self):
+        self.tree.setup_hash()
         file_list, dir_list, size = self.tree.compare(None)
 
         self.assertEqual(len(file_list), len(self.file_list))

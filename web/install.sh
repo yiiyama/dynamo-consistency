@@ -4,7 +4,7 @@ TARGET=$1
 
 if [ "$USER" = "dynamo" ]
 then
-    DEFAULT=/var/html/www/dynamo/consistency
+    DEFAULT=/var/www/html/dynamo/consistency
 else
     DEFAULT=$HOME/public_html/ConsistencyCheck
 fi

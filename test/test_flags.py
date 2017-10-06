@@ -60,6 +60,30 @@ class TestSize(unittest.TestCase):
         self.assertEqual(datatypes.compare(invent, remote)[1], 400)
 
 
+class TestEmtpyDirs(unittest.TestCase):
+    # We had a bug where non-existant directories in the inventory was comparable
+    # since a subset of subdirectories were comparable.
+    # However, some of these subdirectories were also new, but deleted anyway.
+    def test_cant_compare_subdir(self):
+        invent = datatypes.DirectoryInfo('/store')
+        invent.add_file_list([('/store/yo/first/0000/file_exists.root', 100)])
+
+        remote = datatypes.DirectoryInfo('/store')
+        remote.add_file_list([('/store/yo/first/0000/file_exists.root', 100, 0),
+                              ('/store/yo/second/0000/file_new.root', 100, time.time())])
+        remote.get_node('yo/second/0001').mtime = 1
+
+        invent.setup_hash()
+        remote.setup_hash()
+
+        self.assertTrue(invent.get_node('yo').can_compare)
+        self.assertFalse(remote.get_node('yo/second/0000').can_compare)
+        self.assertTrue(remote.get_node('yo/second/0001').can_compare)
+        self.assertTrue(remote.get_node('yo/second').can_compare)
+
+        self.assertFalse(remote.compare(invent)[0])
+
+
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:
