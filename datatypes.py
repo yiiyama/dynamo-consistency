@@ -633,6 +633,11 @@ class DirectoryInfo(object):
                         extra_files.append(full_name)
         else:
             # If no other node to compare, all files are extra (not in the other tree)
+
+            LOG.debug('Nothing to compare, files: %s', self.files)
+            LOG.debug('Nothing to compare, directories: %s',
+                      [(di.name, di.can_compare) for di in self.directories])
+
             for file_info in [fi for fi in self.files if fi['can_compare']]:
                 full_name = os.path.join(path, self.name, file_info['name'])
 
