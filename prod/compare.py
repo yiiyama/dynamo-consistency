@@ -112,6 +112,17 @@ def main(site):
 
     start = time.time()
 
+    # Open a connection temporarily to make sure we only list good sites
+    status_check = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
+    status = status_check.query('SELECT status FROM sites WHERE name = %s', site)[0]
+
+    if status != 'ready':
+        LOG.error('Site %s status is %s', site, status)
+        exit(0)
+
+    # Close the connection while we are getting the trees together
+    status_check.close()
+
     # All of the files and summary will be dumped here
     webdir = config.config_dict()['WebDir']
 
@@ -239,7 +250,7 @@ def main(site):
                  INNER JOIN block_replicas ON sites.id = block_replicas.site_id
                  INNER JOIN files ON block_replicas.block_id = files.block_id
                  WHERE files.name = %s AND sites.name != %s
-                 AND sites.status != 'morgue' AND sites.status != 'unknown'
+                 AND sites.status = 'ready'
                  AND block_replicas.is_complete = 1
                  {0}
                  """
