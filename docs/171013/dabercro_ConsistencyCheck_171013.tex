@@ -414,7 +414,7 @@
 
   \begin{center}
   \begin{tikzpicture}[node distance=0.5cm, every edge/.style={arrow}]
-  \node (start) [goodstep] at (0, 0) {List directory \\ start with ``/store''};
+  \node (start) [goodstep] at (0, 0) {List directory};
   \node (good) [goodstep, right=of start] {Was the listing successful?};
   \node (yes) [below=of good] {Yes};
   \node (outqueue) [async, below=of yes] {Output name of \\ this directory \\
@@ -425,6 +425,7 @@
     add directories \\ add files};
   \node (try) [async, above=of good] {Try again};
   \draw [->, thick] (good) -- node [left] {No} (try);
+  \node (storestart) [goodstep, left=of outqueue] {Add ``/store'' to input};
   \path
   (start) edge (good)
   (inqueue) edge [bend left] node [left] {} (start)
@@ -432,6 +433,7 @@
   (good) edge (yes)
   (yes) edge (inqueue) edge (outqueue)
   (try) edge [bend right] node [above] {} (start)
+  (storestart) edge (inqueue)
   ;
   \end{tikzpicture}
   \end{center}
