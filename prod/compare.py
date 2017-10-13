@@ -26,7 +26,7 @@ goes through the following steps for each site.
      - Deletion requests fetched from PhEDEx (same list as datasets to skip in missing)
      - A dataset that has any files on the site, as listed by the dynamo MySQL database
      - Any datasets that have the status flag set to ``'IGNORED'`` in the dynamo database
-     - Datasets merging datasets that are
+     - Merging datasets that are
        `protected by Unified <https://cmst2.web.cern.ch/cmst2/unified/listProtectedLFN.txt>`_
 
   #. Does the comparison between the two trees made.
