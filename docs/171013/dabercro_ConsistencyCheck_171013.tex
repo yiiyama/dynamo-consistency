@@ -229,13 +229,9 @@
       \node (bb) at (2, 6) [direct] {Run2016A};
       \node (bc) at (4.25, 7) [direct] {Run2017I};
       \path
-      (root) edge (a)
-      (root) edge (b)
-      (a) edge (aa)
-      (a) edge (ab)
-      (b) edge (ba)
-      (b) edge (bb)
-      (b) edge (bc)
+      (root) edge (a) edge (b)
+      (a) edge (aa) edge (ab)
+      (b) edge (ba) edge (bb) edge (bc)
       ;
   \end{tikzpicture}
   \end{center}
