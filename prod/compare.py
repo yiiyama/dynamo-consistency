@@ -128,10 +128,10 @@ def main(site):
         else:
             prev_new_name = prev_missing
 
-        os.rename(prev_missing,
-                  os.path.join(config.config_dict()['CacheLocation'],
-                               prev_new_name)
-                 )
+        shutil.move(prev_missing,
+                    os.path.join(config.config_dict()['CacheLocation'],
+                                 prev_new_name)
+                   )
 
     # Open a connection temporarily to make sure we only list good sites
     status_check = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
