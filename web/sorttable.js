@@ -19,11 +19,13 @@ function extractkey (text, is_number) {
 
 function sorttable (column, is_number = true) {
 
-    if (column == Math.abs(howSorted)) {
+    if (Math.abs(column) == Math.abs(howSorted)) {
         howSorted *= -1;
     } else {
         howSorted = column;
     }
+
+    column = Math.abs(column);
 
     // Sort by insertion
     var table = document.getElementById('consistency_summary');
