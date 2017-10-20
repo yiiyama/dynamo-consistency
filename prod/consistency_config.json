@@ -27,7 +27,7 @@
     "xrootd-redic.pi.infn.it",
     "cmsxrootd1.fnal.gov"
   ],
-  "SaveCache": 0,
+  "SaveCache": 1,
   "UseLoadBalancer": [
     "T2_BR_UERJ",
     "T2_CH_CAF",
