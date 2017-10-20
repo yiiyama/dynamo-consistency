@@ -3,6 +3,7 @@
   <head>
     <meta http-equiv="refresh" content="1800">
     <link rel="stylesheet" type="text/css" href="stylin.css"/>
+    <script type="text/javascript" src="sorttable.js"></script>
   </head>
   <body>
 
@@ -17,39 +18,39 @@
     </div>
 
     <div style="padding-top:1em;clear:both;">
-      <table border="1" cellpadding="5" align="center">
+      <table border="1" cellpadding="5" align="center" id="consistency_summary">
         <tr>
-          <th>
+          <th onclick="sorttable(1, false)">
             Last Update
           </th>
-          <th>
+          <th onclick="sorttable(2, false)">
             Site Name
           </th>
-          <th>
+          <th onclick="sorttable(3)">
             Time [min]
           </th>
-          <th>
+          <th onclick="sorttable(4)">
             Number Files
           </th>
-          <th>
+          <th onclick="sorttable(5)">
             Number Nodes
           </th>
-          <th>
+          <th onclick="sorttable(6)">
             Empty Nodes
           </th>
-          <th>
+          <th onclick="sorttable(7)">
             Num Missing
           </th>
-          <th>
+          <th onclick="sorttable(8)">
             No Source
           </th>
-          <th>
+          <th onclick="sorttable(9)">
             Size [TB]
           </th>
-          <th>
+          <th onclick="sorttable(10)">
             Num Orphan
           </th>
-          <th>
+          <th onclick="sorttable(11)">
             Size [TB]
           </th>
         </tr>
