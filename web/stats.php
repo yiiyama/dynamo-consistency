@@ -10,7 +10,7 @@ error_reporting(E_ALL);
 
   if($which_sites == 'all') {
     $results = $db->query('SELECT * FROM ' . $table . 
-                          'INNER JOIN sites on sites.site = ' . $table . 
+                          ' INNER JOIN sites on sites.site = ' . $table . 
                           '.site ORDER BY site');
   } else {
 
