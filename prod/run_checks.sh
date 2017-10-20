@@ -97,18 +97,18 @@ exit 0
 
 =pod
 
-=head1 Usage
+=head1 Usage:
 
-   run_checks.sh MAXNUMBER MATCH
+   run_checks.sh <MAXNUMBER> <MATCH>
 
-Run the Consistency Check for sites that match the name MATCH
+runs the Consistency Check for sites that match the name MATCH
 (using a MySQL "LIKE" expression), limited to MAXNUMBER.
 Sites that have not been run before will get priority.
 After that, priority is assigned by the sites that have gone the longest
 without getting a new summary entry in the summary webpage.
 Sites that are currently running are excluded.
 
-=head1 Examples
+=head1 Examples:
 
    run_checks.sh 1 T2_US_MIT                           # If you want to run on a single site
    ListAge=0 InventoryAge=0 run_checks.sh 1 T2_US_MIT  # To get a fresh cache
