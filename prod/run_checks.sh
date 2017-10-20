@@ -19,8 +19,11 @@ HERE=$(cd $(dirname $0) && pwd)
 export DATABASE=$(jq -r '.WebDir' $HERE/consistency_config.json)/stats.db
 
 # Don't know why it would happen, but protect against simple SQL injection
+case $NUMBER in 
+    *';'* ) exit 1 ;;
+esac
 case $MATCH in 
-    *"'"* ) exit 1 ;;
+    *["'"';']* ) exit 1 ;;
 esac
 
 # Get the possible sites that match the constraint from dynamo
