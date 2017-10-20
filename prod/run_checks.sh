@@ -76,6 +76,9 @@ then
 
         echo "$(date) Starting run on $SITE" >> $LOGLOCATION/run_checks.log
 
+        # Report running
+        echo "UPDATE sites SET isrunning = 2 WHERE site = '$SITE';" | sqlite3 $DATABASE
+
         # Run
         PYTHONPATH=$(dirname $(dirname $HERE)):$HOME/dynamo/lib $HERE/compare.py $SITE watch &> $LOGLOCATION/${SITE}_$(date +%y%m%d_%H%M%S).log
 
