@@ -3,7 +3,7 @@
 NUMBER=$1
 MATCH=$2
 
-if [ "$NUMBER" = "-h" -o "$NUMBER" = "--help" ]
+if [ -z "$MATCH" -o "$NUMBER" = "-h" -o "$NUMBER" = "--help" ]
 then
     perldoc -T $0
     exit 0

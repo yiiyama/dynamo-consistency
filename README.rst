@@ -51,6 +51,12 @@ The configuration in production is the following.
 
 .. automodule:: compare
 
+To automatically run ``prod/compare.py`` over a few well-deserving sites, use ``prod/run_checks.sh``.
+
+.. autoanysrc:: phony
+   :src: ../ConsistencyCheck/prod/run_checks.sh
+   :analyzer: perl-script
+
 Reference
 +++++++++
 
