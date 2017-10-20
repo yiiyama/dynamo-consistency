@@ -1,5 +1,5 @@
 
-var howSorted = 2;          // Starts out sorted by Site Name Ascending
+var howSorted = -2;          // Starts out sorted by Site Name Ascending
 
 function extractkey (text, is_number) {
     // A function for getting the comparison key from the cell contents
@@ -42,7 +42,7 @@ function sorttable (column, is_number = true) {
         for (var prev = i_row - 1; prev > 0; prev -= 1) {
             var compare = extractkey(table.rows[prev].cells[column - 1].innerHTML, is_number);
 
-            if (cell != compare && ((cell < compare) == (howSorted > 0))) {
+            if (cell != compare && ((cell > compare) == (howSorted > 0))) {
                 to_place -= 1;
             } else {
                 break;
