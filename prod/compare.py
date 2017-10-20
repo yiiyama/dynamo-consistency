@@ -419,6 +419,11 @@ def main(site):
 
 
 if __name__ == '__main__':
+
+    # Set the config file to read locally
+    config.CONFIG_FILE = os.path.join(os.path.dirname(__file__),
+                                      'consistency_config.json')
+
     LOG.info('About to run over %s', SITES)
 
     for site_to_check in SITES:
