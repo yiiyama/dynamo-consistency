@@ -110,7 +110,7 @@ class XRootDLister(object):
 
             # Retry certain error codes if there's no dir_list
             # Don't bother with 3010 at the moment because there's that Hadoop bug
-            okay = error_code == '3010' or \
+            okay = (error_code == '3010' and 'operation not permitted' in status.message) or \
                 (bool(dir_list) if error_code in ['!', '3005'] else False)
 
             self.log.debug('Error code: %s', error_code)
