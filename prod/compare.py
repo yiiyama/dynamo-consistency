@@ -423,7 +423,7 @@ def main(site):
     shutil.copy('%s_compare_missing.txt' % site, webdir)
     shutil.copy('%s_compare_orphan.txt' % site, webdir)
 
-    if not os.environ.get('ListAge') and not os.environ.get('InventoryAge'):
+    if (os.environ.get('ListAge') is None) and (os.environ.get('InventoryAge') is None):
 
         # Update the runtime stats on the stats page if the listing settings are not changed
         conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
