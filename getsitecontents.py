@@ -219,7 +219,8 @@ def get_site_tree(site):
 
     min_threads = config.config_dict().get('MinThreads', 0)
 
-    if site in config.config_dict().get('UseLoadBalancer', []):
+    if site in config.config_dict().get('UseLoadBalancer', []) or \
+            (balancer and not door_list):
         min_threads = 1
         door_list = [balancer]
 
