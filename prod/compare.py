@@ -247,11 +247,11 @@ def main(site):
 
     # Enter things for site in registry
     if os.environ['USER'] == 'dynamo':
-        reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister',
-                        config_group='mysql-dynamo')
+        reg_sql = MySQL(config_file='/etc/my.cnf',
+                        db='dynamoregister', config_group='mysql-dynamo')
     else:
-        reg_sql = MySQL(config_file='%s/my.cnf' % os.environ['HOME'], db='dynamoregister',
-                        config_group='mysql-register-test')
+        reg_sql = MySQL(config_file=os.path.join(os.environ['HOME'], 'my.cnf'),
+                        db='dynamoregister', config_group='mysql-register-test')
 
     # Determine if files should be entered into the registry
 
