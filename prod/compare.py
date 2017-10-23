@@ -245,86 +245,88 @@ def main(site):
 
     LOG.debug('Missing size: %i, Orphan size: %i', m_size, o_size)
 
-    # Whether or not to skip entering missing files into the registry
-    skip_enter = len(missing) > int(config.config_dict()['MaxMissing'])
-    if skip_enter:
-        LOG.warning('Too many missing files: %i, you should investigate.', len(missing))
-    else:
-        skip_enter = not is_debugged
-
-    # Enter things for site in registry
-    if os.environ['USER'] == 'dynamo':
-        reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister',
-                        config_group='mysql-dynamo')
-    else:
-        reg_sql = MySQL(config_file='%s/my.cnf' % os.environ['HOME'], db='dynamoregister',
-                        config_group='mysql-register-test')
-
     no_source_files = []
 
-    def add_transfers(line, sites):
-        """
-        Add the file into the transfer queue for multiple sites.
+    # Determine if files should be entered into the registry
+    # First count the missing files
+    if len(missing) > int(config.config_dict()['MaxMissing'])
+        LOG.error('Too many missing files: %i, you should investigate.', len(missing))
 
-        :param str line: The file LFN to transfer
-        :param list sites: Sites to try to transfer from
-        :returns: Whether or not the entry was a success
-        :rtype: bool
-        """
+    # Then check the number of orphan files
+    elif len(orphan) > site_tree.get_num_files() * \
+            float(config.config_dict()['MaxOrphanFraction']):
+        LOG.error('Too many orphan files: %i out of %i, you should investigate.',
+                  len(orphan), site_tree.get_num_files())
 
-        # Don't add transfers if too many missing files
-        if not skip_enter and (line in prev_set or not prev_set):
-            for location in sites:
-                reg_sql.query(
-                    """
-                    INSERT IGNORE INTO `transfer_queue`
-                    (`file`, `site_from`, `site_to`, `status`, `reqid`)
-                    VALUES (%s, %s, %s, 'new', 0)
-                    """,
-                    line, location, site)
+    # Then do entries, if the site is in the debugged status
+    elif is_debugged:
 
-                LOG.info('Copying %s from %s', line, location)
+        # Enter things for site in registry
+        if os.environ['USER'] == 'dynamo':
+            reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister',
+                            config_group='mysql-dynamo')
+        else:
+            reg_sql = MySQL(config_file='%s/my.cnf' % os.environ['HOME'], db='dynamoregister',
+                            config_group='mysql-register-test')
 
-        return bool(sites)
+        def add_transfers(line, sites):
+            """
+            Add the file into the transfer queue for multiple sites.
+
+            :param str line: The file LFN to transfer
+            :param list sites: Sites to try to transfer from
+            :returns: Whether or not the entry was a success
+            :rtype: bool
+            """
+
+            # Don't add transfers if too many missing files
+            if line in prev_set or not prev_set:
+                for location in sites:
+                    reg_sql.query(
+                        """
+                        INSERT IGNORE INTO `transfer_queue`
+                        (`file`, `site_from`, `site_to`, `status`, `reqid`)
+                        VALUES (%s, %s, %s, 'new', 0)
+                        """,
+                        line, location, site)
+
+                    LOG.info('Copying %s from %s', line, location)
+
+            return bool(sites)
 
 
-    # Setup a query for sites, with added condition at the end
-    site_query = """
-                 SELECT sites.name FROM sites
-                 INNER JOIN block_replicas ON sites.id = block_replicas.site_id
-                 INNER JOIN files ON block_replicas.block_id = files.block_id
-                 WHERE files.name = %s AND sites.name != %s
-                 AND sites.status = 'ready'
-                 AND block_replicas.is_complete = 1
-                 {0}
-                 """
+        # Setup a query for sites, with added condition at the end
+        site_query = """
+                     SELECT sites.name FROM sites
+                     INNER JOIN block_replicas ON sites.id = block_replicas.site_id
+                     INNER JOIN files ON block_replicas.block_id = files.block_id
+                     WHERE files.name = %s AND sites.name != %s
+                     AND sites.status = 'ready'
+                     AND block_replicas.is_complete = 1
+                     {0}
+                     """
 
-    for line in missing:
+        for line in missing:
 
-        # Get sites that are not tape
-        sites = inv_sql.query(
-            site_query.format('AND sites.storage_type != "mss"'),
-            line, site)
-
-        if not add_transfers(line, sites):
-            # Track files without disk source
-            no_source_files.append(line)
-
-            # Get sites that are tape
+            # Get sites that are not tape
             sites = inv_sql.query(
-                site_query.format('AND sites.storage_type = "mss"'),
+                site_query.format('AND sites.storage_type != "mss"'),
                 line, site)
 
-            add_transfers(line, sites)
+            if not add_transfers(line, sites):
+                # Track files without disk source
+                no_source_files.append(line)
+
+                # Get sites that are tape
+                sites = inv_sql.query(
+                    site_query.format('AND sites.storage_type = "mss"'),
+                    line, site)
+
+                add_transfers(line, sites)
 
 
-    with open('%s_missing_nosite.txt' % site, 'w') as nosite:
-        for line in no_source_files:
-            nosite.write(line + '\n')
 
-
-    # Only get the empty nodes that are not in the inventory tree
-    if is_debugged:
+        # Only get the empty nodes that are not in the inventory tree
         for line in orphan + \
                 [empty_node for empty_node in site_tree.empty_nodes_list() \
                      if not inv_tree.get_node('/'.join(empty_node.split('/')[2:]),
@@ -340,7 +342,13 @@ def main(site):
             LOG.info('Deleting %s', line)
 
 
-    reg_sql.close()
+        reg_sql.close()
+
+
+    # Create a blank no source file, even if not entered in registry
+    with open('%s_missing_nosite.txt' % site, 'w') as nosite:
+        for line in no_source_files:
+            nosite.write(line + '\n')
 
     # We want to track which blocks missing files are coming from
     track_missing_blocks = defaultdict(
