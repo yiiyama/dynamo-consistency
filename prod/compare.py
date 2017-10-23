@@ -245,22 +245,34 @@ def main(site):
 
     LOG.debug('Missing size: %i, Orphan size: %i', m_size, o_size)
 
-    # Whether or not to skip entering missing files into the registry
-    skip_enter = len(missing) > int(config.config_dict()['MaxMissing'])
-    if skip_enter:
-        LOG.warning('Too many missing files: %i, you should investigate.', len(missing))
-    else:
-        skip_enter = not is_debugged
-
     # Enter things for site in registry
     if os.environ['USER'] == 'dynamo':
-        reg_sql = MySQL(config_file='/etc/my.cnf', db='dynamoregister',
-                        config_group='mysql-dynamo')
+        reg_sql = MySQL(config_file='/etc/my.cnf',
+                        db='dynamoregister', config_group='mysql-dynamo')
     else:
-        reg_sql = MySQL(config_file='%s/my.cnf' % os.environ['HOME'], db='dynamoregister',
-                        config_group='mysql-register-test')
+        reg_sql = MySQL(config_file=os.path.join(os.environ['HOME'], 'my.cnf'),
+                        db='dynamoregister', config_group='mysql-register-test')
 
-    no_source_files = []
+    # Determine if files should be entered into the registry
+
+    many_missing = len(missing) > int(config.config_dict()['MaxMissing'])
+    many_orphans = len(orphan) > site_tree.get_num_files() * \
+        float(config.config_dict()['MaxOrphanFraction'])
+
+    if is_debugged and not many_missing and not many_orphans:
+        execute = reg_sql.query
+
+    else:
+        if many_missing:
+            LOG.error('Too many missing files: %i, you should investigate.', len(missing))
+
+        if many_orphans:
+            LOG.error('Too many orphan files: %i out of %i, you should investigate.',
+                      len(orphan), site_tree.get_num_files())
+
+        execute = lambda *_: 0
+
+    # Then do entries, if the site is in the debugged status
 
     def add_transfers(line, sites):
         """
@@ -273,9 +285,9 @@ def main(site):
         """
 
         # Don't add transfers if too many missing files
-        if not skip_enter and (line in prev_set or not prev_set):
+        if line in prev_set or not prev_set:
             for location in sites:
-                reg_sql.query(
+                execute(
                     """
                     INSERT IGNORE INTO `transfer_queue`
                     (`file`, `site_from`, `site_to`, `status`, `reqid`)
@@ -299,6 +311,9 @@ def main(site):
                  {0}
                  """
 
+    # Track files with no sources
+    no_source_files = []
+
     for line in missing:
 
         # Get sites that are not tape
@@ -318,29 +333,29 @@ def main(site):
             add_transfers(line, sites)
 
 
-    with open('%s_missing_nosite.txt' % site, 'w') as nosite:
-        for line in no_source_files:
-            nosite.write(line + '\n')
-
 
     # Only get the empty nodes that are not in the inventory tree
-    if is_debugged:
-        for line in orphan + \
-                [empty_node for empty_node in site_tree.empty_nodes_list() \
-                     if not inv_tree.get_node('/'.join(empty_node.split('/')[2:]),
-                                              make_new=False)]:
-            reg_sql.query(
-                """
-                INSERT IGNORE INTO `deletion_queue`
-                (`file`, `site`, `status`) VALUES
-                (%s, %s, 'new')
-                """,
-                line, site)
+    for line in orphan + \
+            [empty_node for empty_node in site_tree.empty_nodes_list() \
+                 if not inv_tree.get_node('/'.join(empty_node.split('/')[2:]),
+                                          make_new=False)]:
+        execute(
+            """
+            INSERT IGNORE INTO `deletion_queue`
+            (`file`, `site`, `status`) VALUES
+            (%s, %s, 'new')
+            """,
+            line, site)
 
-            LOG.info('Deleting %s', line)
+        LOG.info('Deleting %s', line)
 
 
     reg_sql.close()
+
+
+    with open('%s_missing_nosite.txt' % site, 'w') as nosite:
+        for line in no_source_files:
+            nosite.write(line + '\n')
 
     # We want to track which blocks missing files are coming from
     track_missing_blocks = defaultdict(
@@ -408,24 +423,26 @@ def main(site):
     shutil.copy('%s_compare_missing.txt' % site, webdir)
     shutil.copy('%s_compare_orphan.txt' % site, webdir)
 
-    # Update the runtime stats on the stats page
-    conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
-    curs = conn.cursor()
+    if (os.environ.get('ListAge') is None) and (os.environ.get('InventoryAge') is None):
 
-    curs.execute('INSERT INTO stats_history SELECT * FROM stats WHERE site=?', (site, ))
-    curs.execute(
-        """
-        REPLACE INTO stats VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?, ?)
-        """,
-        (site, time.time() - start, site_tree.get_num_files(),
-         site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
-         config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
-         len(missing), m_size, len(orphan), o_size, len(no_source_files),
-         site_tree.get_num_files(unlisted=True)))
+        # Update the runtime stats on the stats page if the listing settings are not changed
+        conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
+        curs = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        curs.execute('INSERT INTO stats_history SELECT * FROM stats WHERE site=?', (site, ))
+        curs.execute(
+            """
+            REPLACE INTO stats VALUES
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?, ?)
+            """,
+            (site, time.time() - start, site_tree.get_num_files(),
+             site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
+             config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
+             len(missing), m_size, len(orphan), o_size, len(no_source_files),
+             site_tree.get_num_files(unlisted=True)))
+
+        conn.commit()
+        conn.close()
 
 
 if __name__ == '__main__':
