@@ -62,6 +62,7 @@
            $bad_background = ' style="background-color:#ff6666;"';
            $queued_background = ' style="background-color:#66ffff;"';
            $good_background = ' style="background-color:#66ff66;"';
+           $disabled_background = ' style="background-color:#bbbbbb;"';
 
            $background_missing = ($row['missing'] > $config['MaxMissing']) ? $bad_background : '';
            $background_nosource = ($row['nosource'] > $config['MaxMissing']) ? $bad_background : '';
@@ -69,18 +70,32 @@
            $background_files = ($row['files'] == 0) ? $bad_background : '';
            $background_unlisted = ($row['unlisted'] != 0) ? $bad_background : '';
 
-           if ($row['isrunning'] == 0) {
-             $background_site = $background_files;
-           } else {
-             $background_site = ($row['isrunning'] == 2) ? $good_background : $queued_background;
+           $tooltip = '';
+
+           // Get the running cell colored based on running status
+           switch ($row['isrunning']) {
+
+             case 0:
+               $background_site = $background_files;
+               break;
+             case 1:
+               $background_site = $queued_background;
+               break;
+             case 2:
+               $background_site = $good_background;
+               $tooltip = '<span class="givestarted">Started: ' . $row['laststarted'] . '</span>';
+               break;
+             default:
+               $background_site = $disabled_background;
+
            }
 
            $background_time = ((strtotime($row['entered']) + 24 * 3600) > time()) ? $good_background : '';
 
            printf (
-             '<tr><td%s>%s</td><td%s><a href="%s.log">%s</a></td><td>%.0f</td><td%s>%d</td><td>%d</td><td%s>%d</td><td>%d</td><td%s><a href="%s_compare_missing.txt">%d</a> [<a href="%s_missing_datasets.txt">blocks</a>]</td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td></tr>',
+             '<tr><td%s>%s</td><td%s><a href="%s.log">%s</a>%s</td><td>%.0f</td><td%s>%d</td><td>%d</td><td%s>%d</td><td>%d</td><td%s><a href="%s_compare_missing.txt">%d</a> [<a href="%s_missing_datasets.txt">blocks</a>]</td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td></tr>',
              $background_time, $row['entered'],
-             $background_site, $row['site'], $row['site'], $row['time']/60.,
+             $background_site, $row['site'], $row['site'], $tooltip, $row['time']/60.,
              $background_files, $row['files'], $row['nodes'], 
              $background_unlisted, $row['unlisted'], $row['emtpy'],
              $background_missing, $row['site'], $row['missing'], $row['site'],

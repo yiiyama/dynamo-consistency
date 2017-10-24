@@ -21,50 +21,53 @@ HERE=$(cd $(dirname $0) && pwd)
 # Determine the SQLite3 database location from the configuration file
 DATABASE=$(jq -r '.WebDir' $HERE/consistency_config.json)/stats.db
 
-# If not running, quit
-if [ "$(echo "SELECT isrunning FROM sites where site = '$SITE';" | sqlite3 $DATABASE)" != "2" ]
+# If site running, kill
+if [ "$(echo "SELECT isrunning FROM sites where site = '$SITE';" | sqlite3 $DATABASE)" = "2" ]
 then
 
-    echo "Site not running anymore"
-    exit 1
+    # First get all the processes from run_checks
+    for check_pid in $(pgrep run_checks.sh)
+    do
+
+        compare_pid=$(pgrep -P $check_pid)
+
+        # Check the compare.py calls for the site
+        if grep $SITE /proc/$compare_pid/cmdline
+        then
+
+            # Kill the child processes
+            pkill -P $compare_pid
+            # Kill the process
+            kill $compare_pid
+            break
+
+        fi
+
+    done
+
+    # Wait for process to stop
+    while [ "$(echo "SELECT isrunning FROM sites where site = '$SITE';" | sqlite3 $DATABASE)" != "0" ]
+    do
+
+        sleep 1
+
+    done
+
+else
+
+    echo "Site not running"
+    echo "Just disabling, unless in queue"
 
 fi
 
-# Otherwise, kill
-
-# First get all the processes from run_checks
-for check_pid in $(pgrep run_checks.sh)
-do
-
-    compare_pid=$(pgrep -P $check_pid)
-
-    # Check the compare.py calls for the site
-    if grep $SITE /proc/$compare_pid/cmdline
-    then
-
-        # Kill the child processes
-        echo pkill -P $compare_pid
-        # Kill the process
-        echo kill $compare_pid
-        break
-
-    fi
-
-done
-
-exit 0
-
-# Wait for process to stop
-while [ "$(echo "SELECT isrunning FROM sites where site = '$SITE';" | sqlite3 $DATABASE)" != "0" ]
-do
-
-    sleep 1
-
-done
 
 # Mark as unrunnable
+if [ "$(echo "SELECT isrunning FROM sites where site = '$SITE';" | sqlite3 $DATABASE)" = "0" ]
+then
 
-echo "UPDATE sites SET isrunning = -1 WHERE site = '$SITE';" | sqlite3 $DATABASE
+    echo "UPDATE sites SET isrunning = -1 WHERE site = '$SITE';" | sqlite3 $DATABASE
+
+fi
 
 exit 0
 

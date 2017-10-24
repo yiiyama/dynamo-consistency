@@ -33,7 +33,7 @@ ALL_SITES=$(echo "SELECT name FROM sites WHERE name LIKE '$MATCH' AND (name LIKE
 # Make sure all of the sites are in the webpage's database
 # Shove it all into one pipe to avoid too many connections
 # Basically just looping over sites and inserting them
-echo $ALL_SITES | tr ' ' '\n' | xargs -n1 -I '{SITE}' echo "INSERT OR IGNORE INTO sites VALUES ('{SITE}', 0, 0);" | sqlite3 $DATABASE
+echo $ALL_SITES | tr ' ' '\n' | xargs -n1 -I '{SITE}' echo "INSERT OR IGNORE INTO sites VALUES ('{SITE}', 0, 0, NULL);" | sqlite3 $DATABASE
 
 # Now get a list of sites to run on
 SITES=$(echo "
@@ -74,6 +74,8 @@ then
         LOGLOCATION=$(jq -r '.LogLocation' $HERE/consistency_config.json)
         test -d $LOGLOCATION || mkdir -p $LOGLOCATION
 
+        # Report start of run
+        echo "UPDATE sites SET laststarted = DATETIME(DATETIME(), '-4 hours') WHERE site = '$SITE';" | sqlite3 $DATABASE
         echo "$(date) Starting run on $SITE" >> $LOGLOCATION/run_checks.log
 
         # Report running
