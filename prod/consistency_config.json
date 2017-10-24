@@ -29,8 +29,6 @@
   ],
   "SaveCache": 1,
   "UseLoadBalancer": [
-    "T2_KR_KNU",
-    "T2_PT_NCG_Lisbon",
     "T2_US_Vanderbilt"
   ],
   "WebDir": "/var/www/html/dynamo/consistency",
