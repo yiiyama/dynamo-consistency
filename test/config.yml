@@ -1,39 +1,40 @@
 ##!
 #
+# - **DirectoryList** - A list of directories inside of ``'/store/'`` to check consistency.
+# - **MaxMissing** - If more files than this number are missing,
+#   then missing files will not be entered into the transfer queue
+# - **MaxOrphanFraction** - If more than this fraction of files at a site are orphan files,
+#   then orphan files will not be entered into the deletion queue
+# - **CacheLocation** - The directory where all cached information is stored
+# - **SaveCache** - If set and evaluates to True, copies old cached directory trees instead of overwriting
+# - **IgnoreAge** - Ignore any files or directories with an age less than this, in days.
+# - **LogLocation** - The directory where all the logs are stored
+# - **WebDir** - The directory where text files and the sqlite3 database live
+# - **InventoryAge** - The age, in days, of how old the information from the inventory can be
+# - **ListAge** - The age, in days, of how old the list of files directly from the site can be
+# - **GlobalRedirectors** - The redirectors to start all locate calls from, unless looking
+#   for a site that is listed in the **Redirectors** configuration.
+# - **Redirectors** - A dictionary with keys of sites with hard-coded redirector locations.
+#   If a site is not listed in this way, the redirector is found by matching domains from
+#   :py:func:`CMSToolBox.siteinfo.get_domain` to redirectors found in a generic ``xrdfs locate`` call.
+# - **UseLoadBalancer** - A list of sites where the main redirector of the site is used
+# - **RedirectorAge** - The age, in days, of how old the information on doors from redirectors can be.
+#   If this value is set to zero, the redirector information is never refreshed.
+# - **BothList** - Sites in this list will use the listing from their primary and backup doors.
+#   This is used because sites like T1_US_FNAL use two ports on the same host to list different files.
+# - **Timeout** - This gives the amount of time, in seconds, that you want the listing to try to run
+#   on a single directory before it times out.
+# - **Retries** - Number of retries after timeouts to attempt
+# - **NumThreads** - This variable overwrites the values of MaxThreads and
+#   MinThreads to be the same, if its value is non-zero.
 # - **MaxThreads** - The maximum number of threads to run the check with.
 #   If 0, the application can use as many threads as processors.
 # - **MinThreads** - The minimum number of threads. This will cause multiple connections
 #   to the same doors if the number of threads would be smaller otherwise.
 #   The program tries to spread connections evenly over available doors.
 #   If MinThreads is larger than MaxThreads, MaxThreads takes precedence.
-# - **NumThreads** - This variable overwrites the values of MaxThreads and
-#   MinThreads to be the same, if its value is non-zero.
 #   The two are useful separately if you want to operate in a window, but this parameter can be used
 #   to quickly fix the number of threads for a given run.
-# - **CacheLocation** - The directory where all cached information is stored
-# - **LogLocation** - The directory where all the logs are stored
-# - **InventoryAge** - The age, in days, of how old the information from the inventory can be
-# - **ListAge** - The age, in days, of how old the list of files directly from the site can be
-# - **RedirectorAge** - The age, in days, of how old the information about redirectors can be
-# - **GlobalRedirectors** - The redirectors to start all locate calls from, unless looking
-#   for a site that is listed in the **Redirectors** configuration.
-# - **Redirectors** - A dictionary with keys of sites with hard-coded redirector locations.
-#   If a site is not listed in this way, the redirector is found by matching domains from
-#   :py:func:`CMSToolBox.siteinfo.get_domain` to redirectors found in a generic ``xrdfs locate`` call.
-# - **DirectoryList** - A list of directories inside of ``'/store/'`` to check consistency.
-# - **IgnoreAge** - Ignore any files or directories with an age less than this, in days.
-# - **BothList** - Sites in this list will use the listing from their primary and backup doors.
-#   This is used because sites like T1_US_FNAL use two ports on the same host to list different files.
-# - **Timeout** - This gives the amount of time, in seconds, that you want the listing to try to run
-#   on a single directory before it times out.
-# - **Retries** - Number of retries after timeouts to attempt
-# - **SaveCache** - If set and evaluates to True, copies old cached directory trees instead of overwriting
-# - **UseLoadBalancer** - A list of sites where the main redirector of the site is used
-# - **WebDir** - The directory where text files and the sqlite3 database live
-# - **MaxMissing** - If more files than this number are missing,
-#   then missing files will not be entered into the transfer queue
-# - **MaxOrphanFraction** - If more than this fraction of files at a site are orphan files,
-#   then orphan files will not be entered into the deletion queue
 #
 ##!
 
