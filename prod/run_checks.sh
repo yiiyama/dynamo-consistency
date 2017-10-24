@@ -90,6 +90,8 @@ then
         # Unlock
         echo "UPDATE sites SET isrunning = 0 WHERE site = '$SITE';" | sqlite3 $DATABASE
 
+        echo "$(date) Finished run on $SITE" >> $LOGLOCATION/run_checks.log
+
     done
 
 else
@@ -119,7 +121,7 @@ Sites that are currently running are excluded.
 =head1 Examples:
 
    run_checks.sh 1 T2_US_MIT                           # If you want to run on a single site
-   ListAge=0 InventoryAge=0 run_checks.sh 1 T2_US_MIT  # To get a fresh cache
+   ListAge=0 InventoryAge=0 run_checks.sh 1 T2_US_MIT  # To get a fresh cache, using environment variables to override configuration
    run_checks.sh 10 T2_%                               # Run on 10 high priority tier-2 sites
    run_checks.sh 2 T1_%_Disk                           # Start 2 tier-1 sites
 
