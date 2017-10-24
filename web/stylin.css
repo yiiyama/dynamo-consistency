@@ -16,6 +16,14 @@ td {
     white-space: nowrap;
 }
 
+td .givestarted {
+    display: none;
+}
+
+td:hover .givestarted {
+    display: block;
+}
+
 body {
     max-width: 80em;
     margin: auto;

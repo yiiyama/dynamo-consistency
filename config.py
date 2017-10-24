@@ -229,6 +229,11 @@ def get_redirector(site, banned_doors=None):
                                    if line.strip() not in banned_doors and domain in line]))
 
     LOG.info('From %s, got doors %s', redirector, local_list)
+    LOG.info('Full list from global redirectors: %s', redirs)
+
+    if len(redirs) > len(local_list):
+        LOG.info('Using list from global redirectors')
+        local_list = redirs
 
     # Return redirector and list of xrootd doors
     return (redirector, local_list)

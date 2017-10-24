@@ -16,7 +16,7 @@ PATH=$PATH:/home/dabercro/bin
 HERE=$(cd $(dirname $0) && pwd)
 
 # Determine the SQLite3 database location from the configuration file
-export DATABASE=$(jq -r '.WebDir' $HERE/consistency_config.json)/stats.db
+DATABASE=$(jq -r '.WebDir' $HERE/consistency_config.json)/stats.db
 
 # Don't know why it would happen, but protect against simple SQL injection
 case $NUMBER in 
@@ -33,7 +33,7 @@ ALL_SITES=$(echo "SELECT name FROM sites WHERE name LIKE '$MATCH' AND (name LIKE
 # Make sure all of the sites are in the webpage's database
 # Shove it all into one pipe to avoid too many connections
 # Basically just looping over sites and inserting them
-echo $ALL_SITES | tr ' ' '\n' | xargs -n1 -I '{SITE}' echo "INSERT OR IGNORE INTO sites VALUES ('{SITE}', 0, 0);" | sqlite3 $DATABASE
+echo $ALL_SITES | tr ' ' '\n' | xargs -n1 -I '{SITE}' echo "INSERT OR IGNORE INTO sites VALUES ('{SITE}', 0, 0, NULL);" | sqlite3 $DATABASE
 
 # Now get a list of sites to run on
 SITES=$(echo "
@@ -74,6 +74,8 @@ then
         LOGLOCATION=$(jq -r '.LogLocation' $HERE/consistency_config.json)
         test -d $LOGLOCATION || mkdir -p $LOGLOCATION
 
+        # Report start of run
+        echo "UPDATE sites SET laststarted = DATETIME(DATETIME(), '-4 hours') WHERE site = '$SITE';" | sqlite3 $DATABASE
         echo "$(date) Starting run on $SITE" >> $LOGLOCATION/run_checks.log
 
         # Report running
@@ -89,6 +91,8 @@ then
 
         # Unlock
         echo "UPDATE sites SET isrunning = 0 WHERE site = '$SITE';" | sqlite3 $DATABASE
+
+        echo "$(date) Finished run on $SITE" >> $LOGLOCATION/run_checks.log
 
     done
 
@@ -119,7 +123,7 @@ Sites that are currently running are excluded.
 =head1 Examples:
 
    run_checks.sh 1 T2_US_MIT                           # If you want to run on a single site
-   ListAge=0 InventoryAge=0 run_checks.sh 1 T2_US_MIT  # To get a fresh cache
+   ListAge=0 InventoryAge=0 run_checks.sh 1 T2_US_MIT  # To get a fresh cache, using environment variables to override configuration
    run_checks.sh 10 T2_%                               # Run on 10 high priority tier-2 sites
    run_checks.sh 2 T1_%_Disk                           # Start 2 tier-1 sites
 
