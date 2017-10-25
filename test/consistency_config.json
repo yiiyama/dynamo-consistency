@@ -16,7 +16,7 @@
   },
   "PathPrefix": {
     "T2_UK_London_Brunel": "/cms"
-  }
+  },
   "DirectoryList": [
     "mc",
     "data",

@@ -12,6 +12,9 @@
     "T3_CH_PSI": "t3se01.psi.ch",
     "T3_US_MIT": "t3serv006.mit.edu"
   },
+  "PathPrefix": {
+    "T2_UK_London_Brunel": "/cms"
+  },
   "DirectoryList": [
     "mc",
     "data",
