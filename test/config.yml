@@ -1,6 +1,9 @@
 ##!
 #
-# - **DirectoryList** - A list of directories inside of ``'/store/'`` to check consistency.
+# - **DirectoryList** - A list of directories inside of ``/store/`` to check consistency.
+# - **PathPrefix** - A dictionary of prefixes to place before ``/store/`` in the XRootD call.
+#   If the prefix is not set for a site, and it fails to list ``/store``, it tries ``/cms/store``
+#   (prefix ``'/cms'``) by default.
 # - **MaxMissing** - If more files than this number are missing,
 #   then there will be no automatic entry into the register
 # - **MaxOrphan** - If more than files than this number are orphan files at a site,
@@ -63,6 +66,9 @@ RedirectorAge: 1
 Redirectors:
   T3_US_MIT: t3serv006.mit.edu
   T3_CH_PSI: t3se01.psi.ch
+
+PathPrefix:
+  T2_UK_London_Brunel: /cms
 
 DirectoryList:
   - mc
