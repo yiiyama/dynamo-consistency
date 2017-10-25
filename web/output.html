@@ -63,6 +63,7 @@
            $queued_background = ' style="background-color:#66ffff;"';
            $good_background = ' style="background-color:#66ff66;"';
            $disabled_background = ' style="background-color:#bbbbbb;"';
+           $long_background = ' style="background-color:#ffff66;"';
 
            $background_missing = ($row['missing'] > $config['MaxMissing']) ? $bad_background : '';
            $background_nosource = ($row['nosource'] > $config['MaxMissing']) ? $bad_background : '';
@@ -82,7 +83,7 @@
                $background_site = $queued_background;
                break;
              case 2:
-               $background_site = $good_background;
+               $background_site = ((strtotime($row['laststarted']) + 24 * 3600) > time()) ? $good_background : $long_background;
                $tooltip = '<span class="givestarted">Started: ' . $row['laststarted'] . '</span>';
                break;
              default:

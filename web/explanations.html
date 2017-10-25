@@ -13,12 +13,17 @@
     <h3>Site Name</h3>
 
     Name of the site as stored in PhEDEx and DDM.
-    If the cell is red, that means the previous listing returned zero files.
-    If the cell is blue, that means the site is queued to be listed.
-    If the cell is green, that means it is being listed.
-    If the cell is gray, then the site listing has been disabled for that site.
-    The number of files cell will remain red regardless of its running status
-    if it had a bad listing completed most recently.
+    The cell might be one of the following colors:
+
+    <ul>
+      <li> <b>Blue</b> -- the site is queued to be listed.
+      <li> <b>Green</b> -- the site is in the process of being listed.
+      <li> <b>Yellow</b> -- the site has been in the process of being listed for over 24 hours.
+      <li> <b>Gray</b> -- the site listing has been completely disabled for that site.
+      <li> <b>Red</b> -- none of the above conditions are met, and the previous listing returned zero files.
+        The number of files cell will remain red regardless of its running status
+        if it had a bad listing completed most recently.
+    </ul>
 
     <h3>Time [min]</h3>
 
