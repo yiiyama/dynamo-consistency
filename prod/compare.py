@@ -259,7 +259,20 @@ def main(site):
         float(config.config_dict()['MaxOrphanFraction'])
 
     if is_debugged and not many_missing and not many_orphans:
-        execute = reg_sql.query
+        def execute(query, *args):
+            """
+            Executes the query on the registry and outputs a log message depending on query
+
+            :param str query: The SQL query to execute
+            :param args: The arguments to the SQL query
+            """
+
+            reg_sql.query(query, *args)
+
+            if 'transfer_queue' in query:
+                LOG.info('Copying %s from %s', args[0], args[1])
+            elif 'deletion_queue' in query:
+                LOG.info('Deleting %s', args[0])
 
     else:
         if many_missing:
@@ -293,8 +306,6 @@ def main(site):
                     VALUES (%s, %s, %s, 'new', 0)
                     """,
                     line, location, site)
-
-                LOG.info('Copying %s from %s', line, location)
 
         return bool(sites)
 
@@ -345,8 +356,6 @@ def main(site):
             (%s, %s, 'new')
             """,
             line, site)
-
-        LOG.info('Deleting %s', line)
 
 
     reg_sql.close()
