@@ -9,8 +9,6 @@ ConsistencyCheck
 Compares files on site to files in the dynamo inventory.
 This tool requires ``dynamo`` and ``xrdfs`` to be installed separately.
 
-.. _consistency-config-ref:
-
 Running the Tool
 ++++++++++++++++
 
@@ -33,6 +31,8 @@ The list of file LFNs at the site and not in the inventory will be in ``results_
 
 The actual comparison done by the production instance of ``dynamo`` has a few more filters and steps,
 as outlined under :ref:`compare-ref`.
+
+.. _consistency-config-ref:
 
 Configuration
 +++++++++++++

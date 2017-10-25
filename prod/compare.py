@@ -30,9 +30,9 @@ goes through the following steps for each site.
      - Merging datasets that are
        `protected by Unified <https://cmst2.web.cern.ch/cmst2/unified/listProtectedLFN.txt>`_
 
-  #. Does the comparison between the two trees made.
-     (Keep in mind the configuration options listed under
-     :ref:`consistency-config-ref` concerning file age.)
+  #. Does the comparison between the two trees made,
+     using the configuration options listed under
+     :ref:`consistency-config-ref` concerning file age.
   #. If the number of missing files is less than **MaxMissing**,
      the fraction of orphans is less than **MaxOrphanFraction**,
      and the site is under the webpage's "Debugged sites" tab,
@@ -41,7 +41,7 @@ goes through the following steps for each site.
      - For each missing file, every possible source site as listed by the dynamo database,
        (not counting the site where missing), is entered in the transfer queue.
      - Every orphan file and every empty directory that is not too new
-       is entered in the deletion queue.
+       nor should contain missing files is entered in the deletion queue.
 
   #. Creates a text file that contains the missing blocks and groups.
   #. Creates a text file full of files that only exist elsewhere on tape.
