@@ -19,7 +19,7 @@ goes through the following steps for each site.
      This list consists of the following.
 
      - Deletion requests fetched from PhEDEx by
-       :py:func:`ConsistencyCheck.checkphedex.set_of_deletetion()`
+       :py:func:`ConsistencyCheck.checkphedex.set_of_deletions()`
 
   #. It creates a list of datasets to not report orphans in.
      This list consists of the following.

@@ -105,6 +105,12 @@ Reference
 
 The following is a full reference to the submodules inside of the :py:mod:`ConsistencyCheck` module.
 
+checkphedex.py
+--------------
+
+.. automodule:: ConsistencyCheck.checkphedex
+   :members:
+
 config.py
 ---------
 
@@ -129,5 +135,5 @@ getinventorycontents.py
 .. automodule:: ConsistencyCheck.getinventorycontents
    :members:
 
-.. |build| image:: https://travis-ci.org/dabercro/ConsistencyCheck.svg?branch=master
-    :target: https://travis-ci.org/dabercro/ConsistencyCheck
+.. |build| image:: https://travis-ci.org/SmartDataProjects/ConsistencyCheck.svg?branch=master
+   :target: https://travis-ci.org/SmartDataProjects/ConsistencyCheck

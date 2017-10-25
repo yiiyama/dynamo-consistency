@@ -21,7 +21,9 @@ LOG = logging.getLogger(__name__)
 
 def set_of_deletions(site):
     """
-    Get a list of datasets with approved deletion requests at a given site.
+    Get a list of datasets with approved deletion requests at a given site that were created
+    within the number of days matching the **IgnoreAge** configuration parameter.
+    This request is done via the PhEDEx ``deleterequests`` API.
 
     :param str site: The site that we want the list of deletion requests for.
     :returns: Datasets that are in deletion requests
@@ -131,9 +133,9 @@ def check_for_datasets(site, orphan_list_file):
     """
     Checks PhEDEx exhaustively to see if a dataset should exist at a site,
     according to PhEDEx, but has files marked as orphans according to our check.
-    For now, we are trying to ignore any orphans that belong to any dataset at all
-    subscribed to a given site.
-    Datasets where that is violated are printed to the terminal.
+    This is done via the PhEDEx ``filereplicas`` API.
+    The number of filereplicas for each dataset is printed to the terminal.
+    Datasets that contain any filereplicas are returned by this function.
 
     :param str site: The name of the site to check
     :param list orphan_list_file: List of LFNs that are listed as orphans at the site
