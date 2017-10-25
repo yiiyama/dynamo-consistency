@@ -67,7 +67,7 @@
 
            $background_missing = ($row['missing'] > $config['MaxMissing']) ? $bad_background : '';
            $background_nosource = ($row['nosource'] > $config['MaxMissing']) ? $bad_background : '';
-           $background_orphan = ($row['orphan'] > $row['files']*$config['MaxOrphanFraction']) ? $bad_background : '';
+           $background_orphan = ($row['orphan'] > $config['MaxOrphan']) ? $bad_background : '';
            $background_files = ($row['files'] == 0) ? $bad_background : '';
            $background_unlisted = ($row['unlisted'] != 0) ? $bad_background : '';
 

@@ -34,7 +34,7 @@ goes through the following steps for each site.
      using the configuration options listed under
      :ref:`consistency-config-ref` concerning file age.
   #. If the number of missing files is less than **MaxMissing**,
-     the fraction of orphans is less than **MaxOrphanFraction**,
+     the number of orphans is less than **MaxOrphan**,
      and the site is under the webpage's "Debugged sites" tab,
      connects to a dynamo registry to report the following errors:
 
@@ -255,8 +255,7 @@ def main(site):
     # Determine if files should be entered into the registry
 
     many_missing = len(missing) > int(config.config_dict()['MaxMissing'])
-    many_orphans = len(orphan) > site_tree.get_num_files() * \
-        float(config.config_dict()['MaxOrphanFraction'])
+    many_orphans = len(orphan) > int(config.config_dict()['MaxOrphan'])
 
     if is_debugged and not many_missing and not many_orphans:
         def execute(query, *args):
