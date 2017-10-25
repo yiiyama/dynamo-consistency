@@ -40,8 +40,8 @@ goes through the following steps for each site.
 
      - For each missing file, every possible source site as listed by the dynamo database,
        (not counting the site where missing), is entered in the transfer queue.
-     - Every orphan file and every empty directory that is not too new nor should contain missing files
-       is entered in the deletion queue.
+     - Every orphan file and every empty directory that is not too new
+       nor should contain missing files is entered in the deletion queue.
 
   #. Creates a text file that contains the missing blocks and groups.
   #. Creates a text file full of files that only exist elsewhere on tape.
