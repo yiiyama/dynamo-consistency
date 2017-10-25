@@ -14,7 +14,8 @@ This tool requires ``dynamo`` and ``xrdfs`` to be installed separately.
 Running the Tool
 ++++++++++++++++
 
-A consistency check on a site can be done simply by doing the following::
+A simple consistency check on a site can be done by doing the following
+when an instance of ``dynamo`` is installed::
 
     from ConsistencyCheck import config, datatypes, getsitecontents, getinventorycontents
 
@@ -29,6 +30,9 @@ A consistency check on a site can be done simply by doing the following::
 In this example,
 the list of file LFNs in the inventory and not at the site will be in ``results_missing.txt``.
 The list of file LFNs at the site and not in the inventory will be in ``results_orphan.txt``.
+
+The actual comparison done by the production instance of ``dynamo`` has a few more filters and steps,
+as outlined under :ref:`compare-ref`.
 
 Configuration
 +++++++++++++
@@ -49,6 +53,8 @@ Production Settings
 The configuration in production is the following.
 
 .. program-output:: cat ../ConsistencyCheck/prod/consistency_config.json
+
+.. _compare-ref:
 
 Comparison Script
 +++++++++++++++++
@@ -105,6 +111,12 @@ Reference
 
 The following is a full reference to the submodules inside of the :py:mod:`ConsistencyCheck` module.
 
+checkphedex.py
+--------------
+
+.. automodule:: ConsistencyCheck.checkphedex
+   :members:
+
 config.py
 ---------
 
@@ -129,5 +141,5 @@ getinventorycontents.py
 .. automodule:: ConsistencyCheck.getinventorycontents
    :members:
 
-.. |build| image:: https://travis-ci.org/dabercro/ConsistencyCheck.svg?branch=master
-    :target: https://travis-ci.org/dabercro/ConsistencyCheck
+.. |build| image:: https://travis-ci.org/SmartDataProjects/ConsistencyCheck.svg?branch=master
+   :target: https://travis-ci.org/SmartDataProjects/ConsistencyCheck

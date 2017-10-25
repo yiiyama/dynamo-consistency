@@ -15,7 +15,7 @@ from functools import wraps
 from . import config
 from . import datatypes
 
-__all__ = ['config', 'datatypes', 'getsitecontents', 'getinventorycontents']
+__all__ = ['checkphedex', 'config', 'datatypes', 'getsitecontents', 'getinventorycontents']
 
 LOG = logging.getLogger(__name__)
 
