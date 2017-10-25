@@ -33,5 +33,5 @@
   ],
   "WebDir": "/var/www/html/dynamo/consistency",
   "MaxMissing": 1000,
-  "MaxOrphanFraction": 0.3
+  "MaxOrphan": 10000
 }

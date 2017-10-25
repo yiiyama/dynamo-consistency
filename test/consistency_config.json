@@ -35,5 +35,5 @@
   ],
   "WebDir": "www",
   "MaxMissing": 100,
-  "MaxOrphanFraction": 0.1
+  "MaxOrphan": 1000
 }

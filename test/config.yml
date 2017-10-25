@@ -2,9 +2,9 @@
 #
 # - **DirectoryList** - A list of directories inside of ``'/store/'`` to check consistency.
 # - **MaxMissing** - If more files than this number are missing,
-#   then missing files will not be entered into the transfer queue
-# - **MaxOrphanFraction** - If more than this fraction of files at a site are orphan files,
-#   then orphan files will not be entered into the deletion queue
+#   then there will be no automatic entry into the register
+# - **MaxOrphan** - If more than files than this number are orphan files at a site,
+#   then there will be no automatic entry into the register
 # - **CacheLocation** - The directory where all cached information is stored
 # - **SaveCache** - If set and evaluates to True, copies old cached directory trees instead of overwriting
 # - **IgnoreAge** - Ignore any files or directories with an age less than this, in days.
@@ -90,4 +90,4 @@ WebDir: www
 
 MaxMissing: 100
 
-MaxOrphanFraction: 0.1
+MaxOrphan: 1000
