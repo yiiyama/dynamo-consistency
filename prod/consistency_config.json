@@ -9,6 +9,7 @@
   "CacheLocation": "/local/dynamo/consistency/cache",
   "LogLocation": "/local/dynamo/consistency/logs",
   "Redirectors": {
+    "T2_UK_London_Brunel": "dc2-grid-64.brunel.ac.uk",
     "T3_CH_PSI": "t3se01.psi.ch",
     "T3_US_MIT": "t3serv006.mit.edu"
   },
