@@ -39,7 +39,6 @@ then
             pkill -P $compare_pid
             # Kill the process
             kill $compare_pid
-            break
 
         fi
 

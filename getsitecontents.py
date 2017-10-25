@@ -8,7 +8,7 @@ Tool to get the files located at a site.
 :author: Daniel Abercrombie <dabercro@mit.edu>
 """
 
-
+import os
 import re
 import logging
 import random
@@ -46,10 +46,14 @@ class XRootDLister(object):
                              be used for every listing
         """
 
+        config_dict = config.config_dict()
+
         self.primary_conn = XRootD.client.FileSystem(primary_door)
         self.backup_conn = XRootD.client.FileSystem(backup_door)
         self.do_both = do_both
-        self.tries = config.config_dict().get('Retries', 0) + 1
+
+        self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
+        self.tries = config_dict.get('Retries', 0) + 1
         self.site = site
 
         # This regex is used to parse the error code and propose a retry
@@ -74,6 +78,10 @@ class XRootDLister(object):
                   See :py:func:`XRootDLister.list` for more details on the output.
         :rtype: bool, list, list
         """
+
+        # If there is a prefix, prepend that
+        if self.store_prefix:
+            path = os.path.normpath(os.path.sep.join([self.store_prefix, path]))
 
         # FileSystem only works with ending slashes for some sites (not all, but let's be safe)
         if path[-1] != '/':
@@ -193,6 +201,16 @@ class XRootDLister(object):
                 self.backup_conn = XRootD.client.FileSystem(str(self.primary_conn.url))
 
             return self.list(path, retries + 1)
+
+        if not okay and not self.store_prefix and len(path.strip('/').split('/')) < 4:
+
+            # Try to fall back on /cms
+            self.store_prefix = '/cms'
+            self.log.warning('Trying to fall back to using suffix %s', self.store_prefix)
+            okay, directories, files = self.list(path)
+            if not okay:
+                self.log.warning('Fallback did not work, reverting')
+                self.store_prefix = ''
 
         return okay, directories, files
 
