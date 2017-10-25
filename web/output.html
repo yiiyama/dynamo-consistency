@@ -84,7 +84,7 @@
                break;
              case 2:
                $background_site = ((strtotime($row['laststarted']) + 24 * 3600) > time()) ? $good_background : $long_background;
-               $tooltip = '<span class="givestarted">Started: ' . $row['laststarted'] . '</span>';
+               $tooltip = '<span class="givestarted">Started run: ' . $row['laststarted'] . '</span>';
                break;
              default:
                $background_site = $disabled_background;
