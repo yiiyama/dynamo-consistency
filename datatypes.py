@@ -520,6 +520,16 @@ class DirectoryInfo(object):
         # If no path, just return self
         return self
 
+    def get_directory_size(self):
+        """ Report the total size used by this directory and its subdirectories.
+
+        :returns: Size of files in directory, in bytes
+        :rtype: int
+        """
+
+        return sum([di.get_directory_size() for di in self.directories],
+                   sum([fi['size'] for fi in self.files]))
+
     def get_num_files(self, unlisted=False, place_new=False):
         """ Report the total number of files stored.
 
