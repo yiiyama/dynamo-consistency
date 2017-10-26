@@ -94,6 +94,22 @@ class TestBase(unittest.TestCase):
 
 class TestTree(TestBase):
 
+    def test_directory_size(self):
+        test_dir = lambda x: self.assertEqual(
+            self.tree.get_node(x).get_directory_size(),
+            sum([size for name, size in self.file_list if '%s/' % x in name]))
+
+        # Test /store
+        test_dir('')
+        test_dir('mc')
+        test_dir('data')
+        test_dir('mc/ttThings')
+        test_dir('mc/ttThings/0000')
+        test_dir('data')
+        test_dir('data/runB')
+        test_dir('fake')
+        test_dir('fake/directory/name')
+
     def test_num_files(self):
         self.assertEqual(self.tree.get_num_files(),
                          len(self.file_list))
