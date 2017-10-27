@@ -60,9 +60,9 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     :param list object_params: This only needs to be set when filler is an object constructor.
                                Each element in the list is a tuple of arguments to pass
                                to the constructor.
-    :returns: A DirectoryInfo containing everything the directory listings from
+    :returns: A :py:class:`DirectoryInfo` object containing everything the directory listings from
               ``os.path.join(location, first_dir)`` with name ``first_dir``.
-    :rtype: :py:class:`DirectoryInfo`
+    :rtype: DirectoryInfo
     """
 
     LOG.debug('Called create_dirinfo(%s, %s, %s, %s)',
@@ -311,7 +311,7 @@ class DirectoryInfo(object):
 
         :param str name: The name of the directory
         :param list to_merge: If this is set, the infos in the
-                              list are merged into a master DirectoryInfo.
+                              list are merged into a master :py:class:`DirectoryInfo`.
         :param list directories: List of subdirectories inside the directory
         :param list files: List of tuples containing information about files
                            in the directory.
@@ -334,7 +334,7 @@ class DirectoryInfo(object):
 
     def add_files(self, files):
         """
-        Set the files for this DirectoryInfo node
+        Set the files for this :py:class:`DirectoryInfo` node
 
         :param list files: The tuples of file information.
                            Each element consists of file name, size, and mod time.
@@ -405,7 +405,7 @@ class DirectoryInfo(object):
 
     def setup_hash(self):
         """
-        Set the hashes for this DirectoryInfo
+        Set the hashes for this :py:class:`DirectoryInfo`
         """
 
         hasher = hashlib.sha1()
@@ -446,7 +446,7 @@ class DirectoryInfo(object):
 
     def save(self, file_name):
         """
-        Save this DirectoryInfo in a file.
+        Save this :py:class:`DirectoryInfo` in a file.
 
         :param str file_name: is the location to save the file
         """
@@ -456,17 +456,17 @@ class DirectoryInfo(object):
 
     def display(self, path=''):
         """
-        Print out the contents of this DirectoryInfo
+        Print out the contents of this :py:class:`DirectoryInfo`
 
-        :param str path: The full path to this DirectoryInfo instance
+        :param str path: The full path to this :py:class:`DirectoryInfo` instance
         """
         print self.displays(path)
 
     def displays(self, path=''):
         """
-        Get the string to print out the contents of this DirectoryInfo.
+        Get the string to print out the contents of this :py:class:`DirectoryInfo`.
 
-        :param str path: The full path to this DirectoryInfo instance
+        :param str path: The full path to this :py:class:`DirectoryInfo` instance
         :returns: The display string
         :rtype: str
         """
@@ -558,7 +558,7 @@ class DirectoryInfo(object):
         Grabs the subdirectories by the first in the list.
 
         :param int levels: is the number of levels of directories to bypass
-        :returns: The proper DirectoryInfo level
+        :returns: The proper :py:class:`DirectoryInfo` level
         :rtype: DirectoryInfo
         """
 
@@ -697,7 +697,7 @@ class DirectoryInfo(object):
 
     def listdir(self, *args, **kwargs):
         """
-        Get the list of directory names within a DirectoryInfo.
+        Get the list of directory names within a :py:class:`DirectoryInfo`.
         Adding an argument will display the contents of the next directory.
         For example, if ``dir.listdir()`` returns::
 
@@ -709,7 +709,7 @@ class DirectoryInfo(object):
 
         :param args: Is a list of indices to list the subdirectories
         :param kwargs: Supports 'printing' which is set to a bool. Defaults as True.
-        :returns: The DirectoryInfo that is being listed
+        :returns: The :py:class:`DirectoryInfo` that is being listed
         :rtype: DirectoryInfo
         """
 
@@ -765,7 +765,7 @@ class DirectoryInfo(object):
 
 def get_info(file_name):
     """
-    Get the DirectoryInfo from a file.
+    Get the :py:class:`DirectoryInfo` from a file.
 
     :param str file_name: is the location of the saved information
     :returns: Saved info
