@@ -13,8 +13,24 @@ $join = '';
 
 if (isset($_GET['history'])) {
 
-  $site = $_GET['history'];
-  $condition = ' WHERE site = "' . $site . '"';
+  $site = SQLite3::escapeString($_GET['history']);
+
+  // Check that $site is really a site
+  $invalid_site = true;
+  $check_result = $db->query('SELECT site FROM sites');
+  while ($check = $check_result->fetchArray()) {
+    if ($check[0] == $site) {
+      $invalid_site = false;
+      break;
+    }
+  }
+
+  if ($invalid_site) {
+    $db = null;
+    die('Invalid site name');
+  }
+
+  $condition = ' WHERE site = \'' . $site . '\'';
   $table = $table . $condition . ' UNION SELECT * FROM ' . $table . '_history';
 
 } else {
