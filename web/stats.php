@@ -4,29 +4,39 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-  date_default_timezone_set('America/New_York');
+date_default_timezone_set('America/New_York');
+
+$db = new SQLite3('stats.db');
+$table = 'stats';
+$condition = '';
+$join = '';
+
+if (isset($_GET['history'])) {
+
+  $site = $_GET['history'];
+  $condition = ' WHERE site = "' . $site . '"';
+  $table = $table . $condition . ' UNION SELECT * FROM ' . $table . '_history';
+
+} else {
 
   $which_sites = isset($_GET['sites']) ? $_GET['sites'] : 'good';
 
-  $table = 'stats';
-  $db = new SQLite3('stats.db');
+  if($which_sites != 'all') {
 
-  if($which_sites == 'all') {
-    $results = $db->query('SELECT * FROM ' . $table . 
-                          ' INNER JOIN sites on sites.site = ' . $table . 
-                          '.site ORDER BY site');
-  } else {
-
+    $join = ' INNER JOIN sites on sites.site = ' . $table . '.site';
     $isgood = ($which_sites == 'need_checked' || $which_sites == 'bad') ? '0' : '1';
-    $results = $db->query('SELECT * FROM ' . $table .
-                          ' INNER JOIN sites on sites.site = ' . $table . 
-                          '.site WHERE isgood = ' . $isgood . ' ORDER BY site');
+    $condition = ' WHERE isgood = ' . $isgood;
 
   }
+}
 
-  $config = json_decode(file_get_contents('consistency_config.json'), true);
+$results = $db->query('SELECT * FROM ' .
+                      $table . $join . $condition .
+                      ' ORDER BY site ASC, entered DESC');
 
-  include 'output.html';
+$config = json_decode(file_get_contents('consistency_config.json'), true);
 
-  $db = null;
+include 'output.html';
+
+$db = null;
 ?>

@@ -1,15 +1,17 @@
 
-var howSorted = -2;          // Starts out sorted by Site Name Ascending
+// Starts out sorted by Site Name Ascending or Entered for history
+var howSorted = (window.location.search.indexOf('history') > 0) ? 1 : -2;
 
 function extractkey (text, is_number) {
     // A function for getting the comparison key from the cell contents
 
     var output = text;
 
+    if (output.indexOf('href') > 0) {
+        output = output.split('>')[1].split('<')[0];
+    }
+
     if (is_number) {
-        if (output.indexOf('href') > 0) {
-            output = output.split('>')[1].split('<')[0];
-        }
         output = Number(output.split(' ')[0]);
     }
 

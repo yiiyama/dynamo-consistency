@@ -23,7 +23,7 @@
           <th onclick="sorttable(1, false)">
             Last Update
           </th>
-          <th onclick="sorttable(-2, false)">
+          <th<?php if (!isset($_GET['history'])) echo(' onclick="sorttable(-2, false)"');?>>
             Site Name
           </th>
           <th onclick="sorttable(3)">
@@ -74,34 +74,43 @@
            $tooltip = '';
 
            // Get the running cell colored based on running status
-           switch ($row['isrunning']) {
+           if (isset($_GET['history'])) {
+             $background_site = $background_files;
+           } else {
+             switch ($row['isrunning']) {
 
-             case 0:
-               $background_site = $background_files;
-               break;
-             case 1:
-               $background_site = $queued_background;
-               break;
-             case 2:
-               $background_site = ((strtotime($row['laststarted']) + 24 * 3600) > time()) ? $good_background : $long_background;
-               $tooltip = '<span class="givestarted">Started run: ' . $row['laststarted'] . '</span>';
-               break;
-             default:
-               $background_site = $disabled_background;
+               case 0:
+                 $background_site = $background_files;
+                 break;
+               case 1:
+                 $background_site = $queued_background;
+                 break;
+               case 2:
+                 $background_site = ((strtotime($row['laststarted']) + 24 * 3600) > time()) ? $good_background : $long_background;
+                 $tooltip = '<span class="givestarted">Started run: ' . $row['laststarted'] . '</span>';
+                 break;
+               default:
+                 $background_site = $disabled_background;
 
+             }
            }
 
            $background_time = ((strtotime($row['entered']) + 24 * 3600) > time()) ? $good_background : '';
 
-           printf (
-             '<tr><td%s>%s</td><td%s><a href="%s.log">%s</a>%s</td><td>%.0f</td><td%s>%d</td><td>%d</td><td%s>%d</td><td>%d</td><td%s><a href="%s_compare_missing.txt">%d</a> [<a href="%s_missing_datasets.txt">blocks</a>]</td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td></tr>',
-             $background_time, $row['entered'],
+           $html_row = sprintf(
+             '<td%s><a href="?history=%s">%s</a></td><td%s><a href="%s.log">%s</a>%s</td><td>%.0f</td><td%s>%d</td><td>%d</td><td%s>%d</td><td>%d</td><td%s><a href="%s_compare_missing.txt">%d</a> [<a href="%s_missing_datasets.txt">blocks</a>]</td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td>',
+             $background_time, $row['site'], $row['entered'],
              $background_site, $row['site'], $row['site'], $tooltip, $row['time']/60.,
              $background_files, $row['files'], $row['nodes'], 
              $background_unlisted, $row['unlisted'], $row['emtpy'],
              $background_missing, $row['site'], $row['missing'], $row['site'],
              $background_nosource, $row['site'], $row['nosource'], $row['m_size']/pow(1024.,4),
              $background_orphan, $row['site'], $row['orphan'], $row['o_size']/pow(1024.,4));
+
+           if (isset($_GET['history'])) {
+             $html_row = strip_tags($html_row, '<td>');
+           }
+           printf('<tr>%s</tr>', $html_row);
            printf("\n");
          }
 ?>
