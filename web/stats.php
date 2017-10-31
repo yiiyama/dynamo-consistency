@@ -36,10 +36,10 @@ if (isset($_GET['history'])) {
 } else {
 
   $which_sites = isset($_GET['sites']) ? $_GET['sites'] : 'good';
+  $join = ' INNER JOIN sites on sites.site = ' . $table . '.site';
 
   if($which_sites != 'all') {
 
-    $join = ' INNER JOIN sites on sites.site = ' . $table . '.site';
     $isgood = ($which_sites == 'need_checked' || $which_sites == 'bad') ? '0' : '1';
     $condition = ' WHERE isgood = ' . $isgood;
 
