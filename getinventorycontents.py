@@ -156,6 +156,7 @@ def get_db_listing(site):
         INNER JOIN sites ON block_replicas.site_id = sites.id
         INNER JOIN files ON block_replicas.block_id = files.block_id
         WHERE block_replicas.is_complete = 1 AND sites.name = %s
+        AND group_id != 0
         ORDER BY files.name ASC
         """,
         (site,))
@@ -168,7 +169,7 @@ def get_db_listing(site):
         FROM block_replicas
         INNER JOIN sites ON block_replicas.site_id = sites.id
         INNER JOIN files ON block_replicas.block_id = files.block_id
-        WHERE block_replicas.is_complete = 0 AND sites.name = %s
+        WHERE (block_replicas.is_complete = 0 OR group_id = 0) AND sites.name = %s
         ORDER BY files.name ASC
         """,
         (site,))
