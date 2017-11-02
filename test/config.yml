@@ -1,6 +1,7 @@
 ##!
 #
 # - **DirectoryList** - A list of directories inside of ``/store/`` to check consistency.
+# - **IgnoreDirectories** - The check ignores any paths that contain any of the strings in this list.
 # - **PathPrefix** - A dictionary of prefixes to place before ``/store/`` in the XRootD call.
 #   If the prefix is not set for a site, and it fails to list ``/store``, it tries ``/cms/store``
 #   (prefix ``'/cms'``) by default.
@@ -77,6 +78,11 @@ DirectoryList:
   - results
   - hidata
   - himc
+
+IgnoreDirectories:
+  - /SAM
+  - /HCTest
+  - /GenericTTbar
 
 IgnoreAge: 1
 
