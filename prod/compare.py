@@ -317,6 +317,7 @@ def main(site):
                  WHERE files.name = %s AND sites.name != %s
                  AND sites.status = 'ready'
                  AND block_replicas.is_complete = 1
+                 AND group_id != 0
                  {0}
                  """
 
