@@ -1,3 +1,5 @@
+# pylint: disable=too-complex
+
 """
 Tool to get the files located at a site.
 
