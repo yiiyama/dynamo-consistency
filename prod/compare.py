@@ -215,6 +215,8 @@ def main(site):
 
     LOG.debug('Acceptable orphans: \n%s\n', '\n'.join(acceptable_orphans))
 
+    ignore_list = config.config_dict().get('IgnoreDirectories', [])
+
     def double_check(file_name, acceptable):
         """
         Checks the file name against a list of datasets to not list files from.
@@ -226,7 +228,14 @@ def main(site):
         :rtype: bool
         """
         LOG.debug('Checking file_name: %s', file_name)
+
+        # Skip over paths that include part of the list of ignored directories
+        for pattern in ignore_list:
+            if pattern in file_name:
+                return True
+
         split_name = file_name.split('/')
+
         try:
             return '/%s/%s-%s/%s' % (split_name[4], split_name[3],
                                      split_name[6], split_name[5]) in acceptable

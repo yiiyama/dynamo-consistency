@@ -54,6 +54,7 @@ class XRootDLister(object):
 
         self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
         self.tries = config_dict.get('Retries', 0) + 1
+        self.ignore_list = config_dict.get('IgnoreDirectories', [])
         self.site = site
 
         # This regex is used to parse the error code and propose a retry
@@ -143,6 +144,11 @@ class XRootDLister(object):
                   The modification times are in seconds from epoch and the file size is in bytes.
         :rtype: bool, list, list
         """
+
+        # Skip over paths that include part of the list of ignored directories
+        for pattern in self.ignore_list:
+            if pattern in path:
+                return True, [], [('_unlisted_', 0, 0)]
 
         if retries == self.tries:
             self.log.error('Giving up on %s due to too many retries', path)
