@@ -150,7 +150,7 @@ class XRootDLister(object):
         # Skip over paths that include part of the list of ignored directories
         for pattern in self.ignore_list:
             if pattern in path:
-                return True, [], [('_unlisted_', 0, 0)]
+                return True, [], []
 
         if retries == self.tries:
             self.log.error('Giving up on %s due to too many retries', path)
