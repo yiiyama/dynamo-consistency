@@ -5,10 +5,11 @@
     width: 33.3333%;
     box-sizing: border-box;
     color: #000000;
+    border: 1px solid #666666;
 }
 
 .topbutton:hover {
-    background-color: #777777;
+    background-color: #666666;
     color: #ffffff;
 }
 
@@ -26,11 +27,4 @@ td .givestarted {
 
 td:hover .givestarted {
     display: block;
-}
-
-body {
-    max-width: 80em;
-    margin: auto;
-    background-color: #ffffff;
-    padding: 1em;
 }
