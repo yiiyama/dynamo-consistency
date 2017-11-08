@@ -3,14 +3,17 @@
   <head>
     <meta http-equiv="refresh" content="1800">
     <link rel="stylesheet" type="text/css" href="stylin.css"/>
+    <link rel="stylesheet" type="text/css" href="dynamo.css"/>
     <script type="text/javascript" src="sorttable.js"></script>
   </head>
   <body>
 
-    <div style="background-color:#ccffff;padding-top:1em;margin:0em;">
-      <center>
-        <h1 style="margin:0em;padding:1em;">Consistency Check Summary</h1>
+    <header id="header">
+      <h1 id="pageTitle">Consistency Check Summary</h1>
+    </header>
 
+    <div>
+      <center>
         <a href="?sites=good"><span class="topbutton">Debugged sites</span></a>
         <a href="?sites=need_checked"><span class="topbutton">Sites that need debugged or hand checking</span></a>
         <a href="?sites=all"><span class="topbutton">All sites</span></a>
