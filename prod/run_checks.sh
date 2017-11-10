@@ -35,6 +35,14 @@ ALL_SITES=$(echo "SELECT name FROM sites WHERE name LIKE '$MATCH' AND (name LIKE
 # Basically just looping over sites and inserting them
 echo $ALL_SITES | tr ' ' '\n' | xargs -n1 -I '{SITE}' echo "INSERT OR IGNORE INTO sites VALUES ('{SITE}', 0, 0, NULL);" | sqlite3 $DATABASE
 
+# Disable bad sites
+BAD_SITES=$(echo "SELECT name FROM sites WHERE status != 'ready';" | mysql --defaults-group-suffix=-dynamo -Ddynamo --skip-column-names)
+echo "UPDATE sites SET isrunning = -1 WHERE (site = '$(echo $BAD_SITES | sed "s/ /' OR site = '/g")') AND isrunning = 0;" | sqlite3 $DATABASE
+
+# Enable now good sites
+GOOD_SITES=$(echo "SELECT name FROM sites WHERE status = 'ready';" | mysql --defaults-group-suffix=-dynamo -Ddynamo --skip-column-names)
+echo "UPDATE sites SET isrunning = 0 WHERE (site = '$(echo $GOOD_SITES | sed "s/ /' OR site = '/g")') AND isrunning = -1;" | sqlite3 $DATABASE
+
 # Now get a list of sites to run on
 SITES=$(echo "
 SELECT sites.site FROM sites 
