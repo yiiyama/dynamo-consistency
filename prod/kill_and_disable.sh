@@ -44,6 +44,10 @@ then
 
     done
 
+    echo "Waiting for running to stop."
+    echo "If this takes too long something else probably killed it."
+    echo "In that case, Ctrl-C and set status by hand."
+
     # Wait for process to stop
     while [ "$(echo "SELECT isrunning FROM sites where site = '$SITE';" | sqlite3 $DATABASE)" != "0" ]
     do
