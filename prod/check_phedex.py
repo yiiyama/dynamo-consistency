@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 
 """
-This simple script, located at ``ConsistencyCheck/prod/check_phedex.py``, uses the
-:py:func:`ConsistencyCheck.checkphedex.check_for_datasets` check on orphan files.
+This simple script, located at ``dynamo_consistency/prod/check_phedex.py``, uses the
+:py:func:`dynamo_consistency.checkphedex.check_for_datasets` check on orphan files.
 At the end of the check, datasets with more than one file at the site are printed again.
 This is for easy parsing by eye.
 
@@ -18,7 +18,7 @@ This script can be used as a check if orphan files are really not supposed to be
 
 import sys
 
-from ConsistencyCheck.checkphedex import check_for_datasets
+from dynamo_consistency.checkphedex import check_for_datasets
 
 if __name__ == '__main__':
 

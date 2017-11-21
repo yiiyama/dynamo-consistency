@@ -63,7 +63,7 @@ def get_phedex_tree(site):
 
     :param str site: The site to get information from PhEDEx for.
     :returns: A tree containing file replicas that are supposed to be at the site
-    :rtype: ConsistencyCheck.datatypes.DirectoryInfo
+    :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
 
     tree = datatypes.DirectoryInfo('/store')

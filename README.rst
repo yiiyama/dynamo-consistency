@@ -1,4 +1,4 @@
-ConsistencyCheck
+Site Consistency
 ================
 
 |build|
@@ -15,7 +15,7 @@ Running the Tool
 A simple consistency check on a site can be done by doing the following
 when an instance of ``dynamo`` is installed::
 
-    from ConsistencyCheck import config, datatypes, getsitecontents, getinventorycontents
+    from dynamo_consistency import config, datatypes, getsitecontents, getinventorycontents
 
     config.CONFIG_FILE = '/path/to/config.json'
     site = 'T2_US_MIT'     # For example
@@ -38,10 +38,10 @@ Configuration
 +++++++++++++
 
 A configuration file should be created before pointing to it, like above.
-The configuration file for ConsistencyChecks is a JSON or YAML file with the following keys
+The configuration file for dynamo_consistencys is a JSON or YAML file with the following keys
 
 .. autoanysrc:: phony
-   :src: ../ConsistencyCheck/test/config.yml
+   :src: ../dynamo-consistency/test/config.yml
    :analyzer: shell-script
 
 Configuration parameters can also be quickly overwritten for a given run by
@@ -52,7 +52,7 @@ Production Settings
 
 The configuration in production is the following.
 
-.. program-output:: cat ../ConsistencyCheck/prod/consistency_config.json
+.. program-output:: cat ../dynamo-consistency/prod/consistency_config.json
 
 .. _compare-ref:
 
@@ -67,7 +67,7 @@ Automatic Site Selection
 To automatically run ``prod/compare.py`` over a few well-deserving sites, use ``prod/run_checks.sh``.
 
 .. autoanysrc:: phony
-   :src: ../ConsistencyCheck/prod/run_checks.sh
+   :src: ../dynamo-consistency/prod/run_checks.sh
    :analyzer: perl-script
 
 Moving Sites To and From Debugged Tab
@@ -109,37 +109,37 @@ A list of redirectors found by the global redirectors is stored in ``<CacheLocat
 Reference
 +++++++++
 
-The following is a full reference to the submodules inside of the :py:mod:`ConsistencyCheck` module.
+The following is a full reference to the submodules inside of the :py:mod:`dynamo_consistency` module.
 
 checkphedex.py
 --------------
 
-.. automodule:: ConsistencyCheck.checkphedex
+.. automodule:: dynamo_consistency.checkphedex
    :members:
 
 config.py
 ---------
 
-.. automodule:: ConsistencyCheck.config
+.. automodule:: dynamo_consistency.config
    :members:
 
 datatypes.py
 ------------
 
-.. automodule:: ConsistencyCheck.datatypes
+.. automodule:: dynamo_consistency.datatypes
    :members:
 
 getsitecontents.py
 ------------------
 
-.. automodule:: ConsistencyCheck.getsitecontents
+.. automodule:: dynamo_consistency.getsitecontents
    :members:
 
 getinventorycontents.py
 -----------------------
 
-.. automodule:: ConsistencyCheck.getinventorycontents
+.. automodule:: dynamo_consistency.getinventorycontents
    :members:
 
-.. |build| image:: https://travis-ci.org/SmartDataProjects/ConsistencyCheck.svg?branch=master
-   :target: https://travis-ci.org/SmartDataProjects/ConsistencyCheck
+.. |build| image:: https://travis-ci.org/SmartDataProjects/dynamo-consistency.svg?branch=master
+   :target: https://travis-ci.org/SmartDataProjects/dynamo-consistency

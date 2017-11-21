@@ -11,7 +11,7 @@ import yaml
 import re
 import os
 
-from ConsistencyCheck import config
+from dynamo_consistency import config
 
 class TestConfiguration(unittest.TestCase):
     def setUp(self):

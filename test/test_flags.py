@@ -5,7 +5,7 @@ import time
 import logging
 import unittest
 
-from ConsistencyCheck import datatypes
+from dynamo_consistency import datatypes
 
 class TestFlags(unittest.TestCase):
     new_files = [('/store/yo/0000/file_exists.root', 100, time.time())]
