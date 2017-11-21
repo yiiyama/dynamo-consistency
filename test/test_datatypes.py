@@ -30,7 +30,7 @@ import shutil
 import unittest
 import logging
 
-from ConsistencyCheck import datatypes
+from dynamo_consistency import datatypes
 
 TMP_DIR = 'TempConsistency'
 LOG = logging.getLogger(__name__)

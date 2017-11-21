@@ -5,7 +5,7 @@
 import logging
 import time
 
-from ConsistencyCheck import getsitecontents
+from dynamo_consistency import getsitecontents
 
 # Set this however you'd like
 logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')

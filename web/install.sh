@@ -8,7 +8,7 @@ if [ "$USER" = "dynamo" ]
 then
     DEFAULT=/var/www/html/dynamo/consistency
 else
-    DEFAULT=$HOME/public_html/ConsistencyCheck
+    DEFAULT=$HOME/public_html/consistency
 fi
 
 if [ -z $TARGET ]

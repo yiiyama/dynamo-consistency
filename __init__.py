@@ -1,4 +1,4 @@
-# pylint: disable=missing-docstring
+# pylint: disable=missing-docstring, invalid-name
 # We don't really need the docstring for the functions inside the decorator
 
 """ Module used to perform Consistency Checks using XRootD.

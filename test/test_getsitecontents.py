@@ -9,15 +9,15 @@ import logging
 import time
 
 try:
-    from ConsistencyCheck import getsitecontents
+    from dynamo_consistency import getsitecontents
 except ImportError:
-    print 'Cannot import ConsistencyCheck.getsitecontents.'
+    print 'Cannot import dynamo_consistency.getsitecontents.'
     print 'Probably do not have XRootD installed here'
     # Return 0 for Travis-CI
     exit(0)
 
-from ConsistencyCheck import datatypes
-from ConsistencyCheck import config
+from dynamo_consistency import datatypes
+from dynamo_consistency import config
 
 def my_ls(path, location='/mnt/hadoop/cms/store'):
 

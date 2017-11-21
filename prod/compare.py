@@ -7,19 +7,19 @@
    The following script description was last updated on October 24, 2017.
 
 The production script,
-located at ``ConsistencyCheck/prod/compare.py`` at the time of writing,
+located at ``dynamo_consistency/prod/compare.py`` at the time of writing,
 goes through the following steps for each site.
 
   #. Checks that the site status is set to ``'ready'`` in the dynamo database
   #. It gathers the site tree by calling
-     :py:func:`ConsistencyCheck.getsitecontents.get_site_tree()`.
+     :py:func:`dynamo_consistency.getsitecontents.get_site_tree()`.
   #. It gathers the inventory tree by calling
-     :py:func:`ConsistencyCheck.getinventorycontents.get_db_listing()`.
+     :py:func:`dynamo_consistency.getinventorycontents.get_db_listing()`.
   #. Creates a list of datasets to not report missing files in.
      This list consists of the following.
 
      - Deletion requests fetched from PhEDEx by
-       :py:func:`ConsistencyCheck.checkphedex.set_of_deletions()`
+       :py:func:`dynamo_consistency.checkphedex.set_of_deletions()`
 
   #. It creates a list of datasets to not report orphans in.
      This list consists of the following.
@@ -61,7 +61,7 @@ import datetime
 
 from collections import defaultdict
 
-from ConsistencyCheck import config
+from dynamo_consistency import config
 
 # Stick this here before dynamo sets the logging config
 if __name__ == '__main__':
@@ -89,10 +89,10 @@ if __name__ == '__main__':
         SITES.append(sys.argv[-1])
 
 
-from ConsistencyCheck import getsitecontents
-from ConsistencyCheck import getinventorycontents
-from ConsistencyCheck import datatypes
-from ConsistencyCheck import checkphedex
+from dynamo_consistency import getsitecontents
+from dynamo_consistency import getinventorycontents
+from dynamo_consistency import datatypes
+from dynamo_consistency import checkphedex
 
 from CMSToolBox.webtools import get_json
 from common.interface.mysql import MySQL

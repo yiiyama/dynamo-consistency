@@ -230,7 +230,7 @@ def get_site_tree(site):
 
     :param str site: The site name
     :returns: The site directory listing information
-    :rtype: ConsistencyCheck.datatypes.DirectoryInfo
+    :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
 
     # Get the redirector for a site

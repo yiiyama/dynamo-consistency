@@ -53,7 +53,7 @@ def get_site_inventory(site):
 
     :param str site: The name of the site to load
     :returns: The file replicas that are supposed to be at a site
-    :rtype: ConsistencyCheck.datatypes.DirectoryInfo
+    :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
 
     tree = datatypes.DirectoryInfo('/store')
@@ -105,7 +105,7 @@ def get_db_listing(site):
 
     :param str site: The name of the site to load
     :returns: The file replicas that are supposed to be at a site
-    :rtype: ConsistencyCheck.datatypes.DirectoryInfo
+    :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
 
     inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
