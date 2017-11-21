@@ -38,7 +38,7 @@ Configuration
 +++++++++++++
 
 A configuration file should be created before pointing to it, like above.
-The configuration file for dynamo_consistencys is a JSON or YAML file with the following keys
+The configuration file for Site Consistency is a JSON or YAML file with the following keys
 
 .. autoanysrc:: phony
    :src: ../dynamo-consistency/test/config.yml

@@ -13,5 +13,5 @@ then
 fi
 
 # Backwards compatibility for now
-ln -s "$location" "$location"/../dynamo_consistency
+ln -s "$location" "$location"/../ConsistencyCheck
 ln -s "$location" "$location"/../dynamo_consistency 
