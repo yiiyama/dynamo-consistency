@@ -72,5 +72,5 @@ if __name__ == '__main__':
         print '\nDuration: %f seconds\n' % (time.time() - start)
 
     else:
-        if re.match(r'T3[A-Z]{4}\d{3}.MIT.EDU', socket.getfqdn()):
+        if re.match(r'T3DESK\d{3}.MIT.EDU', socket.getfqdn()):
             unittest.main()
