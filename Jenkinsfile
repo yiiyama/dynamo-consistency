@@ -4,6 +4,7 @@ pipeline {
     OPSSPACE_URL = 'https://github.com/CMSCompOps/OpsSpace.git'
     OPSSPACE_BRANCH = 'master'
     VENV = 'source venv/bin/activate'
+    TRAVIS = 'true'
   }
   stages {
     stage('Virtual Env') {
