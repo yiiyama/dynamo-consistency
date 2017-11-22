@@ -1,8 +1,8 @@
 pipeline {
   agent any
   environment {
-    OPSSPACE_URL = 'https://github.com/CMSCompOps/OpsSpace.git'
-    OPSSPACE_BRANCH = 'master'
+    OPSSPACE_URL = 'https://github.com/dabercro/OpsSpace.git'
+    OPSSPACE_BRANCH = 'jenkins'
     VENV = 'source venv/bin/activate'
     TRAVIS = 'true'
   }
