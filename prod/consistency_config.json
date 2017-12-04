@@ -7,8 +7,8 @@
   "ListAge": 0,
   "IgnoreAge": 14,
   "RedirectorAge": 0,
-  "CacheLocation": "/scratch5/maxi/consistency/cache",
-  "LogLocation": "/scratch5/maxi/consistency/logs",
+  "CacheLocation": "/local/dynamo/consistency/cache",
+  "LogLocation": "/local/dynamo/consistency/logs",
   "Redirectors": {
     "T2_UK_London_Brunel": "dc2-grid-64.brunel.ac.uk",
     "T3_CH_PSI": "t3se01.psi.ch",
@@ -46,7 +46,7 @@
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
   ],
-  "WebDir": "/home/maxi/public_html/ConsistencyCheck",
+  "WebDir": "/var/www/html/dynamo/consistency",
   "MaxMissing": 1000,
   "MaxOrphan": 10000
 }
