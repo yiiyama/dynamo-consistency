@@ -1,5 +1,3 @@
-# pylint: disable=too-complex
-
 """
 Tool to get the files located at a site.
 
@@ -8,6 +6,7 @@ Tool to get the files located at a site.
    Must be used on a machine with XRootD python module installed.
 
 :author: Daniel Abercrombie <dabercro@mit.edu>
+         Max Goncharov      <maxi@mit.edu>
 """
 
 import os
@@ -15,6 +14,9 @@ import re
 import logging
 import random
 import itertools
+import time
+from datetime import datetime
+import subprocess,signal
 
 import XRootD.client
 import timeout_decorator
@@ -23,7 +25,91 @@ from . import config
 from . import datatypes
 from . import cache_tree
 
+from common.interface.mysql import MySQL
+
 LOG = logging.getLogger(__name__)
+
+class GFallDLister(object):
+    def __init__(self,site):
+        config_dict = config.config_dict()
+
+        self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
+        self.tries = config_dict.get('Retries', 0) + 1
+        self.ignore_list = config_dict.get('IgnoreDirectories', [])
+        self.site = site
+
+        self.log = logging.getLogger(__name__)
+
+        self.mysql_reg = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
+        sqlline = "select backend from sites where name='" + site + "'"
+        self.backend = (self.mysql_reg.query(sqlline))[0]
+
+    def ct_timestamp(self, line):
+        fields = line.split('-')
+        if ':' in fields[-1]:
+            fields[-1] = datetime.now().year
+        month = time.strptime(fields[0],'%b').tm_mon
+        datestr = str(month) + '-' + str(fields[1]) + '-' + str(fields[2])
+
+        epoch = int(time.mktime(time.strptime(datestr, '%m-%d-%Y')))
+        return epoch
+
+    def ls_directory(self, path):
+
+#        print 'Using SRM to list directory ' + path
+
+        directories = []
+        files = []
+
+        full_path = self.backend + '/' + str(path)
+
+        cmd = 'gfal-ls -l ' + full_path
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   bufsize=4096,shell=True)
+        strout, error = process.communicate()
+        if process.returncode != 0:
+            print error
+            return False, directories, files
+        
+        for line in strout.split('\n'):
+            fields = line.strip().split()
+            if len(fields) < 1:
+                continue
+            itemName = fields[-1]
+            itemSize = int(fields[4])
+            tstamp = self.ct_timestamp(fields[5] + '-' + fields[6] + '-' + fields[7])
+            marker = fields[0]
+
+            if fields[0].startswith('d'):
+                directories.append((itemName,tstamp))
+            else:
+                files.append((itemName,itemSize,tstamp))
+        
+        return True, directories, files
+
+    def list(self, path, retries=1):
+
+        # Skip over paths that include part of the list of ignored directories                                                                  
+        for pattern in self.ignore_list:
+            if pattern in path:
+                return True, [], []
+        
+        if retries == self.tries:
+            self.log.error('Giving up on %s due to too many retries', path)
+            return False, [], []
+
+        try:            
+            okay, directories, files = self.ls_directory(path)
+             # We could add sleep, reconnecting and other error handling here, if desired
+            if not okay:
+                okay, directories, files = self.list(path, retries + 1)
+
+        except timeout_decorator.TimeoutError:
+            self.log.warning('Directory %s timed out.', path)
+            okay, directories, files =  self.list(path, retries + 1)
+
+        return okay, directories, files
+
 
 class XRootDLister(object):
     """
@@ -232,6 +318,25 @@ def get_site_tree(site):
     :returns: The site directory listing information
     :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
+    print '------------------------'
+    print time.time()
+
+    min_threads = config.config_dict().get('MinThreads', 0)
+    max_threads = config.config_dict().get('MaxThreads')
+
+    access =  config.config_dict().get('AccessMethod', site)
+    if site in access and access[site] == 'SRM':
+        max_threads = int(config.config_dict().get('GFALThreads'))
+        print 'threads = ' + str(max_threads)
+        directories = [
+            datatypes.create_dirinfo('/store', directory, GFallDLister, [[site]]*max_threads ) \
+                for directory in config.config_dict().get('DirectoryList', [])
+        ]
+        # Return the DirectoryInfo 
+        print '------------------------'
+        print time.time()
+        return datatypes.DirectoryInfo(name='/store', to_merge=directories)
+
 
     # Get the redirector for a site
     # The redirector can be used for a double check (not implemented yet...)
@@ -242,8 +347,6 @@ def get_site_tree(site):
 
     # Bool to determine if using both doors in each connection
     do_both = bool(site in config.config_dict().get('BothList', []))
-
-    min_threads = config.config_dict().get('MinThreads', 0)
 
     if site in config.config_dict().get('UseLoadBalancer', []) or \
             (balancer and not door_list):
@@ -268,6 +371,7 @@ def get_site_tree(site):
     # Create DirectoryInfo for each directory to search (set in configuration file)
     # The search is done with XRootDLister objects that have two doors and the thread
     # number as initialization arguments.
+
     directories = [
         datatypes.create_dirinfo(
             '/store/', directory, XRootDLister,

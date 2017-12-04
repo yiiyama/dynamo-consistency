@@ -1,23 +1,26 @@
 {
   "Timeout": 300,
-  "Retries": 1,
+  "Retries": 3,
   "NumThreads": 2,
+  "GFALThreads": 32,
   "InventoryAge": 0,
   "ListAge": 0,
   "IgnoreAge": 14,
   "RedirectorAge": 0,
-  "CacheLocation": "/local/dynamo/consistency/cache",
-  "LogLocation": "/local/dynamo/consistency/logs",
+  "CacheLocation": "/scratch5/maxi/consistency/cache",
+  "LogLocation": "/scratch5/maxi/consistency/logs",
   "Redirectors": {
     "T2_UK_London_Brunel": "dc2-grid-64.brunel.ac.uk",
-    "T2_FR_IPHC": "sbgse1.in2p3.fr",
-    "T3_CH_PSI":  "t3se01.psi.ch",
-    "T3_US_MIT":  "t3serv006.mit.edu"
+    "T3_CH_PSI": "t3se01.psi.ch",
+    "T3_US_MIT": "t3serv006.mit.edu"
   },
   "PathPrefix": {
-    "T2_UK_London_Brunel": "/cms",
-    "T2_FR_IPHC": "/cms/phedex"
+    "T2_UK_London_Brunel": "/cms"
   },
+  "AccessMethod": {
+    "T2_FR_GRIF_LLR" : "SRM",
+    "T2_US_MIT" : "SRM"
+  }, 
   "DirectoryList": [
     "mc",
     "data",
@@ -43,7 +46,7 @@
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
   ],
-  "WebDir": "/var/www/html/dynamo/consistency",
+  "WebDir": "/home/maxi/public_html/ConsistencyCheck",
   "MaxMissing": 1000,
   "MaxOrphan": 10000
 }

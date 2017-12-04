@@ -68,13 +68,17 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     LOG.debug('Called create_dirinfo(%s, %s, %s, %s)',
               location, first_dir, filler, object_params)
 
-    max_threads = config.config_dict()['MaxThreads'] or multiprocessing.cpu_count()
+    max_threads = config.config_dict()['NumThreads'] or multiprocessing.cpu_count()
 
     # Determine the number of threads
+    print object_params
+    print max_threads
+    print len(object_params)
     if object_params is None:
         n_threads = max_threads
     else:
-        n_threads = min(len(object_params), max_threads)
+        #n_threads = min(len(object_params), max_threads)
+        n_threads = len(object_params)
 
     # First directory is location + first_dir
     starting_dir = os.path.join(location, first_dir)
