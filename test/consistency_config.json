@@ -2,9 +2,8 @@
   "Timeout": 60,
   "Retries": 1,
   "InventoryAge": 5e-05,
-  "MinThreads": 0,
-  "MaxThreads": 0,
   "NumThreads": 1,
+  "GFALThreads": 32,
   "ListAge": 5e-05,
   "IgnoreAge": 1,
   "RedirectorAge": 1,
@@ -17,6 +16,9 @@
   "PathPrefix": {
     "T2_UK_London_Brunel": "/cms"
   },
+  "AccessMethod": {
+    "T2_FR_GRIF_LLR" : "SRM"
+  }, 
   "DirectoryList": [
     "mc",
     "data",
