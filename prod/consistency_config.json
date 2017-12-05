@@ -14,7 +14,7 @@
     "T2_FR_IPHC": "sbgse1.in2p3.fr",
     "T3_CH_PSI": "t3se01.psi.ch",
     "T2_FR_GRIF_LLR": "llrpp01.in2p3.fr:11001",
-    "T2_RU_INR": "grse001.inr.troitsk.ru:11000"
+    "T2_RU_INR": "grse001.inr.troitsk.ru:11000",
     "T3_US_MIT": "t3serv006.mit.edu"
   },
   "PathPrefix": {
