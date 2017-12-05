@@ -18,8 +18,7 @@
     "T2_UK_London_Brunel": "/cms"
   },
   "AccessMethod": {
-    "T2_FR_GRIF_LLR" : "SRM",
-    "T2_US_MIT" : "SRM"
+    "T2_FR_GRIF_LLR" : "SRM"
   }, 
   "DirectoryList": [
     "mc",

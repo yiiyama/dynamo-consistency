@@ -29,16 +29,10 @@
 # - **Timeout** - This gives the amount of time, in seconds, that you want the listing to try to run
 #   on a single directory before it times out.
 # - **Retries** - Number of retries after timeouts to attempt
-# - **NumThreads** - This variable overwrites the values of MaxThreads and
-#   MinThreads to be the same, if its value is non-zero.
-# - **MaxThreads** - The maximum number of threads to run the check with.
-#   If 0, the application can use as many threads as processors.
-# - **MinThreads** - The minimum number of threads. This will cause multiple connections
-#   to the same doors if the number of threads would be smaller otherwise.
-#   The program tries to spread connections evenly over available doors.
-#   If MinThreads is larger than MaxThreads, MaxThreads takes precedence.
-#   The two are useful separately if you want to operate in a window, but this parameter can be used
-#   to quickly fix the number of threads for a given run.
+# - **NumThreads** - The number of threads used by the XRootD listers
+# - **GFALThreads** - The number of threads used by the GFAL listers
+# - **AccessMethod** - A dictionary of access methods for sites. Sites default to XRootD,
+#   but setting a value of ``SRM`` causes the site to be listed by ``gfal-ls`` commands.
 #
 ##!
 
@@ -48,11 +42,9 @@ Timeout: 30
 
 Retries: 3
 
-MinThreads: 0
+NumThreads: 1
 
-MaxThreads: 0
-
-NumThreads: 0
+GFALThreads: 32
 
 CacheLocation: cache
 
@@ -70,6 +62,9 @@ Redirectors:
 
 PathPrefix:
   T2_UK_London_Brunel: /cms
+
+AccessMethod:
+  T2_FR_GRIF_LLR: SRM
 
 DirectoryList:
   - mc
