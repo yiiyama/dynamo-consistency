@@ -1,7 +1,8 @@
 {
   "Timeout": 300,
-  "Retries": 1,
+  "Retries": 3,
   "NumThreads": 2,
+  "GFALThreads": 32,
   "InventoryAge": 0,
   "ListAge": 0,
   "IgnoreAge": 14,
@@ -11,13 +12,16 @@
   "Redirectors": {
     "T2_UK_London_Brunel": "dc2-grid-64.brunel.ac.uk",
     "T2_FR_IPHC": "sbgse1.in2p3.fr",
-    "T3_CH_PSI":  "t3se01.psi.ch",
-    "T3_US_MIT":  "t3serv006.mit.edu"
+    "T3_CH_PSI": "t3se01.psi.ch",
+    "T3_US_MIT": "t3serv006.mit.edu"
   },
   "PathPrefix": {
     "T2_UK_London_Brunel": "/cms",
     "T2_FR_IPHC": "/cms/phedex"
   },
+  "AccessMethod": {
+    "T2_FR_GRIF_LLR" : "SRM"
+  }, 
   "DirectoryList": [
     "mc",
     "data",

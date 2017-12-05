@@ -72,12 +72,6 @@ def config_dict(make_dir=True):
     for key in output.keys():
         output[key] = os.environ.get(key, output[key])
 
-    num_threads = os.environ.get('NumThreads', output.get('NumThreads'))
-    # If NumThreads is non zero or not none
-    if num_threads:
-        output['MaxThreads'] = int(num_threads)
-        output['MinThreads'] = int(num_threads)
-
     for key in ['CacheLocation', 'LogLocation']:
         location = output.get(key)
 

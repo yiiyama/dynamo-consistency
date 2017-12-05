@@ -176,7 +176,7 @@ class TestConsistentTrees(TestBase):
         dirinfos = [datatypes.create_dirinfo('', subdir, my_ls) \
                         for subdir in ['mc', 'data']]
 
-        master_dirinfo = datatypes.DirectoryInfo('/store', to_merge=dirinfos)
+        master_dirinfo = datatypes.DirectoryInfo('/store', directories=dirinfos)
 
         self.check_equal(self.tree, master_dirinfo)
         self.assertEqual(self.tree.count_nodes(), master_dirinfo.count_nodes())
@@ -189,7 +189,7 @@ class TestConsistentTrees(TestBase):
         dirinfos = [datatypes.create_dirinfo('', subdir, my_ls) \
                         for subdir in ['mc', 'data']]
 
-        master_dirinfo = datatypes.DirectoryInfo('/store', to_merge=dirinfos)
+        master_dirinfo = datatypes.DirectoryInfo('/store', directories=dirinfos)
 
         self.check_equal(self.tree, master_dirinfo)
         self.assertFalse(master_dirinfo.get_node(os.path.join(empty_dir, 'not_there'), False))
@@ -233,8 +233,8 @@ class TestInconsistentTrees(TestBase):
             out.close()
 
         self.listing = datatypes.DirectoryInfo(
-            '/store', to_merge=[datatypes.create_dirinfo('', subdir, my_ls) \
-                                    for subdir in ['mc', 'data']])
+            '/store', directories=[datatypes.create_dirinfo('', subdir, my_ls)
+                                   for subdir in ['mc', 'data']])
 
         self.tree.setup_hash()
         self.listing.setup_hash()
@@ -274,8 +274,8 @@ class TestInconsistentTrees(TestBase):
         os.utime(path, (1000000000, 1000000000))
 
         listing = datatypes.DirectoryInfo('/store',
-                                          to_merge=[datatypes.create_dirinfo('', subdir, my_ls) for
-                                                    subdir in ['mc', 'data']])
+                                          directories=[datatypes.create_dirinfo('', subdir, my_ls)
+                                                       for subdir in ['mc', 'data']])
 
         LOG.info('='*40)
         LOG.info('Doing the hash')
