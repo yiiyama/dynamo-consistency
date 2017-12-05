@@ -68,17 +68,11 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     LOG.debug('Called create_dirinfo(%s, %s, %s, %s)',
               location, first_dir, filler, object_params)
 
-    max_threads = config.config_dict()['NumThreads'] or multiprocessing.cpu_count()
-
     # Determine the number of threads
-    print object_params
-    print max_threads
-    print len(object_params)
-    if object_params is None:
-        n_threads = max_threads
-    else:
-        #n_threads = min(len(object_params), max_threads)
+    if object_params is not None:
         n_threads = len(object_params)
+    else:
+        n_threads = config.config_dict()['NumThreads'] or multiprocessing.cpu_count()
 
     # First directory is location + first_dir
     starting_dir = os.path.join(location, first_dir)
@@ -86,26 +80,24 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
 
     # Initialize queue and connection lists
     out_queue = multiprocessing.Queue()
-    in_queues = []
+    in_queue = multiprocessing.Queue()
 
     master_conns = []
     slave_conns = []
     send_to_master = []
 
     for _ in xrange(n_threads):
-        in_queues.append(multiprocessing.Queue())
-
         con1, con2 = multiprocessing.Pipe()
         master_conns.append(con1)
         slave_conns.append(con2)
         send_to_master.append(multiprocessing.Queue())
 
-    # Put in the first element for the queues
+    # Put in the first element for the queue
     # They go like, (full path of the next listing to do,
     #                name of sub-node to place the listing (blank for first level),
     #                list of previous directories, list of previous files (for retries),
     #                list of queue numbers that have failed so far)
-    random.choice(in_queues).put((starting_dir, '', [], [], []))
+    in_queue.put((starting_dir, '', [], [], []))
 
     def run_queue(i_queue):
         """
@@ -121,7 +113,6 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         running = True
 
         # Get the queue and connection for this thread
-        in_queue = in_queues[i_queue]
         conn = slave_conns[i_queue]
 
         if object_params:
@@ -137,6 +128,11 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
         while running:
             try:
                 location, name, prev_dirs, prev_files, failed_list = in_queue.get(True, 3)
+                if i_queue in failed_list:
+                    thread_log.warning('Got previously failed call, putting back and sleeping')
+                    in_queue.put((location, name, prev_dirs, prev_files, failed_list))
+                    time.sleep(10)
+
                 thread_log.debug('Getting directory with (%s, %s, %s)',
                                  location, name, failed_list)
 
@@ -163,7 +159,6 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                     track_failed.append(i_queue)
                     thread_log.debug('Creating retry list, excluding %s', track_failed)
 
-                    thread_log.debug('All available queues: %s', in_queues)
                     # Threads to retry cannot be the ones in the failed list so far
                     retry_candidates = [queue for queue in range(n_threads) \
                                             if queue not in track_failed]
@@ -175,8 +170,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                         send_results = False
                         retry_queue = random.choice(retry_candidates)
                         thread_log.debug('Will retry in queue %s', retry_queue)
-                        in_queues[retry_queue].put(
-                            (location, name, directories, files, track_failed))
+                        in_queue.put((location, name, directories, files, track_failed))
                         thread_log.debug('Put in queue %s', retry_queue)
                     # Otherwise, give up and output
                     else:
@@ -192,9 +186,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                     # Add each directory into some input queue
                     for directory, _ in directories:
                         joined_name = os.path.join(name, directory)
-                        sizes = [queue.qsize() for queue in in_queues]
-                        in_queues[sizes.index(min(sizes))].\
-                            put((location, joined_name, [], [], []))
+                        in_queue.put((location, joined_name, [], [], []))
 
 
                 # Tell master that a job finished once in a while,
@@ -307,26 +299,18 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
 
 
 class DirectoryInfo(object):
-    """Stores all of the information of the contents of a directory"""
+    """
+    Stores all of the information of the contents of a directory
 
-    def __init__(self, name='', to_merge=None,
-                 directories=None, files=None):
-        """ Create the directory information
+    :param str name: The name of the directory
+    :param list directories: If this is set, the infos in the
+                             list are merged into a master :py:class:`DirectoryInfo`.
+    :param list files: List of tuples containing information about files
+                       in the directory.
+    """
 
-        :param str name: The name of the directory
-        :param list to_merge: If this is set, the infos in the
-                              list are merged into a master :py:class:`DirectoryInfo`.
-        :param list directories: List of subdirectories inside the directory
-        :param list files: List of tuples containing information about files
-                           in the directory.
-        """
-
-        if to_merge:
-            self.directories = to_merge
-
-        else:
-            self.directories = directories or []
-
+    def __init__(self, name='', directories=None, files=None):
+        self.directories = directories or []
         self.timestamp = time.time()
         self.name = name
         self.hash = None
