@@ -116,6 +116,9 @@ def main(site):
     """
 
     start = time.time()
+    is_dst = time.localtime().tm_isdst
+    if is_dst == -1:
+        LOG.error('Daylight savings time not known. Times on webpage will be rather wrong.')
 
     prev_missing = '%s_compare_missing.txt' % site
     prev_set = set()
@@ -153,8 +156,8 @@ def main(site):
         curs.execute(
             """
             REPLACE INTO stats VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?, ?)
-            """,
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?)
+            """.format(5 - is_dst),
             (site, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
 
         conn.commit()
@@ -450,8 +453,8 @@ def main(site):
         curs.execute(
             """
             REPLACE INTO stats VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-4 hours"), ?, ?)
-            """,
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?)
+            """.format(5 - is_dst),
             (site, time.time() - start, site_tree.get_num_files(),
              site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
              config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),

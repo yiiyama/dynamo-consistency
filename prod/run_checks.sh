@@ -84,7 +84,7 @@ then
         test -d $LOGLOCATION || mkdir -p $LOGLOCATION
 
         # Report start of run
-        echo "UPDATE sites SET laststarted = DATETIME(DATETIME(), '-4 hours') WHERE site = '$SITE';" | sqlite3 $DATABASE
+        echo "UPDATE sites SET laststarted = DATETIME('$(date +%Y-%m-%d\ %H:%M:%S)') WHERE site = '$SITE';" | sqlite3 $DATABASE
         echo "$(date) Starting run on $SITE" >> $LOGLOCATION/run_checks.log
 
         # Report running
