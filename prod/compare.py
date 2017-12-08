@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# pylint: disable=wrong-import-position, too-complex, too-many-locals, too-many-branches, maybe-no-member
+# pylint: disable=wrong-import-position, too-complex, too-many-locals, too-many-branches, maybe-no-member, too-many-statements
 
 """
 .. Note::
@@ -471,15 +471,15 @@ def main(site):
     # Make a JSON file reporting storage usage
     storage = {
         'storeageservice': {
-            'storageshares' : [ {
-                    'numberoffiles' : node.get_num_files(),
-                    'path' : [os.path.normpath('/store/%s' % subdir)],
-                    'timestamp' : str(int(time.time())),
-                    'totalsize' : 0,
-                    'usedsize' : node.get_directory_size()
-                    } for node, subdir in [(site_tree.get_node(path), path) for path in
-                                           [''] + config_dict['DirectoryList']]
-                                if node.get_num_files()]
+            'storageshares': [{
+                'numberoffiles': node.get_num_files(),
+                'path': [os.path.normpath('/store/%s' % subdir)],
+                'timestamp': str(int(time.time())),
+                'totalsize': 0,
+                'usedsize': node.get_directory_size()
+                } for node, subdir in [(site_tree.get_node(path), path) for path in
+                                       [''] + config_dict['DirectoryList']]
+                              if node.get_num_files()]
             }
         }
 
