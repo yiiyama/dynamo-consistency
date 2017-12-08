@@ -52,6 +52,7 @@ goes through the following steps for each site.
 """
 
 import logging
+import json
 import sys
 import os
 import sqlite3
@@ -122,12 +123,15 @@ def main(site):
 
     prev_missing = '%s_compare_missing.txt' % site
     prev_set = set()
+
+    config_dict = config.config_dict()
+
     if os.path.exists(prev_missing):
         with open(prev_missing, 'r') as prev_file:
             for line in prev_file:
                 prev_set.add(line.strip())
 
-        if int(config.config_dict().get('SaveCache')):
+        if int(config_dict.get('SaveCache')):
             prev_new_name = '%s.%s' % (prev_missing,
                                        datetime.datetime.fromtimestamp(
                                            os.stat(prev_missing).st_mtime).strftime('%y%m%d')
@@ -136,12 +140,12 @@ def main(site):
             prev_new_name = prev_missing
 
         shutil.move(prev_missing,
-                    os.path.join(config.config_dict()['CacheLocation'],
+                    os.path.join(config_dict['CacheLocation'],
                                  prev_new_name)
                    )
 
     # All of the files and summary will be dumped here
-    webdir = config.config_dict()['WebDir']
+    webdir = config_dict['WebDir']
 
     # Open a connection temporarily to make sure we only list good sites
     status_check = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
@@ -218,7 +222,7 @@ def main(site):
 
     LOG.debug('Acceptable orphans: \n%s\n', '\n'.join(acceptable_orphans))
 
-    ignore_list = config.config_dict().get('IgnoreDirectories', [])
+    ignore_list = config_dict.get('IgnoreDirectories', [])
 
     def double_check(file_name, acceptable):
         """
@@ -266,8 +270,8 @@ def main(site):
 
     # Determine if files should be entered into the registry
 
-    many_missing = len(missing) > int(config.config_dict()['MaxMissing'])
-    many_orphans = len(orphan) > int(config.config_dict()['MaxOrphan'])
+    many_missing = len(missing) > int(config_dict['MaxMissing'])
+    many_orphans = len(orphan) > int(config_dict['MaxOrphan'])
 
     if is_debugged and not many_missing and not many_orphans:
         def execute(query, *args):
@@ -457,13 +461,30 @@ def main(site):
             """.format(5 - is_dst),
             (site, time.time() - start, site_tree.get_num_files(),
              site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
-             config.config_dict().get('NumThreads', config.config_dict().get('MinThreads', 0)),
+             config_dict.get('NumThreads', config_dict.get('MinThreads', 0)),
              len(missing), m_size, len(orphan), o_size, len(no_source_files),
              site_tree.get_num_files(unlisted=True)))
 
         conn.commit()
         conn.close()
 
+    # Make a JSON file reporting storage usage
+    storage = {
+        'storeageservice': {
+            'storageshares' : [ {
+                    'numberoffiles' : node.get_num_files(),
+                    'path' : [os.path.normpath('/store/%s/' % subdir)],
+                    'timestamp' : str(int(time.time())),
+                    'totalsize' : 0,
+                    'usedsize' : node.get_directory_size()
+                    } for node in [site_tree.get_node(path) for path in
+                                   [''] + config_dict['DirectoryList']]
+                ]
+            }
+        }
+
+    with open(os.path.join(config_dict['WebDir'], '%s_storage.json' % site), 'r') as storage_file:
+        json.dump(storage, storage_file)
 
 if __name__ == '__main__':
 
