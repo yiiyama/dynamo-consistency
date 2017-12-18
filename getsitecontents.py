@@ -20,8 +20,9 @@ import time
 import subprocess
 from datetime import datetime
 
-import XRootD.client
 import timeout_decorator
+
+import XRootD.client
 from common.interface.mysql import MySQL
 
 from . import config
