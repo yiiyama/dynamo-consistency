@@ -54,7 +54,7 @@ LIMIT $NUMBER;
 " | sqlite3 $DATABASE)
 
 # Check machine
-if [ `hostname` = 't3serv012.mit.edu' ]
+if [ `hostname` = 't3serv016.mit.edu' ]
 then
 
     # Some additional setup
