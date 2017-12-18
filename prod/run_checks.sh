@@ -54,7 +54,7 @@ LIMIT $NUMBER;
 " | sqlite3 $DATABASE)
 
 # Check machine
-if [ `hostname` = 't3serv012.mit.edu' ]
+if [ `hostname` = 't3serv016.mit.edu' ]
 then
 
     # Some additional setup
@@ -83,6 +83,18 @@ then
         LOGLOCATION=$(jq -r '.LogLocation' $HERE/consistency_config.json)
         test -d $LOGLOCATION || mkdir -p $LOGLOCATION
 
+        jq '.AccessMethod' consistency_config.json | grep SRM | grep $SITE
+        ISSRM=$?
+
+        # Get SRM key for lock, if needed
+        if [ $ISSRM = 0 ]
+        then
+            while ! rm gfal.key 2> /dev/null
+            do
+                sleep 300
+            done
+        fi
+
         # Report start of run
         echo "UPDATE sites SET laststarted = DATETIME('$(date +%Y-%m-%d\ %H:%M:%S)') WHERE site = '$SITE';" | sqlite3 $DATABASE
         echo "$(date) Starting run on $SITE" >> $LOGLOCATION/run_checks.log
@@ -98,7 +110,12 @@ then
         # Copy log file to web location
         cp $LOGLOCATION/$LOGFILE $(jq -r '.WebDir' $HERE/consistency_config.json)/${SITE}.log
 
-        # Unlock
+        # Put key back
+        if [ $ISSRM = 0 ]
+        then
+            touch gfal.key
+        fi
+        # Unlock in database
         echo "UPDATE sites SET isrunning = 0 WHERE site = '$SITE';" | sqlite3 $DATABASE
 
         echo "$(date) Finished run on $SITE" >> $LOGLOCATION/run_checks.log
