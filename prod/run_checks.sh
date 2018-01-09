@@ -9,11 +9,18 @@ then
     exit 0
 fi
 
+# Make sure we have enough memory free or cached (6 GBi)
+test $(perl -nae 'if (/^(MemFree|Cached):/) { $sum += $F[1] } } END { print "$sum"' /proc/meminfo) -gt 6000000 || exit 0
+
 # Add jq to the system path
 PATH=$PATH:/home/dabercro/bin
 
 # Get the directory of this script (should be in prod)
 HERE=$(cd $(dirname $0) && pwd)
+
+# Setup environment
+# (sources dynamo and sets PYTHONPATH
+. $HERE/set_env.sh
 
 # Determine the SQLite3 database location from the configuration file
 DATABASE=$(jq -r '.WebDir' $HERE/consistency_config.json)/stats.db
@@ -43,6 +50,9 @@ echo "UPDATE sites SET isrunning = -1 WHERE (site = '$(echo $BAD_SITES | sed "s/
 GOOD_SITES=$(echo "SELECT name FROM sites WHERE status = 'ready';" | mysql --defaults-group-suffix=-dynamo -Ddynamo --skip-column-names)
 echo "UPDATE sites SET isrunning = 0 WHERE (site = '$(echo $GOOD_SITES | sed "s/ /' OR site = '/g")') AND isrunning = -1;" | sqlite3 $DATABASE
 
+# Check SAM tests
+./check_sam.py $DATABASE $GOOD_SITES
+
 # Now get a list of sites to run on
 SITES=$(echo "
 SELECT sites.site FROM sites 
@@ -67,10 +77,6 @@ then
         voms-proxy-info -e || voms-proxy-init -voms cms --valid 192:00
 
     fi
-
-    # Setup environment
-    # (sources dynamo and sets PYTHONPATH
-    . $HERE/set_env.sh
 
     # Lock all sites first
     echo "UPDATE sites SET isrunning = 1 WHERE site = '$(echo $SITES | sed "s/ /' OR site = '/g")';" | sqlite3 $DATABASE

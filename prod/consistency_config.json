@@ -14,6 +14,7 @@
     "T2_UK_London_Brunel": "dc2-grid-64.brunel.ac.uk",
     "T2_UK_London_IC":     "gfe02.grid.hep.ph.ic.ac.uk:1098",
     "T2_FR_IPHC": "sbgse1.in2p3.fr",
+    "T2_CH_CERN": "eoscms.cern.ch:1094",
     "T3_CH_PSI": "t3se01.psi.ch",
     "T2_FR_GRIF_LLR": "llrpp01.in2p3.fr:11001",
     "T2_FR_GRIF_IRFU": "node12.datagrid.cea.fr:11001",
@@ -22,7 +23,7 @@
     "T2_IT_Rome": "cmsrm-xrootd02.roma1.infn.it:7070",
     "T2_PK_NCP" : "pcncp22.ncp.edu.pk:11001",
     "T2_RU_INR":  "grse001.inr.troitsk.ru:11000",
-    "T2_RU_ITEP": "se3.itep.ru:1094",
+    "T2_RU_ITEP": "se3.itep.ru:1095",
     "T3_US_MIT": "t3serv006.mit.edu"
   },
   "PathPrefix": {
@@ -54,8 +55,8 @@
     "T1_US_FNAL"
   ],
   "AccessMethod": {
+    "T2_ES_IFCA" : "SRM",
     "T2_FR_GRIF_LLR": "SRM",
-    "T2_FR_GRIF_IRFU": "SRM",
     "T2_PL_Warsaw": "SRM"
   }, 
   "GlobalRedirectors": [

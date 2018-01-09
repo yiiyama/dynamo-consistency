@@ -160,8 +160,12 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                     thread_log.debug('Creating retry list, excluding %s', track_failed)
 
                     # Threads to retry cannot be the ones in the failed list so far
-                    retry_candidates = [queue for queue in range(n_threads) \
-                                            if queue not in track_failed]
+#                    retry_candidates = [queue for queue in range(n_threads) \
+#                                            if queue not in track_failed]
+###
+                    retry_candidates = []
+###
+
                     thread_log.debug('Retry candidates created: %s', retry_candidates)
 
                     # If there are threads where we can retry this, put the input there
