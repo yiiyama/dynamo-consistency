@@ -59,7 +59,8 @@
     "T1_UK_RAL_Disk": "SRM",
     "T2_ES_IFCA" : "SRM",
     "T2_FR_GRIF_LLR": "SRM",
-    "T2_PL_Warsaw": "SRM"
+    "T2_PL_Warsaw": "SRM",
+    "T1_US_FNAL_Disk": "directx"
   }, 
   "GlobalRedirectors": [
     "xrootd-redic.pi.infn.it",
