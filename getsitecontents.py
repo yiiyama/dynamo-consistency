@@ -199,12 +199,15 @@ class XRootDLister(object):
 
             self.log.warning('While listing %s: %s', path, status.message)
 
-            error_code = self.error_re.search(status.message).group(1)
+            try:
+                error_code = self.error_re.search(status.message).group(1)
 
-            # Retry certain error codes if there's no dir_list
-            # Don't bother with 3010 at the moment because there's that Hadoop bug
-            okay = (error_code == '3010' and 'operation not permitted' in status.message) or \
-                (bool(dir_list) and error_code in ['!', '3005'])
+                # Retry certain error codes if there's no dir_list
+                # Don't bother with 3010 at the moment because there's that Hadoop bug
+                okay = (error_code == '3010' and 'operation not permitted' in status.message) or \
+                    (bool(dir_list) and error_code in ['!', '3005'])
+            except AttributeError:  # No good match
+                okay = False
 
             self.log.debug('Error code: %s', error_code)
             self.log.debug('Directory List: %s', dir_list)

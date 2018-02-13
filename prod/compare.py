@@ -395,8 +395,7 @@ def main(site):
                    INNER JOIN block_replicas ON block_replicas.block_id = files.block_id
                    INNER JOIN sites ON block_replicas.site_id = sites.id
                    LEFT JOIN groups ON block_replicas.group_id = groups.id
-                   WHERE files.name = %s AND sites.name = %s
-                   """
+                   WHERE files.name = %s AND sites.name = %s """
 
     with open('%s_compare_missing.txt' % site, 'r') as input_file:
         for line in input_file:
