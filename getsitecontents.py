@@ -53,9 +53,6 @@ class GFallDLister(object):
         return epoch
 
     def ls_directory(self, path):
-
-#        print 'Using SRM to list directory ' + path
-
         directories = []
         files = []
 
@@ -358,7 +355,7 @@ def get_site_tree(site):
         # Return the DirectoryInfo 
         print '------------------------'
         print time.time()
-        return datatypes.DirectoryInfo(name='/store', to_merge=directories)
+        return datatypes.DirectoryInfo(name='/store', directories=directories)
 
 
     # Get the redirector for a site
@@ -404,4 +401,4 @@ def get_site_tree(site):
         ]
 
     # Return the DirectoryInfo
-    return datatypes.DirectoryInfo(name='/store', to_merge=directories)
+    return datatypes.DirectoryInfo(name='/store', directories=directories)
