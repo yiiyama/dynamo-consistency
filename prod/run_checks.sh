@@ -89,7 +89,7 @@ then
         LOGLOCATION=$(jq -r '.LogLocation' $HERE/consistency_config.json)
         test -d $LOGLOCATION || mkdir -p $LOGLOCATION
 
-        jq '.AccessMethod' consistency_config.json | grep SRM | grep $SITE
+        jq '.AccessMethod' consistency_config.json | grep SRM | grep $SITE >& /dev/null
         ISSRM=$?
 
         # Get SRM key for lock, if needed
