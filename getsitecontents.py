@@ -1,3 +1,5 @@
+# pylint: disable=too-complex
+
 """
 Tool to get the files located at a site.
 
@@ -5,7 +7,8 @@ Tool to get the files located at a site.
 
    Must be used on a machine with XRootD python module installed.
 
-:author: Daniel Abercrombie <dabercro@mit.edu>
+:author: Daniel Abercrombie <dabercro@mit.edu> \n
+         Max Goncharov <maxi@mit.edu>
 """
 
 import os
@@ -14,26 +17,54 @@ import logging
 import random
 import itertools
 import time
+import subprocess
 from datetime import datetime
-import subprocess,signal
+
+import timeout_decorator
 
 import XRootD.client
-import timeout_decorator
+from common.interface.mysql import MySQL
 
 from . import config
 from . import datatypes
 from . import cache_tree
 
-from common.interface.mysql import MySQL
 
 LOG = logging.getLogger(__name__)
 
+def ct_timestamp(line):
+    """
+    Takes a time string from gfal and extracts the time since epoch
+
+    .. todo::
+      Make this more elegant and inline in the :py:func:`GFallDLister.ls_directory`
+
+    :param str line: The line from the gfal-ls call including month, day, and year
+                     in some format with lots of hypens
+    :returns: Timestamp's time since epoch
+    :rtype: int
+    """
+
+    fields = line.split('-')
+    if ':' in fields[-1]:
+        fields[-1] = datetime.now().year
+    month = time.strptime(fields[0], '%b').tm_mon
+    datestr = str(month) + '-' + str(fields[1]) + '-' + str(fields[2])
+
+    epoch = int(time.mktime(time.strptime(datestr, '%m-%d-%Y')))
+    return epoch
+
 class GFallDLister(object):
-    def __init__(self,site):
+    """
+    An object to list a site through ``gfal-ls`` calls
+    """
+
+    def __init__(self, site):
         config_dict = config.config_dict()
 
         self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
         self.tries = config_dict.get('Retries', 0) + 1
+        self.ignore_list = config_dict.get('IgnoreDirectories', [])
         self.site = site
 
         self.log = logging.getLogger(__name__)
@@ -42,17 +73,15 @@ class GFallDLister(object):
         sqlline = "select backend from sites where name='" + site + "'"
         self.backend = (self.mysql_reg.query(sqlline))[0]
 
-    def ct_timestamp(self, line):
-        fields = line.split('-')
-        if ':' in fields[-1]:
-            fields[-1] = datetime.now().year
-        month = time.strptime(fields[0],'%b').tm_mon
-        datestr = str(month) + '-' + str(fields[1]) + '-' + str(fields[2])
-
-        epoch = int(time.mktime(time.strptime(datestr, '%m-%d-%Y')))
-        return epoch
-
     def ls_directory(self, path):
+        """
+        Gets the contents of a path
+
+        :param str path: The full path, starting with ``/store/``, of the directory to list.
+        :returns: A bool indicating the success, a list of directories, and a list of files.
+        :rtype: bool, list, list
+        """
+
         directories = []
         files = []
 
@@ -60,35 +89,51 @@ class GFallDLister(object):
 
         cmd = 'gfal-ls -l ' + full_path
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   bufsize=4096,shell=True)
+                                   bufsize=4096, shell=True)
         strout, error = process.communicate()
         if process.returncode != 0:
             print error
             return False, directories, files
-        
+
         for line in strout.split('\n'):
             fields = line.strip().split()
             if len(fields) < 1:
                 continue
-            itemName = fields[-1]
-            itemSize = int(fields[4])
-            tstamp = self.ct_timestamp(fields[5] + '-' + fields[6] + '-' + fields[7])
-            marker = fields[0]
+            item_name = fields[-1]
+            item_size = int(fields[4])
+            tstamp = ct_timestamp(fields[5] + '-' + fields[6] + '-' + fields[7])
 
             if fields[0].startswith('d'):
-                directories.append((itemName,tstamp))
+                directories.append((item_name, tstamp))
             else:
-                files.append((itemName,itemSize,tstamp))
-        
+                files.append((item_name, item_size, tstamp))
+
         return True, directories, files
 
     def list(self, path, retries=1):
-        
+        """
+        Return the directory contents at the given path.
+        The ``list`` member is expected of every object passed to :py:mod:`datatypes`.
+
+        :param str path: The full path, starting with ``/store/``, of the directory to list.
+        :param int retries: Number of attempts so far
+        :returns: A bool indicating the success, a list of directories, and a list of files.
+                  The list of directories consists of tuples of (directory name, mod time).
+                  The list of files consistents of tuples of (file name, size, mod time).
+                  The modification times are in seconds from epoch and the file size is in bytes.
+        :rtype: bool, list, list
+        """
+
+        # Skip over paths that include part of the list of ignored directories
+        for pattern in self.ignore_list:
+            if pattern in path:
+                return True, [], []
+
         if retries == self.tries:
             self.log.error('Giving up on %s due to too many retries', path)
             return False, [], []
 
-        try:            
+        try:
             okay, directories, files = self.ls_directory(path)
              # We could add sleep, reconnecting and other error handling here, if desired
             if not okay:
@@ -96,7 +141,7 @@ class GFallDLister(object):
 
         except timeout_decorator.TimeoutError:
             self.log.warning('Directory %s timed out.', path)
-            okay, directories, files =  self.list(path, retries + 1)
+            okay, directories, files = self.list(path, retries + 1)
 
         return okay, directories, files
 
@@ -108,22 +153,18 @@ class XRootDLister(object):
     then a fallback connection is used.
     This keeps the load of listing from hitting more than half
     of a site's doors at a time.
+
+    :param str primary_door: The URL of the door that will get the most load
+    :param str backup_door: The URL of the door that will be used when
+                            the primary door fails
+    :param str site: The site that this connection is to.
+    :param int thread_num: This optional parameter is only used to
+                           Create a separate logger for this object
+    :param bool do_both: If true, the primary and backup doors will both
+                         be used for every listing
     """
 
     def __init__(self, primary_door, backup_door, site, thread_num=None, do_both=False):
-        """
-        Set up the class with two doors.
-
-        :param str primary_door: The URL of the door that will get the most load
-        :param str backup_door: The URL of the door that will be used when
-                                the primary door fails
-        :param str site: The site that this connection is to.
-        :param int thread_num: This optional parameter is only used to
-                               Create a separate logger for this object
-        :param bool do_both: If true, the primary and backup doors will both
-                             be used for every listing
-        """
-
         config_dict = config.config_dict()
 
         self.primary_conn = XRootD.client.FileSystem(primary_door)
@@ -131,8 +172,8 @@ class XRootDLister(object):
         self.do_both = do_both
 
         self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
-        self.access =  config_dict.get('AccessMethod', {})
         self.tries = config_dict.get('Retries', 0) + 1
+        self.ignore_list = config_dict.get('IgnoreDirectories', [])
         self.site = site
 
         # This regex is used to parse the error code and propose a retry
@@ -215,14 +256,24 @@ class XRootDLister(object):
 
         return okay, directories, files
 
-    def direct_list(self,door,path):
+    def direct_list(self, door, path):
+        """
+        Do the listing using system calls
+
+        :param XRootD.client.FileSystem door: The door server to use for the listing
+        :param str path: The full path, starting with ``/store/``, of the directory to list.
+        :returns: A bool indicating the success, a list of directories, and a list of files.
+                  See :py:func:`XRootDLister.list` for more details on the output.
+        :rtype: bool, list, list
+        """
+
         directories = []
         files = []
         
         doorname = str(door.url.hostname) + ':' + str(door.url.port)
         cmd = 'xrdfs ' + doorname + ' ls -l ' + path
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   bufsize=4096,shell=True)
+                                   bufsize=4096, shell=True)
         strout, error = process.communicate()
         if process.returncode != 0:
             print error
@@ -237,9 +288,9 @@ class XRootDLister(object):
             tstamp = int(time.mktime(time.strptime(fields[1], '%Y-%m-%d')))
 
             if fields[0].startswith('d'):
-                directories.append((itemName,tstamp))
+                directories.append((itemName, tstamp))
             else:
-                files.append((itemName,itemSize,tstamp))
+                files.append((itemName, itemSize, tstamp))
 
         return True, directories, files
 
@@ -257,8 +308,10 @@ class XRootDLister(object):
         :rtype: bool, list, list
         """
 
-        if 'HCTest' in path:
-            return True, [], []
+        # Skip over paths that include part of the list of ignored directories
+        for pattern in self.ignore_list:
+            if pattern in path:
+                return True, [], []
 
         if retries == self.tries:
             self.log.error('Giving up on %s due to too many retries', path)
@@ -338,46 +391,43 @@ def get_site_tree(site):
 
     :param str site: The site name
     :returns: The site directory listing information
-    :rtype: ConsistencyCheck.datatypes.DirectoryInfo
+    :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
-    print '------------------------'
-    print time.time()
 
-    min_threads = config.config_dict().get('MinThreads', 0)
-    max_threads = config.config_dict().get('MaxThreads')
-
-    access =  config.config_dict().get('AccessMethod', site)
-    if site in access and access[site] == 'SRM':
+    config_dict = config.config_dict()
+    access = config_dict.get('AccessMethod', {})
+    if access.get(site) == 'SRM':
+        num_threads = int(config_dict.get('GFALThreads'))
+        LOG.info('threads = %i', num_threads)
         directories = [
-            datatypes.create_dirinfo('/store', directory, GFallDLister, [[site]]*max_threads ) \
+            datatypes.create_dirinfo('/store', directory, GFallDLister, [[site]]*num_threads) \
                 for directory in config.config_dict().get('DirectoryList', [])
         ]
-        # Return the DirectoryInfo 
-        print '------------------------'
-        print time.time()
+        # Return the DirectoryInfo
         return datatypes.DirectoryInfo(name='/store', directories=directories)
 
 
     # Get the redirector for a site
     # The redirector can be used for a double check (not implemented yet...)
     # The redir_list is used for the original listing
+    num_threads = int(config_dict.get('NumThreads'))
 
     balancer, door_list = config.get_redirector(site)
     LOG.debug('Full redirector list: %s', door_list)
 
     # Bool to determine if using both doors in each connection
-    do_both = bool(site in config.config_dict().get('BothList', []))
+    do_both = bool(site in config_dict.get('BothList', []))
 
-    if site in config.config_dict().get('UseLoadBalancer', []) or \
+    if site in config_dict.get('UseLoadBalancer', []) or \
             (balancer and not door_list):
-        min_threads = 1
+        num_threads = 1
         door_list = [balancer]
 
     if not door_list:
         LOG.error('No doors found. Returning emtpy tree')
         return datatypes.DirectoryInfo(name='/store')
 
-    while min_threads > (len(door_list) + 1)/2:
+    while num_threads > (len(door_list) + 1)/2:
         if do_both or len(door_list) % 2:
             door_list.extend(door_list)
         else:
@@ -387,6 +437,8 @@ def get_site_tree(site):
 
     # Add the first door to the end, in case we have an odd number of doors
     door_list.append(door_list[0])
+    # Strip off the extra threads
+    door_list = door_list[:num_threads * 2]
 
     # Create DirectoryInfo for each directory to search (set in configuration file)
     # The search is done with XRootDLister objects that have two doors and the thread
@@ -397,7 +449,7 @@ def get_site_tree(site):
             '/store/', directory, XRootDLister,
             [(prim, back, site, thread_num, do_both) for prim, back, thread_num in \
                  zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
-            for directory in config.config_dict().get('DirectoryList', [])
+            for directory in config_dict.get('DirectoryList', [])
         ]
 
     # Return the DirectoryInfo

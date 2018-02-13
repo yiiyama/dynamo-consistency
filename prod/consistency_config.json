@@ -7,8 +7,8 @@
   "ListAge": 0,
   "IgnoreAge": 14,
   "RedirectorAge": 0,
-  "CacheLocation": "/local/dynamo/consistency/cache",
-  "LogLocation": "/local/dynamo/consistency/logs",
+  "CacheLocation": "/scratch5/dabercro/consistency/cache",
+  "LogLocation": "/scratch5/dabercro/consistency/logs",
   "Redirectors": {
     "T1_RU_JINR_Disk": "se-xrd01.jinr-t1.ru:1095",
     "T1_FR_CCIN2P3_Disk": "ccxrpli003.in2p3.fr:1095", 
@@ -70,7 +70,7 @@
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
   ],
-  "WebDir": "/home/dynamo/consistency/web",
+  "WebDir": "/home/dabercro/public_html/ConsistencyCheck",
   "MaxMissing": 1000,
   "MaxOrphan": 10000
 }
