@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# pylint: disable=too-complex
+# pylint: disable=bare-except
 
 """
 A script that updates the summary database to not run on sites failing SAM tests lately

@@ -210,7 +210,7 @@ class XRootDLister(object):
         self.log.debug('Using door at %s to list directory %s', door.url, path)
 
         if self.site in self.access and self.access[self.site] == 'directx':
-            return self.direct_list(door,path)
+            return self.direct_list(door, path)
 
         # http://xrootd.org/doc/python/xrootd-python-0.1.0/modules/client/filesystem.html#XRootD.client.FileSystem.dirlist
         status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
@@ -256,7 +256,8 @@ class XRootDLister(object):
 
         return okay, directories, files
 
-    def direct_list(self, door, path):
+    @staticmethod
+    def direct_list(door, path):
         """
         Do the listing using system calls
 
@@ -269,7 +270,7 @@ class XRootDLister(object):
 
         directories = []
         files = []
-        
+
         doorname = str(door.url.hostname) + ':' + str(door.url.port)
         cmd = 'xrdfs ' + doorname + ' ls -l ' + path
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -283,14 +284,14 @@ class XRootDLister(object):
             fields = line.strip().split()
             if len(fields) < 1:
                 continue
-            itemName = fields[-1]
-            itemSize = int(fields[3])
+            item_name = fields[-1]
+            item_size = int(fields[3])
             tstamp = int(time.mktime(time.strptime(fields[1], '%Y-%m-%d')))
 
             if fields[0].startswith('d'):
-                directories.append((itemName, tstamp))
+                directories.append((item_name, tstamp))
             else:
-                files.append((itemName, itemSize, tstamp))
+                files.append((item_name, item_size, tstamp))
 
         return True, directories, files
 
