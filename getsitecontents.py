@@ -172,6 +172,7 @@ class XRootDLister(object):
         self.do_both = do_both
 
         self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
+        self.access = config_dict.get('AccessMethod', {})
         self.tries = config_dict.get('Retries', 0) + 1
         self.ignore_list = config_dict.get('IgnoreDirectories', [])
         self.site = site
@@ -284,7 +285,7 @@ class XRootDLister(object):
             fields = line.strip().split()
             if len(fields) < 1:
                 continue
-            item_name = fields[-1]
+            item_name = os.path.basename(fields[-1].rstrip('/'))
             item_size = int(fields[3])
             tstamp = int(time.mktime(time.strptime(fields[1], '%Y-%m-%d')))
 

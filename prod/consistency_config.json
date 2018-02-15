@@ -60,7 +60,8 @@
     "T2_ES_IFCA" : "SRM",
     "T2_FR_GRIF_LLR": "SRM",
     "T2_UK_SGrid_RALPP": "SRM",
-    "T1_US_FNAL_Disk": "directx"
+    "T1_US_FNAL_Disk": "directx",
+    "T2_US_MIT": "directx"
   }, 
   "GlobalRedirectors": [
     "xrootd-redic.pi.infn.it",
