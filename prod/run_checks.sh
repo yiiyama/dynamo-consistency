@@ -2,11 +2,19 @@
 
 NUMBER=$1
 MATCH=$2
+FLAG=$3
 
 if [ -z "$MATCH" -o "$NUMBER" = "-h" -o "$NUMBER" = "--help" ]
 then
     perldoc -T $0
     exit 0
+fi
+
+if [ -z "$FLAG" ]
+then
+    BADSELECT=''
+else
+    BADSELECT='AND (stats.missing > 1000 OR stats.orphan > 1000)'
 fi
 
 # Make sure we have enough memory free or cached (6 GBi)
@@ -59,6 +67,7 @@ SELECT sites.site FROM sites
 LEFT JOIN stats ON sites.site=stats.site
 WHERE isrunning = 0
 AND (sites.site = '$(echo $ALL_SITES | sed "s/ /' OR sites.site = '/g")')
+$BADSELECT
 ORDER BY stats.entered ASC
 LIMIT $NUMBER;
 " | sqlite3 $DATABASE)
@@ -143,7 +152,7 @@ exit 0
 
 =head1 Usage:
 
-   run_checks.sh <MAXNUMBER> <MATCH>
+   run_checks.sh <MAXNUMBER> <MATCH> [<FLAG>]
 
 runs the Consistency Check for sites that match the name MATCH
 (using a MySQL "LIKE" expression), limited to MAXNUMBER.
@@ -151,6 +160,9 @@ Sites that have not been run before will get priority.
 After that, priority is assigned by the sites that have gone the longest
 without getting a new summary entry in the summary webpage.
 Sites that are currently running are excluded.
+
+If any value for FLAG is given, only sites with more than 1000 missing
+or orphan files will be considered.
 
 =head1 Examples:
 
