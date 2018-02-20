@@ -16,7 +16,7 @@ in parallel.
 import os
 import time
 import hashlib
-import pickle
+import cPickle
 import random
 import logging
 import multiprocessing
@@ -313,6 +313,7 @@ class DirectoryInfo(object):
                        in the directory.
     """
 
+    __slots__ = ('directories', 'timestamp', 'name', 'hash', 'files', 'mtime', 'can_compare')
     def __init__(self, name='', directories=None, files=None):
         self.directories = directories or []
         self.timestamp = time.time()
@@ -444,7 +445,7 @@ class DirectoryInfo(object):
         """
 
         with open(file_name, 'w') as outfile:
-            pickle.dump(self, outfile)
+            cPickle.dump(self, outfile, protocol=cPickle.HIGHEST_PROTOCOL)
 
     def display(self, path=''):
         """
@@ -765,7 +766,7 @@ def get_info(file_name):
     """
 
     infile = open(file_name, 'r')
-    output = pickle.load(infile)
+    output = cPickle.load(infile)
     infile.close()
 
     return output
