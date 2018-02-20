@@ -472,13 +472,13 @@ def main(site):
         storage = {
             'storeageservice': {
                 'storageshares': [{
-                        'numberoffiles': node.get_num_files(),
-                        'path': [os.path.normpath('/store/%s' % subdir)],
-                        'timestamp': str(int(time.time())),
-                        'totalsize': 0,
-                        'usedsize': node.get_directory_size()
-                        } for node, subdir in [(site_tree.get_node(path), path) for path in
-                                               [''] + config_dict['DirectoryList']]
+                    'numberoffiles': node.get_num_files(),
+                    'path': [os.path.normpath('/store/%s' % subdir)],
+                    'timestamp': str(int(time.time())),
+                    'totalsize': 0,
+                    'usedsize': node.get_directory_size()
+                    } for node, subdir in [(site_tree.get_node(path), path) for path in
+                                           [''] + config_dict['DirectoryList']]
                                   if node.get_num_files()]
                 }
             }
