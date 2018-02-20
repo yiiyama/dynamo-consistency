@@ -468,22 +468,23 @@ def main(site):
         conn.close()
 
     # Make a JSON file reporting storage usage
-    storage = {
-        'storeageservice': {
-            'storageshares': [{
-                'numberoffiles': node.get_num_files(),
-                'path': [os.path.normpath('/store/%s' % subdir)],
-                'timestamp': str(int(time.time())),
-                'totalsize': 0,
-                'usedsize': node.get_directory_size()
-                } for node, subdir in [(site_tree.get_node(path), path) for path in
-                                       [''] + config_dict['DirectoryList']]
-                              if node.get_num_files()]
+    if site_tree.get_num_files():
+        storage = {
+            'storeageservice': {
+                'storageshares': [{
+                        'numberoffiles': node.get_num_files(),
+                        'path': [os.path.normpath('/store/%s' % subdir)],
+                        'timestamp': str(int(time.time())),
+                        'totalsize': 0,
+                        'usedsize': node.get_directory_size()
+                        } for node, subdir in [(site_tree.get_node(path), path) for path in
+                                               [''] + config_dict['DirectoryList']]
+                                  if node.get_num_files()]
+                }
             }
-        }
 
-    with open(os.path.join(webdir, '%s_storage.json' % site), 'w') as storage_file:
-        json.dump(storage, storage_file)
+        with open(os.path.join(webdir, '%s_storage.json' % site), 'w') as storage_file:
+            json.dump(storage, storage_file)
 
 if __name__ == '__main__':
 
