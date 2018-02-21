@@ -172,6 +172,7 @@ class XRootDLister(object):
         self.do_both = do_both
 
         self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
+        self.access = config_dict.get('AccessMethod', {})
         self.tries = config_dict.get('Retries', 0) + 1
         self.ignore_list = config_dict.get('IgnoreDirectories', [])
         self.site = site
@@ -209,6 +210,9 @@ class XRootDLister(object):
 
         self.log.debug('Using door at %s to list directory %s', door.url, path)
 
+        if self.site in self.access and self.access[self.site] == 'directx':
+            return self.direct_list(door, path)
+
         # http://xrootd.org/doc/python/xrootd-python-0.1.0/modules/client/filesystem.html#XRootD.client.FileSystem.dirlist
         status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
@@ -234,12 +238,15 @@ class XRootDLister(object):
 
             self.log.warning('While listing %s: %s', path, status.message)
 
-            error_code = self.error_re.search(status.message).group(1)
+            try:
+                error_code = self.error_re.search(status.message).group(1)
 
-            # Retry certain error codes if there's no dir_list
-            # Don't bother with 3010 at the moment because there's that Hadoop bug
-            okay = (error_code == '3010' and 'operation not permitted' in status.message) or \
-                (bool(dir_list) and error_code in ['!', '3005'])
+                # Retry certain error codes if there's no dir_list
+                # Don't bother with 3010 at the moment because there's that Hadoop bug
+                okay = (error_code == '3010' and 'operation not permitted' in status.message) or \
+                    (bool(dir_list) and error_code in ['!', '3005'])
+            except AttributeError:  # No good match
+                okay = False
 
             self.log.debug('Error code: %s', error_code)
             self.log.debug('Directory List: %s', dir_list)
@@ -249,6 +256,45 @@ class XRootDLister(object):
                        path, okay, len(directories), len(files))
 
         return okay, directories, files
+
+    @staticmethod
+    def direct_list(door, path):
+        """
+        Do the listing using system calls
+
+        :param XRootD.client.FileSystem door: The door server to use for the listing
+        :param str path: The full path, starting with ``/store/``, of the directory to list.
+        :returns: A bool indicating the success, a list of directories, and a list of files.
+                  See :py:func:`XRootDLister.list` for more details on the output.
+        :rtype: bool, list, list
+        """
+
+        directories = []
+        files = []
+
+        doorname = str(door.url.hostname) + ':' + str(door.url.port)
+        cmd = 'xrdfs ' + doorname + ' ls -l ' + path
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   bufsize=4096, shell=True)
+        strout, error = process.communicate()
+        if process.returncode != 0:
+            print error
+            return False, directories, files
+
+        for line in strout.split('\n'):
+            fields = line.strip().split()
+            if len(fields) < 1:
+                continue
+            item_name = os.path.basename(fields[-1].rstrip('/'))
+            item_size = int(fields[3])
+            tstamp = int(time.mktime(time.strptime(fields[1], '%Y-%m-%d')))
+
+            if fields[0].startswith('d'):
+                directories.append((item_name, tstamp))
+            else:
+                files.append((item_name, item_size, tstamp))
+
+        return True, directories, files
 
     def list(self, path, retries=0):
         """

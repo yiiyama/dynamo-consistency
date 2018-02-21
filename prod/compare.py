@@ -395,8 +395,7 @@ def main(site):
                    INNER JOIN block_replicas ON block_replicas.block_id = files.block_id
                    INNER JOIN sites ON block_replicas.site_id = sites.id
                    LEFT JOIN groups ON block_replicas.group_id = groups.id
-                   WHERE files.name = %s AND sites.name = %s
-                   """
+                   WHERE files.name = %s AND sites.name = %s """
 
     with open('%s_compare_missing.txt' % site, 'r') as input_file:
         for line in input_file:
@@ -469,22 +468,23 @@ def main(site):
         conn.close()
 
     # Make a JSON file reporting storage usage
-    storage = {
-        'storeageservice': {
-            'storageshares': [{
-                'numberoffiles': node.get_num_files(),
-                'path': [os.path.normpath('/store/%s' % subdir)],
-                'timestamp': str(int(time.time())),
-                'totalsize': 0,
-                'usedsize': node.get_directory_size()
-                } for node, subdir in [(site_tree.get_node(path), path) for path in
-                                       [''] + config_dict['DirectoryList']]
-                              if node.get_num_files()]
+    if site_tree.get_num_files():
+        storage = {
+            'storeageservice': {
+                'storageshares': [{
+                    'numberoffiles': node.get_num_files(),
+                    'path': [os.path.normpath('/store/%s' % subdir)],
+                    'timestamp': str(int(time.time())),
+                    'totalsize': 0,
+                    'usedsize': node.get_directory_size()
+                    } for node, subdir in [(site_tree.get_node(path), path) for path in
+                                           [''] + config_dict['DirectoryList']]
+                                  if node.get_num_files()]
+                }
             }
-        }
 
-    with open(os.path.join(webdir, '%s_storage.json' % site), 'w') as storage_file:
-        json.dump(storage, storage_file)
+        with open(os.path.join(webdir, '%s_storage.json' % site), 'w') as storage_file:
+            json.dump(storage, storage_file)
 
 if __name__ == '__main__':
 

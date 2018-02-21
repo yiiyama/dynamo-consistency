@@ -2,6 +2,7 @@
 
 NUMBER=$1
 MATCH=$2
+FLAG=$3
 
 if [ -z "$MATCH" -o "$NUMBER" = "-h" -o "$NUMBER" = "--help" ]
 then
@@ -9,11 +10,25 @@ then
     exit 0
 fi
 
+if [ -z "$FLAG" ]
+then
+    BADSELECT=''
+else
+    BADSELECT='AND (stats.missing > 1000 OR stats.orphan > 1000)'
+fi
+
+# Make sure we have enough memory free or cached (6 GBi)
+test $(perl -nae 'if (/^(MemFree|Cached):/) { $sum += $F[1] } } END { print "$sum"' /proc/meminfo) -gt 6000000 || exit 0
+
 # Add jq to the system path
 PATH=$PATH:/home/dabercro/bin
 
 # Get the directory of this script (should be in prod)
 HERE=$(cd $(dirname $0) && pwd)
+
+# Setup environment
+# (sources dynamo and sets PYTHONPATH
+. $HERE/set_env.sh
 
 # Determine the SQLite3 database location from the configuration file
 DATABASE=$(jq -r '.WebDir' $HERE/consistency_config.json)/stats.db
@@ -43,18 +58,22 @@ echo "UPDATE sites SET isrunning = -1 WHERE (site = '$(echo $BAD_SITES | sed "s/
 GOOD_SITES=$(echo "SELECT name FROM sites WHERE status = 'ready';" | mysql --defaults-group-suffix=-dynamo -Ddynamo --skip-column-names)
 echo "UPDATE sites SET isrunning = 0 WHERE (site = '$(echo $GOOD_SITES | sed "s/ /' OR site = '/g")') AND isrunning = -1;" | sqlite3 $DATABASE
 
+# Check SAM tests
+./check_sam.py $DATABASE $GOOD_SITES
+
 # Now get a list of sites to run on
 SITES=$(echo "
 SELECT sites.site FROM sites 
 LEFT JOIN stats ON sites.site=stats.site
 WHERE isrunning = 0
 AND (sites.site = '$(echo $ALL_SITES | sed "s/ /' OR sites.site = '/g")')
+$BADSELECT
 ORDER BY stats.entered ASC
 LIMIT $NUMBER;
 " | sqlite3 $DATABASE)
 
 # Check machine
-if [ `hostname` = 't3serv016.mit.edu' ]
+if [ "$USER" != "dynamo" -o `hostname` = 't3serv016.mit.edu' ]
 then
 
     # Some additional setup
@@ -68,10 +87,6 @@ then
 
     fi
 
-    # Setup environment
-    # (sources dynamo and sets PYTHONPATH
-    . $HERE/set_env.sh
-
     # Lock all sites first
     echo "UPDATE sites SET isrunning = 1 WHERE site = '$(echo $SITES | sed "s/ /' OR site = '/g")';" | sqlite3 $DATABASE
 
@@ -83,7 +98,7 @@ then
         LOGLOCATION=$(jq -r '.LogLocation' $HERE/consistency_config.json)
         test -d $LOGLOCATION || mkdir -p $LOGLOCATION
 
-        jq '.AccessMethod' consistency_config.json | grep SRM | grep $SITE
+        jq '.AccessMethod' consistency_config.json | grep SRM | grep $SITE >& /dev/null
         ISSRM=$?
 
         # Get SRM key for lock, if needed
@@ -137,7 +152,7 @@ exit 0
 
 =head1 Usage:
 
-   run_checks.sh <MAXNUMBER> <MATCH>
+   run_checks.sh <MAXNUMBER> <MATCH> [<FLAG>]
 
 runs the Consistency Check for sites that match the name MATCH
 (using a MySQL "LIKE" expression), limited to MAXNUMBER.
@@ -145,6 +160,9 @@ Sites that have not been run before will get priority.
 After that, priority is assigned by the sites that have gone the longest
 without getting a new summary entry in the summary webpage.
 Sites that are currently running are excluded.
+
+If any value for FLAG is given, only sites with more than 1000 missing
+or orphan files will be considered.
 
 =head1 Examples:
 
