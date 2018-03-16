@@ -178,7 +178,7 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
                         thread_log.debug('Put in queue %s', retry_queue)
                     # Otherwise, give up and output
                     else:
-                        thread_log.debug('Giving up directory %s', full_path)
+                        thread_log.error('Giving up directory %s', full_path)
                         # _unlisted_ is used as a flag to tell our comparer something went wrong
                         files.append(('_unlisted_', 0, 0))
 
