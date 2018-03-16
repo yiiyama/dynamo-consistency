@@ -31,7 +31,7 @@ HERE=$(cd $(dirname $0) && pwd)
 . $HERE/set_env.sh
 
 # Determine the SQLite3 database location from the configuration file
-DATABASE=$(jq -r '.WebDir' $HERE/consistency_config.json)/stats.db
+DATABASE="-init $HERE/init.sql $(jq -r '.WebDir' $HERE/consistency_config.json)/stats.db"
 
 # Don't know why it would happen, but protect against simple SQL injection
 case $NUMBER in 

@@ -5,7 +5,7 @@
   "GFALThreads": 12,
   "InventoryAge": 0,
   "ListAge": 0,
-  "IgnoreAge": 14,
+  "IgnoreAge": 5,
   "RedirectorAge": 0,
   "CacheLocation": "/local/dynamo/consistency/cache",
   "LogLocation": "/local/dynamo/consistency/logs",
@@ -60,6 +60,7 @@
     "T2_ES_IFCA" : "SRM",
     "T2_FR_GRIF_LLR": "SRM",
     "T2_UK_SGrid_RALPP": "SRM",
+    "T1_IT_CNAF_Disk": "SRM",
     "T1_US_FNAL_Disk": "directx"
   }, 
   "GlobalRedirectors": [
