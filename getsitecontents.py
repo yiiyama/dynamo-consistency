@@ -387,11 +387,12 @@ class XRootDLister(object):
 
 
 @cache_tree('ListAge', 'remotelisting')
-def get_site_tree(site):
+def get_site_tree(site, callback):
     """
     Get the information for a site, from XRootD or a cache.
 
     :param str site: The site name
+    :param function callback: The callback function to pass to :py:func:`datatypes.create_dirinfo`
     :returns: The site directory listing information
     :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
@@ -402,7 +403,8 @@ def get_site_tree(site):
         num_threads = int(config_dict.get('GFALThreads'))
         LOG.info('threads = %i', num_threads)
         directories = [
-            datatypes.create_dirinfo('/store', directory, GFallDLister, [[site]]*num_threads) \
+            datatypes.create_dirinfo('/store', directory, GFallDLister,
+                                     [[site]]*num_threads, callback) \
                 for directory in config.config_dict().get('DirectoryList', [])
         ]
         # Return the DirectoryInfo
@@ -450,7 +452,8 @@ def get_site_tree(site):
         datatypes.create_dirinfo(
             '/store/', directory, XRootDLister,
             [(prim, back, site, thread_num, do_both) for prim, back, thread_num in \
-                 zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
+                 zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))],
+            callback) \
             for directory in config_dict.get('DirectoryList', [])
         ]
 

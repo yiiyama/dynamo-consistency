@@ -171,6 +171,15 @@ class TestConsistentTrees(TestBase):
 
             os.utime(path, (1000000000, 1000000000))
 
+    def test_callback(self):
+        called = {'check': False}
+        def call(tree):
+            LOG.info('In callback: tree has %i files', tree.get_num_files())
+            called['check'] = True
+
+        datatypes.create_dirinfo('', 'mc', my_ls, callback=call)
+        self.assertTrue(called['check'])
+
     def test_ls_vs_list(self):
 
         dirinfos = [datatypes.create_dirinfo('', subdir, my_ls) \

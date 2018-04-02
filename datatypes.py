@@ -34,7 +34,8 @@ operator might be adjusting the configuration.
 """
 
 
-def create_dirinfo(location, first_dir, filler, object_params=None):
+def create_dirinfo(location, first_dir, filler,
+                   object_params=None, callback=None):
     """ Create the directory information
 
     :param str location: This is the beginning of the path where we will find ``first_dir``.
@@ -60,6 +61,10 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     :param list object_params: This only needs to be set when filler is an object constructor.
                                Each element in the list is a tuple of arguments to pass
                                to the constructor.
+    :param function callback: A function that is called every time master thread has finished
+                              checking the child threads.
+                              This can happen very many times at large sites.
+                              The function is called with the main DirectoryTree as its argument
     :returns: A :py:class:`DirectoryInfo` object containing everything the directory listings from
               ``os.path.join(location, first_dir)`` with name ``first_dir``.
     :rtype: DirectoryInfo
@@ -244,6 +249,10 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
             LOG.debug('Empty queue for building.')
             LOG.info('Number of files so far built: %8i  nodes: %8i',
                      dir_info.get_num_files(), dir_info.count_nodes())
+
+            # Process the dir_info with some callback
+            if callback:
+                callback(dir_info)
 
             # Ends only if all threads are done at the beginning of this check
             threads_done = 0
