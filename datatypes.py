@@ -325,6 +325,26 @@ class DirectoryInfo(object):
 
         self.can_compare = False
 
+    def get_files(self, min_age=0, path=''):
+        """
+        Get the list of files that are older than some age
+        :param int min_age: The minimum age, in seconds, of files to list
+        :param str path: The path to this file. Used for recursive calls
+        :returns: List of full file paths
+        :rtype: list
+        """
+
+        output = []
+        for fi in self.files:
+            # Only list old files
+            if (self.timestamp - fi['mtime']) > min_age:
+                output.append(os.path.join(path, self.name, fi['name']))
+
+        for directory in self.directories:
+            output.extend(directory.get_files(min_age, os.path.join(path, self.name)))
+
+        return output
+
     def add_files(self, files):
         """
         Set the files for this :py:class:`DirectoryInfo` node
