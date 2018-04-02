@@ -218,9 +218,6 @@ class XRootDLister(object):
 
         self.log.debug('For %s, directory listing good: %s', path, bool(dir_list))
 
-        # Assumes the listing went well for now
-        okay = True
-
         # If there's a directory listing, parse it
         if dir_list:
             for entry in dir_list.dirlist:
@@ -230,13 +227,12 @@ class XRootDLister(object):
                     files.append((entry.name.lstrip('/'), entry.statinfo.size,
                                   entry.statinfo.modtime))
 
+        okay = bool(status.ok)
+
         # If status isn't perfect, analyze the error
-        if not status.ok:
+        if not okay:
 
             self.log.warning('While listing %s: %s', path, status.message)
-            ok = False
-
-            self.log.debug('Error code: %s', error_code)
             self.log.debug('Directory List: %s', dir_list)
             self.log.debug('Okay: %i', okay)
 
