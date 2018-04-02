@@ -177,9 +177,6 @@ class XRootDLister(object):
         self.ignore_list = config_dict.get('IgnoreDirectories', [])
         self.site = site
 
-        # This regex is used to parse the error code and propose a retry
-        self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
-
         if thread_num is None:
             self.log = logging.getLogger(__name__)
         else:
@@ -237,16 +234,7 @@ class XRootDLister(object):
         if not status.ok:
 
             self.log.warning('While listing %s: %s', path, status.message)
-
-            try:
-                error_code = self.error_re.search(status.message).group(1)
-
-                # Retry certain error codes if there's no dir_list
-                # Don't bother with 3010 at the moment because there's that Hadoop bug
-                okay = (error_code == '3010' and 'operation not permitted' in status.message) or \
-                    (bool(dir_list) and error_code in ['!', '3005'])
-            except AttributeError:  # No good match
-                okay = False
+            ok = False
 
             self.log.debug('Error code: %s', error_code)
             self.log.debug('Directory List: %s', dir_list)
