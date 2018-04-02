@@ -328,7 +328,9 @@ class DirectoryInfo(object):
         self.timestamp = time.time()
         self.name = name
         self.hash = None
-        self.files = []
+        # Is only None until filled for the first time.
+        # If still None for some reason during comparison, errors will be thrown
+        self.files = None
         self.add_files(files)
         self.mtime = None
 
@@ -341,6 +343,10 @@ class DirectoryInfo(object):
         :param list files: The tuples of file information.
                            Each element consists of file name, size, and mod time.
         """
+
+        # This is where we know that the directory has been properly filled
+        if self.files is None:
+            self.files = []
 
         # Get the list of new files
         existing_names = [fi['name'] for fi in self.files]

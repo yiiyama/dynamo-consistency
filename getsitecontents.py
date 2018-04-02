@@ -387,7 +387,7 @@ class XRootDLister(object):
 
 
 @cache_tree('ListAge', 'remotelisting')
-def get_site_tree(site, callback):
+def get_site_tree(site, callback=None):
     """
     Get the information for a site, from XRootD or a cache.
 
