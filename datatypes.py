@@ -331,10 +331,12 @@ class DirectoryInfo(object):
         # Is only None until filled for the first time.
         # If still None for some reason during comparison, errors will be thrown
         self.files = None
-        self.add_files(files)
         self.mtime = None
 
         self.can_compare = False
+
+        if directories is not None or files is not None:
+            self.add_files(files)
 
     def add_files(self, files):
         """
@@ -485,6 +487,7 @@ class DirectoryInfo(object):
 
         output = 'compare: %i mtime: %s my hash: %s path: %s' % \
             (int(self.can_compare), str(self.mtime), self.hash, path)
+
         for file_info in self.files:
             output += ('\nmtime: %i size: %i my hash:%s name: %s' %
                        (file_info['mtime'], file_info['size'],
@@ -519,6 +522,10 @@ class DirectoryInfo(object):
 
             # If not, make a new directory, or None
             if make_new:
+                # If we're making a new directory, then this should have non-None self.files
+                if self.files is None:
+                    self.files = []
+
                 new_dir = DirectoryInfo(split_path[0])
                 self.directories.append(new_dir)
                 return new_dir.get_node(return_name, make_new)
@@ -550,6 +557,9 @@ class DirectoryInfo(object):
         :returns: The number of files in the directory tree structure
         :rtype: int
         """
+
+        if self.files is None:
+            return 0
 
         num_files = len([fi for fi in self.files \
                              if (fi['name'] == '_unlisted_') == unlisted])
@@ -679,11 +689,7 @@ class DirectoryInfo(object):
         :rtype: int
         """
 
-        if empty and self.get_num_files() != 0:
-            count_this = 0
-        else:
-            count_this = 1
-
+        count_this = 0 if self.files is None or (empty and self.get_num_files() != 0) else 1
         return sum([directory.count_nodes(empty) for directory in self.directories], count_this)
 
     def empty_nodes_list(self):

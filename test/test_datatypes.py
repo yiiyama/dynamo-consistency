@@ -50,9 +50,6 @@ def my_ls(path, location=TMP_DIR):
 
 class TestBase(unittest.TestCase):
 
-    tree = None
-    tmpdir = None
-
     file_list = [
         ('/store/mc/ttThings/0000/qwert.root', 20),
         ('/store/mc/ttThings/0000/qwery.root', 30),
@@ -107,8 +104,10 @@ class TestTree(TestBase):
         test_dir('mc/ttThings/0000')
         test_dir('data')
         test_dir('data/runB')
-        test_dir('fake')
-        test_dir('fake/directory/name')
+
+        # These now throw errors because the files are None
+        self.assertRaises(TypeError, test_dir, 'fake')
+        self.assertRaises(TypeError, test_dir, 'fake/directory/name')
 
     def test_num_files(self):
         self.assertEqual(self.tree.get_num_files(),
@@ -186,6 +185,9 @@ class TestConsistentTrees(TestBase):
                         for subdir in ['mc', 'data']]
 
         master_dirinfo = datatypes.DirectoryInfo('/store', directories=dirinfos)
+
+        self.tree.display()
+        master_dirinfo.display()
 
         self.check_equal(self.tree, master_dirinfo)
         self.assertEqual(self.tree.count_nodes(), master_dirinfo.count_nodes())
@@ -437,6 +439,28 @@ class TestUnlisted(TestBase):
 
         orphan, _, _ = self.unlisted_tree.compare(self.tree)
         self.assertEqual(len(orphan), 0)
+
+
+class TestUnfilled(TestBase):
+    # This is for testing the tree behavior when some of the DirectoryInfo.files is None
+    empty = [
+        '/store/mc/ttThings/empty/dir/a',
+        '/store/mc/ttThings/empty/dir/b',
+        '/store/mc/ttThings/empty/dir2'
+        ]
+
+    unfilled = '/store/mc/ttThings/empty/unfilled'
+
+    def do_more_setup(self):
+        # Add empty files
+        for d in self.empty:
+            self.tree.get_node(d).add_files([])
+
+    def test_count(self):
+        # We want unfilled directories to not change the total count
+        first_count = self.tree.count_nodes()
+        self.assertTrue(self.tree.get_node(self.unfilled).files is None)
+        self.assertEqual(first_count, self.tree.count_nodes())
 
 
 if __name__ == '__main__':
