@@ -151,6 +151,12 @@ class EmptyRemover(object):
 
         reg_sql.close()
 
+    def get_removed_count(self):
+        """
+        :returns: The number of directories removed by this function object
+        :rtype: int
+        """
+        return self.removed
 
 def main(site):
     """
@@ -510,8 +516,8 @@ def main(site):
             REPLACE INTO stats VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?)
             """.format(5 - is_dst),
-            (site, time.time() - start, site_tree.get_num_files(),
-             site_tree.count_nodes(), remover.removed + len(site_tree.empty_nodes_list()),
+            (site, time.time() - start, site_tree.get_num_files(), site_tree.count_nodes(),
+             remover.get_removed_count() + len(site_tree.empty_nodes_list()),
              config_dict.get('NumThreads', config_dict.get('MinThreads', 0)),
              len(missing), m_size, len(orphan), o_size, len(no_source_files),
              site_tree.get_num_files(unlisted=True)))
