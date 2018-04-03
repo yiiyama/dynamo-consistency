@@ -444,17 +444,23 @@ class TestUnlisted(TestBase):
 class TestUnfilled(TestBase):
     # This is for testing the tree behavior when some of the DirectoryInfo.files is None
     empty = [
-        '/store/mc/ttThings/empty/dir/a',
-        '/store/mc/ttThings/empty/dir/b',
-        '/store/mc/ttThings/empty/dir2'
+        'mc/ttThings/empty/dir/a',
+        'mc/ttThings/empty/dir/b',
+        'mc/ttThings/empty/dir2'
         ]
 
-    unfilled = '/store/mc/ttThings/empty/unfilled'
+    unfilled = 'mc/ttThings/empty/unfilled'
 
     def do_more_setup(self):
         # Add empty files
         for d in self.empty:
-            self.tree.get_node(d).add_files([])
+            self.tree.get_node(d).add_files([]).mtime = 1
+
+        self.tree.setup_hash()
+        for d in self.tree.empty_nodes_list():
+            self.tree.get_node(d[len(self.tree.name) + 1:], make_new=False).mtime = 1
+
+        LOG.debug(self.tree.displays())
 
     def test_count(self):
         # We want unfilled directories to not change the total count
@@ -462,6 +468,43 @@ class TestUnfilled(TestBase):
         self.assertTrue(self.tree.get_node(self.unfilled).files is None)
         self.assertEqual(first_count, self.tree.count_nodes())
 
+    def test_empty_list(self):
+        empty_list = self.tree.empty_nodes_list()
+
+        self.assertTrue('/store/mc/ttThings/empty/dir/a' in empty_list)
+        self.assertTrue('/store/mc/ttThings/empty' in empty_list)
+
+        new_node = self.tree.get_node(self.unfilled)
+
+        self.tree.setup_hash()
+        new_list = self.tree.empty_nodes_list()
+
+        self.assertFalse('/store/' + self.unfilled in new_list)
+        self.assertFalse('/store/mc/ttThings/empty' in new_list)
+
+    def test_delete_dir(self):
+        first_count = self.tree.count_nodes(empty=True)
+        self.assertRaises(datatypes.NotEmpty, self.tree.remove_node, '/store/mc/ttThings/empty/dir')
+        self.tree.remove_node('/store/mc/ttThings/empty/dir/a')
+        self.assertEqual(first_count - 1, self.tree.count_nodes(empty=True))
+        self.assertFalse('/store/mc/ttThings/empty/dir/a' in self.tree.empty_nodes_list())
+
+        # Check that self.files is None throws an exception
+        new_node = self.tree.get_node(self.unfilled)
+        new_node.mtime = time.time()
+        self.assertRaises(datatypes.NotEmpty, self.tree.remove_node, '/store/' + self.unfilled)
+        new_node.files = []
+        # Still no good because of mtime
+        self.assertRaises(datatypes.NotEmpty, self.tree.remove_node, '/store/' + self.unfilled)
+        # Now it should delete just fine
+        new_node.mtime = 1
+        self.tree.remove_node('/store/' + self.unfilled)
+
+    def test_big_removal(self):
+        self.assertTrue(self.tree.empty_nodes_list())
+        for d in self.tree.empty_nodes_list():
+            self.tree.remove_node(d)
+        self.assertFalse(self.tree.empty_nodes_list())
 
 if __name__ == '__main__':
 

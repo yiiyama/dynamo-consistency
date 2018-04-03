@@ -311,6 +311,22 @@ def create_dirinfo(location, first_dir, filler,
     return dir_info
 
 
+class NotEmpty(Exception):
+    """
+    An exception for throwing when a non-empty directory is deleted
+    from a :py:class:`DirectoryInfo`
+    """
+    pass
+
+
+class BadPath(Exception):
+    """
+    An exception for throwing when the path doesn't make sense for various methods
+    of a :py:class:`DirectoryInfo`
+    """
+    pass
+
+
 class DirectoryInfo(object):
     """
     Stores all of the information of the contents of a directory
@@ -344,6 +360,8 @@ class DirectoryInfo(object):
 
         :param list files: The tuples of file information.
                            Each element consists of file name, size, and mod time.
+        :returns: self for chaining calls
+        :rtype: :py:class:`DirectoryInfo`
         """
 
         # This is where we know that the directory has been properly filled
@@ -376,6 +394,8 @@ class DirectoryInfo(object):
                 })
 
         self.files.sort(key=lambda x: x['name'])
+
+        return self
 
     def add_file_list(self, file_infos):
         """
@@ -417,6 +437,9 @@ class DirectoryInfo(object):
         """
         Set the hashes for this :py:class:`DirectoryInfo`
         """
+
+        if self.files is None:
+            return
 
         hasher = hashlib.sha1()
 
@@ -551,15 +574,15 @@ class DirectoryInfo(object):
         :param bool unlisted: If true, return number of unlisted directories,
                               Otherwise return only successfully listed files
         :param bool place_new: If true, pretend there's one more file inside
-                               any new directory.
+                               any new directory or if files is None.
                                This prevents listing of empty directories to include
                                directories that should not actually be deleted.
         :returns: The number of files in the directory tree structure
         :rtype: int
         """
 
-        if self.files is None:
-            return 0
+        if self.files is None and place_new:
+            return 1
 
         num_files = len([fi for fi in self.files \
                              if (fi['name'] == '_unlisted_') == unlisted])
@@ -764,7 +787,11 @@ class DirectoryInfo(object):
         :param str file_name: The LFN of the file
         :returns: Dictionary of file information
         :rtype: dict
+        :raises BadPath: if the file_name does not start with ``self.name``
         """
+
+        if not file_name.startswith(self.name):
+            raise BadPath('self.name is %s, file_name is %s' % (self.name, file_name))
 
         exploded_name = file_name[len(self.name) + 1:].split('/')
         desired_name = exploded_name[-1]
@@ -776,6 +803,35 @@ class DirectoryInfo(object):
                 return file_info
 
         return None
+
+    def remove_node(self, path_name):
+        """
+        Remove an empty node from the DirectoryInfo
+        :param str path_name: The path to the node, including the ``self.name`` at the beginning
+        :returns: self for chaining
+        :rtype: :py:class:`DirectoryInfo`
+        :raises NotEmpty: if the directory is not empty or ``self.files`` is None
+        :raises BadPath: if the path_name does not start with the ``self.name``
+        """
+
+        LOG.debug('Would like to remove %s', path_name)
+
+        if not path_name.startswith(self.name):
+            raise BadPath('self.name is %s, path_name is %s' % (self.name, path_name))
+
+        exploded_name = path_name[len(self.name) + 1:].split('/')
+        parent = self.get_node('/'.join(exploded_name[:-1]))
+
+        # If the directory doesn't exist, we'll get some TypeError things
+        node = parent.get_node(exploded_name[-1], make_new=False)
+
+        if node.files or node.directories or node.files is None or \
+                node.mtime + IGNORE_AGE * 24 * 3600 > node.timestamp:
+            raise NotEmpty('This directory is either not listed, not empty, or not old enough')
+
+        parent.directories.remove(node)
+        return self
+
 
 def get_info(file_name):
     """
