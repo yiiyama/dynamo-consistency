@@ -100,6 +100,7 @@ from common.interface.mysql import MySQL
 
 LOG = logging.getLogger(__name__)
 
+
 def get_registry():
     """
     The connection returned by this must be closed by the caller
@@ -111,6 +112,44 @@ def get_registry():
                      db='dynamoregister', config_group='mysql-dynamo')
     return MySQL(config_file=os.path.join(os.environ['HOME'], 'my.cnf'),
                  db='dynamoregister', config_group='mysql-register-test')
+
+
+class EmptyRemover(object):
+    """
+    This class handles the removal of empty directories from the tree
+    by behaving as a callback.
+    :param str site: Site name
+    :param function check: The function to check against orphans to not delete
+    """
+
+    def __init__(self, site, check):
+        self.site = site
+        self.check = check
+        self.removed = 0
+
+    def __call__(self, tree):
+        """
+        Removes acceptable empty directories from the tree
+        :param tree: The tree that is periodically cleaned by this
+        :type tree: :py:class:`datatypes.DirectoryInfo`
+        """
+        tree.setup_hash()
+        reg_sql = get_registry()
+        for empty in tree.empty_nodes_list():
+            full = '/store/' + empty
+            # We can prevent most warnings just by checking the length
+            if len(full.split('/')) > 6 and not self.check(full):
+                self.removed += 1
+                LOG.info('Removing directory %s', full)
+                tree.remove_node(empty)
+                reg_sql.query(
+                    """
+                    INSERT IGNORE INTO `deletion_queue`
+                    (`file`, `site`, `status`) VALUES
+                    (%s, %s, 'new')
+                    """, full, self.site)
+
+        reg_sql.close()
 
 
 def main(site):
@@ -170,7 +209,7 @@ def main(site):
         # Note the attempt to do listing
         conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
         curs = conn.cursor()
-        curs.execute(
+        curs.query(
             """
             REPLACE INTO stats VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?)
@@ -256,31 +295,11 @@ def main(site):
 
     inv_sql.close()
 
-    def remove_empties(tree):
-        """
-        Removes acceptable empty directories from the tree
-        :param tree: The tree that is periodically cleaned by this
-        :type tree: :py:class:`datatypes.DirectoryInfo`
-        """
-        reg_sql = get_registry()
-        for empty in tree.empty_nodes_list():
-            if not check_orphans(empty):
-                tree.remove_node(empty)
-                reg_sql.execute(
-                    """
-                    INSERT IGNORE INTO `deletion_queue`
-                    (`file`, `site`, `status`) VALUES
-                    (%s, %s, 'new')
-                    """,
-                    '/store/' + empty, site)
-
-
-        reg_sql.close()
-
-
     # Reset the DirectoryList for the XRootDLister to run on
     config.DIRECTORYLIST = [directory.name for directory in inv_tree.directories]
-    site_tree = getsitecontents.get_site_tree(site, remove_empties)
+
+    remover = EmptyRemover(site, check_orphans)
+    site_tree = getsitecontents.get_site_tree(site, remover)
 
     # Do the comparison
     missing, m_size, orphan, o_size = datatypes.compare(
@@ -492,7 +511,7 @@ def main(site):
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?)
             """.format(5 - is_dst),
             (site, time.time() - start, site_tree.get_num_files(),
-             site_tree.count_nodes(), len(site_tree.empty_nodes_list()),
+             site_tree.count_nodes(), remover.removed + len(site_tree.empty_nodes_list()),
              config_dict.get('NumThreads', config_dict.get('MinThreads', 0)),
              len(missing), m_size, len(orphan), o_size, len(no_source_files),
              site_tree.get_num_files(unlisted=True)))

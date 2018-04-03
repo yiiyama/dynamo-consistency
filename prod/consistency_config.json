@@ -2,22 +2,19 @@
   "Timeout": 300,
   "Retries": 3,
   "NumThreads": 2,
-  "GFALThreads": 12,
-  "InventoryAge": 0,
+  "GFALThreads": 6,
+  "InventoryAge": 1,
   "ListAge": 0,
-  "IgnoreAge": 5,
+  "IgnoreAge": 14,
   "RedirectorAge": 0,
-  "CacheLocation": "/local/dynamo/consistency/cache",
-  "LogLocation": "/local/dynamo/consistency/logs",
+  "CacheLocation": "/scratch5/dabercro/consistency/cache",
+  "LogLocation": "/scratch5/dabercro/consistency/logs",
   "Redirectors": {
     "T1_RU_JINR_Disk": "se-xrd01.jinr-t1.ru:1095",
-    "T1_FR_CCIN2P3_Disk": "ccxrpli003.in2p3.fr:1095", 
     "T2_UK_London_Brunel": "dc2-grid-64.brunel.ac.uk",
     "T2_UK_London_IC":     "gfe02.grid.hep.ph.ic.ac.uk:1098",
     "T2_FR_IPHC": "sbgse1.in2p3.fr",
-    "T2_CH_CERN": "eoscms.cern.ch:1094",
     "T3_CH_PSI": "t3se01.psi.ch",
-    "T2_FR_CCIN2P3": "ccxrpli003.in2p3.fr:1094",
     "T2_FR_GRIF_LLR": "llrpp01.in2p3.fr:11001",
     "T2_FR_GRIF_IRFU": "node12.datagrid.cea.fr:11001",
     "T2_KR_KNU":  "cluster142.knu.ac.kr:1094",
@@ -25,7 +22,7 @@
     "T2_IT_Rome": "cmsrm-xrootd02.roma1.infn.it:7070",
     "T2_PK_NCP" : "pcncp22.ncp.edu.pk:11001",
     "T2_RU_INR":  "grse001.inr.troitsk.ru:11000",
-    "T2_RU_ITEP": "se3.itep.ru:1095",
+    "T2_RU_ITEP": "se3.itep.ru:1094",
     "T3_US_MIT": "t3serv006.mit.edu"
   },
   "PathPrefix": {
@@ -53,25 +50,23 @@
     "/TA_Tleptonic_kappa_aut_LO_madspin-pythia8"
   ],
   "BothList": [
-    "T1_US_FNALLLL"
+    "T2_FR_CCIN2P3",
+    "T1_US_FNAL"
   ],
   "AccessMethod": {
-    "T1_UK_RAL_Disk": "SRM",
-    "T2_ES_IFCA" : "SRM",
     "T2_FR_GRIF_LLR": "SRM",
-    "T2_UK_SGrid_RALPP": "SRM",
-    "T1_IT_CNAF_Disk": "SRM",
-    "T1_US_FNAL_Disk": "directx"
+    "T2_FR_GRIF_IRFU": "SRM",
+    "T2_PL_Warsaw": "SRM"
   }, 
   "GlobalRedirectors": [
     "xrootd-redic.pi.infn.it",
     "cmsxrootd1.fnal.gov"
   ],
-  "SaveCache": 1,
+  "SaveCache": 0,
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
   ],
-  "WebDir": "/home/dynamo/consistency/web",
+  "WebDir": "/home/dabercro/public_html/ConsistencyCheck",
   "MaxMissing": 1000,
   "MaxOrphan": 10000
 }

@@ -34,7 +34,7 @@ def cache_tree(config_age, location_suffix):
     def func_decorator(func):
 
         @wraps(func)
-        def do_function(site):
+        def do_function(site, callback=None):
 
             cache_location = os.path.join(config.config_dict()['CacheLocation'],
                                           '%s_%s.pkl' % (site, location_suffix))
@@ -53,7 +53,10 @@ def cache_tree(config_age, location_suffix):
                              )
 
                 LOG.info('Cache is no good, getting new tree')
-                tree = func(site)
+                if callback is None:
+                    tree = func(site)
+                else:
+                    tree = func(site, callback)
                 LOG.info('Making hash')
                 tree.setup_hash()
                 LOG.info('Saving tree at %s', cache_location)

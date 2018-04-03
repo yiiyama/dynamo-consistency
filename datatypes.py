@@ -581,8 +581,8 @@ class DirectoryInfo(object):
         :rtype: int
         """
 
-        if self.files is None and place_new:
-            return 1
+        if self.files is None:
+            return int(place_new)
 
         num_files = len([fi for fi in self.files \
                              if (fi['name'] == '_unlisted_') == unlisted])
@@ -721,7 +721,8 @@ class DirectoryInfo(object):
         :rtype: list
         """
 
-        if not self.can_compare:
+        if not self.can_compare or \
+                (self.mtime is not None and self.mtime + IGNORE_AGE * 24 * 3600 > self.timestamp):
             return []
 
         to_return = [os.path.join(self.name, empty) for empty in \
@@ -825,9 +826,14 @@ class DirectoryInfo(object):
         # If the directory doesn't exist, we'll get some TypeError things
         node = parent.get_node(exploded_name[-1], make_new=False)
 
-        if node.files or node.directories or node.files is None or \
-                node.mtime + IGNORE_AGE * 24 * 3600 > node.timestamp:
-            raise NotEmpty('This directory is either not listed, not empty, or not old enough')
+        if node.files:
+            raise NotEmpty('This directory has files %s' % node.files)
+        if node.directories:
+            raise NotEmpty('This directory contains subdirectories %s' % node.directories)
+        if node.files is None:
+            raise NotEmpty('The files list is still None')
+        if node.mtime + IGNORE_AGE * 24 * 3600 > node.timestamp:
+            raise NotEmpty('This directory is not old enough?')
 
         parent.directories.remove(node)
         return self

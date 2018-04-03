@@ -457,8 +457,11 @@ class TestUnfilled(TestBase):
             self.tree.get_node(d).add_files([]).mtime = 1
 
         self.tree.setup_hash()
+
         for d in self.tree.empty_nodes_list():
             self.tree.get_node(d[len(self.tree.name) + 1:], make_new=False).mtime = 1
+
+        self.tree.setup_hash()
 
         LOG.debug(self.tree.displays())
 
@@ -505,6 +508,11 @@ class TestUnfilled(TestBase):
         for d in self.tree.empty_nodes_list():
             self.tree.remove_node(d)
         self.assertFalse(self.tree.empty_nodes_list())
+
+    def test_new_empty(self):
+        # Piggy-backing setup to check a bug
+        self.tree.get_node('mc/ttThings/empty').mtime = time.time()
+        self.assertFalse('/store/mc/ttThings/empty' in self.tree.empty_nodes_list())
 
 if __name__ == '__main__':
 
