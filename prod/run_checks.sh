@@ -14,7 +14,7 @@ if [ -z "$FLAG" ]
 then
     BADSELECT=''
 else
-    BADSELECT='AND (stats.missing > 1000 OR stats.orphan > 1000)'
+    BADSELECT='AND (stats.missing > 1000 OR stats.orphan > 1000 OR stats.files = 0)'
 fi
 
 # Make sure we have enough memory free or cached (6 GBi)
@@ -73,7 +73,7 @@ LIMIT $NUMBER;
 " | sqlite3 $DATABASE)
 
 # Check machine
-if [ "$USER" != "dynamo" -o `hostname` = 't3serv016.mit.edu' ]
+if [ "$USER" != "dynamo" -o `hostname` = 't3serv017.mit.edu' ]
 then
 
     # Some additional setup
@@ -126,7 +126,7 @@ then
         cp $LOGLOCATION/$LOGFILE $(jq -r '.WebDir' $HERE/consistency_config.json)/${SITE}.log
         # Parse for unlisted directories
         pushd $(jq -r '.WebDir' $HERE/consistency_config.json) >& /dev/null
-        perl -ne '/ERROR.*Giving\sup\sdirectory\s([\w\/]+)/ && print "$1\n"' ${SITE}.log > ${SITE}_unlisted.txt
+        perl -ne '/ERROR.*Giving\sup\sdirectory\s([\w\/\-]+)/ && print "$1\n"' ${SITE}.log > ${SITE}_unlisted.txt
         popd >& /dev/null
 
         # Put key back

@@ -729,7 +729,7 @@ class DirectoryInfo(object):
                          sum([directory.empty_nodes_list() for directory in self.directories],
                              [])]
 
-        count_self = [] if self.get_num_files(place_new=True) else [self.name]
+        count_self = [] if self.get_num_files(place_new=True) or self.mtime is None else [self.name]
 
         return to_return + count_self
 
