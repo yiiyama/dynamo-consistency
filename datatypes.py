@@ -34,7 +34,8 @@ operator might be adjusting the configuration.
 """
 
 
-def create_dirinfo(location, first_dir, filler, object_params=None):
+def create_dirinfo(location, first_dir, filler,
+                   object_params=None, callback=None):
     """ Create the directory information
 
     :param str location: This is the beginning of the path where we will find ``first_dir``.
@@ -60,6 +61,10 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     :param list object_params: This only needs to be set when filler is an object constructor.
                                Each element in the list is a tuple of arguments to pass
                                to the constructor.
+    :param function callback: A function that is called every time master thread has finished
+                              checking the child threads.
+                              This can happen very many times at large sites.
+                              The function is called with the main DirectoryTree as its argument
     :returns: A :py:class:`DirectoryInfo` object containing everything the directory listings from
               ``os.path.join(location, first_dir)`` with name ``first_dir``.
     :rtype: DirectoryInfo
@@ -245,6 +250,10 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
             LOG.info('Number of files so far built: %8i  nodes: %8i',
                      dir_info.get_num_files(), dir_info.count_nodes())
 
+            # Process the dir_info with some callback
+            if callback:
+                callback(dir_info)
+
             # Ends only if all threads are done at the beginning of this check
             threads_done = 0
             for conn in master_conns:
@@ -302,6 +311,22 @@ def create_dirinfo(location, first_dir, filler, object_params=None):
     return dir_info
 
 
+class NotEmpty(Exception):
+    """
+    An exception for throwing when a non-empty directory is deleted
+    from a :py:class:`DirectoryInfo`
+    """
+    pass
+
+
+class BadPath(Exception):
+    """
+    An exception for throwing when the path doesn't make sense for various methods
+    of a :py:class:`DirectoryInfo`
+    """
+    pass
+
+
 class DirectoryInfo(object):
     """
     Stores all of the information of the contents of a directory
@@ -319,11 +344,15 @@ class DirectoryInfo(object):
         self.timestamp = time.time()
         self.name = name
         self.hash = None
-        self.files = []
-        self.add_files(files)
+        # Is only None until filled for the first time.
+        # If still None for some reason during comparison, errors will be thrown
+        self.files = None
         self.mtime = None
 
         self.can_compare = False
+
+        if directories is not None or files is not None:
+            self.add_files(files)
 
     def add_files(self, files):
         """
@@ -331,7 +360,13 @@ class DirectoryInfo(object):
 
         :param list files: The tuples of file information.
                            Each element consists of file name, size, and mod time.
+        :returns: self for chaining calls
+        :rtype: :py:class:`DirectoryInfo`
         """
+
+        # This is where we know that the directory has been properly filled
+        if self.files is None:
+            self.files = []
 
         # Get the list of new files
         existing_names = [fi['name'] for fi in self.files]
@@ -359,6 +394,8 @@ class DirectoryInfo(object):
                 })
 
         self.files.sort(key=lambda x: x['name'])
+
+        return self
 
     def add_file_list(self, file_infos):
         """
@@ -400,6 +437,9 @@ class DirectoryInfo(object):
         """
         Set the hashes for this :py:class:`DirectoryInfo`
         """
+
+        if self.files is None:
+            return
 
         hasher = hashlib.sha1()
 
@@ -470,6 +510,7 @@ class DirectoryInfo(object):
 
         output = 'compare: %i mtime: %s my hash: %s path: %s' % \
             (int(self.can_compare), str(self.mtime), self.hash, path)
+
         for file_info in self.files:
             output += ('\nmtime: %i size: %i my hash:%s name: %s' %
                        (file_info['mtime'], file_info['size'],
@@ -504,6 +545,10 @@ class DirectoryInfo(object):
 
             # If not, make a new directory, or None
             if make_new:
+                # If we're making a new directory, then this should have non-None self.files
+                if self.files is None:
+                    self.files = []
+
                 new_dir = DirectoryInfo(split_path[0])
                 self.directories.append(new_dir)
                 return new_dir.get_node(return_name, make_new)
@@ -529,12 +574,15 @@ class DirectoryInfo(object):
         :param bool unlisted: If true, return number of unlisted directories,
                               Otherwise return only successfully listed files
         :param bool place_new: If true, pretend there's one more file inside
-                               any new directory.
+                               any new directory or if files is None.
                                This prevents listing of empty directories to include
                                directories that should not actually be deleted.
         :returns: The number of files in the directory tree structure
         :rtype: int
         """
+
+        if self.files is None:
+            return int(place_new)
 
         num_files = len([fi for fi in self.files \
                              if (fi['name'] == '_unlisted_') == unlisted])
@@ -664,11 +712,7 @@ class DirectoryInfo(object):
         :rtype: int
         """
 
-        if empty and self.get_num_files() != 0:
-            count_this = 0
-        else:
-            count_this = 1
-
+        count_this = 0 if self.files is None or (empty and self.get_num_files() != 0) else 1
         return sum([directory.count_nodes(empty) for directory in self.directories], count_this)
 
     def empty_nodes_list(self):
@@ -677,7 +721,8 @@ class DirectoryInfo(object):
         :rtype: list
         """
 
-        if not self.can_compare:
+        if not self.can_compare or \
+                (self.mtime is not None and self.mtime + IGNORE_AGE * 24 * 3600 > self.timestamp):
             return []
 
         to_return = [os.path.join(self.name, empty) for empty in \
@@ -743,7 +788,11 @@ class DirectoryInfo(object):
         :param str file_name: The LFN of the file
         :returns: Dictionary of file information
         :rtype: dict
+        :raises BadPath: if the file_name does not start with ``self.name``
         """
+
+        if not file_name.startswith(self.name):
+            raise BadPath('self.name is %s, file_name is %s' % (self.name, file_name))
 
         exploded_name = file_name[len(self.name) + 1:].split('/')
         desired_name = exploded_name[-1]
@@ -755,6 +804,40 @@ class DirectoryInfo(object):
                 return file_info
 
         return None
+
+    def remove_node(self, path_name):
+        """
+        Remove an empty node from the DirectoryInfo
+        :param str path_name: The path to the node, including the ``self.name`` at the beginning
+        :returns: self for chaining
+        :rtype: :py:class:`DirectoryInfo`
+        :raises NotEmpty: if the directory is not empty or ``self.files`` is None
+        :raises BadPath: if the path_name does not start with the ``self.name``
+        """
+
+        LOG.debug('Would like to remove %s', path_name)
+
+        if not path_name.startswith(self.name):
+            raise BadPath('self.name is %s, path_name is %s' % (self.name, path_name))
+
+        exploded_name = path_name[len(self.name) + 1:].split('/')
+        parent = self.get_node('/'.join(exploded_name[:-1]))
+
+        # If the directory doesn't exist, we'll get some TypeError things
+        node = parent.get_node(exploded_name[-1], make_new=False)
+
+        if node.files:
+            raise NotEmpty('This directory has files %s' % node.files)
+        if node.directories:
+            raise NotEmpty('This directory contains subdirectories %s' % node.directories)
+        if node.files is None:
+            raise NotEmpty('The files list is still None')
+        if node.mtime + IGNORE_AGE * 24 * 3600 > node.timestamp:
+            raise NotEmpty('This directory is not old enough?')
+
+        parent.directories.remove(node)
+        return self
+
 
 def get_info(file_name):
     """
