@@ -177,9 +177,6 @@ class XRootDLister(object):
         self.ignore_list = config_dict.get('IgnoreDirectories', [])
         self.site = site
 
-        # This regex is used to parse the error code and propose a retry
-        self.error_re = re.compile(r'\[(\!|\d+|FATAL)\]')
-
         if thread_num is None:
             self.log = logging.getLogger(__name__)
         else:
@@ -221,9 +218,6 @@ class XRootDLister(object):
 
         self.log.debug('For %s, directory listing good: %s', path, bool(dir_list))
 
-        # Assumes the listing went well for now
-        okay = True
-
         # If there's a directory listing, parse it
         if dir_list:
             for entry in dir_list.dirlist:
@@ -233,22 +227,12 @@ class XRootDLister(object):
                     files.append((entry.name.lstrip('/'), entry.statinfo.size,
                                   entry.statinfo.modtime))
 
+        okay = bool(status.ok)
+
         # If status isn't perfect, analyze the error
-        if not status.ok:
+        if not okay:
 
             self.log.warning('While listing %s: %s', path, status.message)
-
-            try:
-                error_code = self.error_re.search(status.message).group(1)
-
-                # Retry certain error codes if there's no dir_list
-                # Don't bother with 3010 at the moment because there's that Hadoop bug
-                okay = (error_code == '3010' and 'operation not permitted' in status.message) or \
-                    (bool(dir_list) and error_code in ['!', '3005'])
-            except AttributeError:  # No good match
-                okay = False
-
-            self.log.debug('Error code: %s', error_code)
             self.log.debug('Directory List: %s', dir_list)
             self.log.debug('Okay: %i', okay)
 
@@ -387,11 +371,12 @@ class XRootDLister(object):
 
 
 @cache_tree('ListAge', 'remotelisting')
-def get_site_tree(site):
+def get_site_tree(site, callback=None):
     """
     Get the information for a site, from XRootD or a cache.
 
     :param str site: The site name
+    :param function callback: The callback function to pass to :py:func:`datatypes.create_dirinfo`
     :returns: The site directory listing information
     :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
@@ -402,7 +387,8 @@ def get_site_tree(site):
         num_threads = int(config_dict.get('GFALThreads'))
         LOG.info('threads = %i', num_threads)
         directories = [
-            datatypes.create_dirinfo('/store', directory, GFallDLister, [[site]]*num_threads) \
+            datatypes.create_dirinfo('/store', directory, GFallDLister,
+                                     [[site]]*num_threads, callback) \
                 for directory in config.config_dict().get('DirectoryList', [])
         ]
         # Return the DirectoryInfo
@@ -450,7 +436,8 @@ def get_site_tree(site):
         datatypes.create_dirinfo(
             '/store/', directory, XRootDLister,
             [(prim, back, site, thread_num, do_both) for prim, back, thread_num in \
-                 zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))]) \
+                 zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))],
+            callback) \
             for directory in config_dict.get('DirectoryList', [])
         ]
 

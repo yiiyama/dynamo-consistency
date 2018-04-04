@@ -71,7 +71,9 @@ class TestEmtpyDirs(unittest.TestCase):
         remote = datatypes.DirectoryInfo('/store')
         remote.add_file_list([('/store/yo/first/0000/file_exists.root', 100, 0),
                               ('/store/yo/second/0000/file_new.root', 100, time.time())])
-        remote.get_node('yo/second/0001').mtime = 1
+        new_node = remote.get_node('yo/second/0001')
+        new_node.mtime = 1
+        new_node.files = []  # We just want an empty directory
 
         invent.setup_hash()
         remote.setup_hash()
