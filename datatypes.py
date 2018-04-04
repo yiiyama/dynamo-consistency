@@ -335,10 +335,10 @@ class DirectoryInfo(object):
         """
 
         output = []
-        for fi in self.files:
+        for fil in self.files:
             # Only list old files
-            if (self.timestamp - fi['mtime']) > min_age:
-                output.append(os.path.join(path, self.name, fi['name']))
+            if (self.timestamp - fil['mtime']) > min_age:
+                output.append(os.path.join(path, self.name, fil['name']))
 
         for directory in self.directories:
             output.extend(directory.get_files(min_age, os.path.join(path, self.name)))
