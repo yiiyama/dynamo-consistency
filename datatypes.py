@@ -581,7 +581,7 @@ class DirectoryInfo(object):
         :rtype: int
         """
 
-        if self.files is None or self.mtime is None:
+        if self.files is None:
             return int(place_new)
 
         num_files = len([fi for fi in self.files \
@@ -589,7 +589,7 @@ class DirectoryInfo(object):
         for directory in self.directories:
             num_files += directory.get_num_files(unlisted, place_new)
 
-        if place_new and not self.can_compare:
+        if place_new and (not self.can_compare or self.mtime is None):
             num_files += 1
 
         return num_files
