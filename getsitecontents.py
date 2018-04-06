@@ -39,7 +39,7 @@ class Lister(object):
     :param int thread_num: This optional parameter is only used to
                            Create a separate logger for this object
     """
-    def __init__(self, thread_num=None):
+    def __init__(self, thread_num, site):
         config_dict = config.config_dict()
         self.log = logging.getLogger(__name__ if thread_num is None else \
                                          '%s--thread%i' % (__name__, thread_num))
@@ -79,7 +79,7 @@ class Lister(object):
         # Skip over paths that include part of the list of ignored directories
         for pattern in self.ignore_list:
             if pattern in path:
-                return False, [], []
+                return True, [], []
 
         if retries == self.tries:
             self.log.error('Giving up on %s due to too many retries', path)
@@ -88,6 +88,7 @@ class Lister(object):
         if retries:
             self.reconnect()
 
+        # FileSystem only works with ending slashes for some sites (not all, but let's be safe)
         if path[-1] != '/':
             path += '/'
 
@@ -142,7 +143,7 @@ class GFalLister(Lister):
     """
 
     def __init__(self, site, thread_num=None):
-        super(GFalLister, self).__init__(thread_num)
+        super(GFalLister, self).__init__(thread_num, site)
         mysql_reg = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
         self.backend = mysql_reg.query('SELECT backend FROM sites WHERE name=%s', site)[0]
         mysql_reg.close()
@@ -191,17 +192,18 @@ class XRootDSubShell(Lister):
     Very similar to the :py:class:`XRootDLister`,
     but uses a subshell through `pexpect`.
     """
-    def __init__(self, primary_door, thread_num=None):
-        super(XRootDSubShell, self).__init__(thread_num)
+    def __init__(self, site, door, thread_num=None):
+        super(XRootDSubShell, self).__init__(thread_num, site)
 
-        self.shell = subprocess.Popen(['xrdfs', host], stdout = subprocess.PIPE, stdin = subprocess.PIPE)
-        self.uri = primary_door
+        self.shell = subprocess.Popen(['xrdfs', door], stdout = subprocess.PIPE, stdin = subprocess.PIPE)
+        self.uri = door
 
 
     def __del__(self):
         self.shell.communicate('quit')
 
 
+    @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=True)
     def ls_directory(self, path):
         self.shell.stdin.write('ls -l %s\n' % path)
         self.shell.stdin.write('\n') # send one extra [ENTER] to make an empty prompt appear
@@ -222,12 +224,12 @@ class XRootDLister(Lister):
     :param int thread_num: This optional parameter is only used to
                            Create a separate logger for this object
     """
-    def __init__(self, primary_door, thread_num=None):
-        super(XRootDLister, self).__init__(thread_num)
+    def __init__(self, site, door, thread_num=None):
+        super(XRootDLister, self).__init__(thread_num, site)
 
-        self.primary_conn = XRootD.client.FileSystem(primary_door)
+        self.conn = XRootD.client.FileSystem(door)
 
-        self.log.info('Connection created at %s', primary_door)
+        self.log.info('Connection created at %s', door)
 
 
     @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=True)
@@ -245,16 +247,10 @@ class XRootDLister(Lister):
         if self.store_prefix:
             path = os.path.normpath(os.path.sep.join([self.store_prefix, path]))
 
-        # FileSystem only works with ending slashes for some sites (not all, but let's be safe)
-        if path[-1] != '/':
-            path += '/'
-
-        door = self.primary_conn
-
-        self.log.debug('Using door at %s to list directory %s', door.url, path)
+        self.log.debug('Using door at %s to list directory %s', self.conn.url, path)
 
         # http://xrootd.org/doc/python/xrootd-python-0.1.0/modules/client/filesystem.html#XRootD.client.FileSystem.dirlist
-        status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
+        status, dir_list = self.conn.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
         directories = []
         files = []
@@ -345,7 +341,7 @@ def get_site_tree(site, callback=None):
         datatypes.create_dirinfo(
             '/store/', directory,
             XRootDSubShell if access.get(site) == 'directx' else XRootDLister,
-            [(door, thread_num) for thread_num, door in enumerate(door_list)],
+            [(site, door, thread_num) for thread_num, door in enumerate(door_list)],
             callback) for directory in config_dict.get('DirectoryList', [])
         ]
 
