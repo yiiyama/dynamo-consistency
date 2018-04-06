@@ -458,8 +458,8 @@ class TestUnfilled(TestBase):
 
         self.tree.setup_hash()
 
-        for d in self.tree.empty_nodes_list():
-            self.tree.get_node(d[len(self.tree.name) + 1:], make_new=False).mtime = 1
+        for d in ['', 'dir', 'dir/a', 'dir/b', 'dir2']:
+            self.tree.get_node(os.path.join('mc/ttThings/empty', d), make_new=False).mtime = 1
 
         self.tree.setup_hash()
 
