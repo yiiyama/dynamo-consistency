@@ -581,7 +581,7 @@ class DirectoryInfo(object):
         :rtype: int
         """
 
-        if self.files is None:
+        if self.files is None or self.mtime is None:
             return int(place_new)
 
         num_files = len([fi for fi in self.files \
@@ -829,7 +829,8 @@ class DirectoryInfo(object):
         if node.files:
             raise NotEmpty('This directory has files %s' % node.files)
         if node.directories:
-            raise NotEmpty('This directory contains subdirectories %s' % node.directories)
+            raise NotEmpty('This directory contains subdirectories %s' %
+                           [d.name for d in node.directories])
         if node.files is None:
             raise NotEmpty('The files list is still None')
         if node.mtime + IGNORE_AGE * 24 * 3600 > node.timestamp:

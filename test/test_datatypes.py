@@ -514,6 +514,12 @@ class TestUnfilled(TestBase):
         self.tree.get_node('mc/ttThings/empty').mtime = time.time()
         self.assertFalse('/store/mc/ttThings/empty' in self.tree.empty_nodes_list())
 
+    def test_nontime_subdir(self):
+        self.tree.get_node('mc/ttThings/empty/dir/a').mtime = None
+        empties = self.tree.empty_nodes_list()
+        self.assertFalse('/store/mc/ttThings/empty' in empties)
+        self.assertTrue('/store/mc/ttThings/empty/dir/b' in empties)
+
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:
