@@ -458,8 +458,8 @@ class TestUnfilled(TestBase):
 
         self.tree.setup_hash()
 
-        for d in self.tree.empty_nodes_list():
-            self.tree.get_node(d[len(self.tree.name) + 1:], make_new=False).mtime = 1
+        for d in ['', 'dir', 'dir/a', 'dir/b', 'dir2']:
+            self.tree.get_node(os.path.join('mc/ttThings/empty', d), make_new=False).mtime = 1
 
         self.tree.setup_hash()
 
@@ -513,6 +513,12 @@ class TestUnfilled(TestBase):
         # Piggy-backing setup to check a bug
         self.tree.get_node('mc/ttThings/empty').mtime = time.time()
         self.assertFalse('/store/mc/ttThings/empty' in self.tree.empty_nodes_list())
+
+    def test_nontime_subdir(self):
+        self.tree.get_node('mc/ttThings/empty/dir/a').mtime = None
+        empties = self.tree.empty_nodes_list()
+        self.assertFalse('/store/mc/ttThings/empty' in empties)
+        self.assertTrue('/store/mc/ttThings/empty/dir/b' in empties)
 
 if __name__ == '__main__':
 

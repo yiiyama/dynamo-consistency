@@ -589,7 +589,7 @@ class DirectoryInfo(object):
         for directory in self.directories:
             num_files += directory.get_num_files(unlisted, place_new)
 
-        if place_new and not self.can_compare:
+        if place_new and (not self.can_compare or self.mtime is None):
             num_files += 1
 
         return num_files
@@ -729,7 +729,7 @@ class DirectoryInfo(object):
                          sum([directory.empty_nodes_list() for directory in self.directories],
                              [])]
 
-        count_self = [] if self.get_num_files(place_new=True) else [self.name]
+        count_self = [] if self.get_num_files(place_new=True) or self.mtime is None else [self.name]
 
         return to_return + count_self
 
@@ -829,7 +829,8 @@ class DirectoryInfo(object):
         if node.files:
             raise NotEmpty('This directory has files %s' % node.files)
         if node.directories:
-            raise NotEmpty('This directory contains subdirectories %s' % node.directories)
+            raise NotEmpty('This directory contains subdirectories %s' %
+                           [d.name for d in node.directories])
         if node.files is None:
             raise NotEmpty('The files list is still None')
         if node.mtime + IGNORE_AGE * 24 * 3600 > node.timestamp:
