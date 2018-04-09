@@ -21,7 +21,8 @@
   }, 
   "DirectoryList": [
     "mc",
-    "data"
+    "data",
+    "hidata"
   ],
   "IgnoreDirectories": [
   ],
