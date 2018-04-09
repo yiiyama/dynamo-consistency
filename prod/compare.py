@@ -170,8 +170,6 @@ def main(site):
     and entered into the dynamoregister database.
 
     :param str site: The site to run the check over
-    :returns: missing files, size, orphan files, size
-    :rtype: list, long, list, long
     """
 
     start = time.time()

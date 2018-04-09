@@ -49,7 +49,7 @@ DIRS_TO_AVOID = ['SAM', 'logs']
 # The default (1209600) corresponds to two weeks.
 # Mathematical expressions here are evaluated.
 
-MIN_AGE = 604800
+MIN_AGE = 1209600 * 2
 
 #---------------------------------------------------------------------------------------------------
 # This defines the storage type of the site. This may be necessary for the script to run
