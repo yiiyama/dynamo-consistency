@@ -21,16 +21,9 @@
   }, 
   "DirectoryList": [
     "mc",
-    "data",
-    "generator",
-    "results",
-    "hidata",
-    "himc"
+    "data"
   ],
   "IgnoreDirectories": [
-    "/SAM",
-    "/HCTest",
-    "/GenericTTbar"
   ],
   "BothList": [
     "T1_US_FNAL"

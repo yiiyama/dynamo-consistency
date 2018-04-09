@@ -42,7 +42,7 @@ class TestT3Listing(unittest.TestCase):
         remote_tree = getsitecontents.get_site_tree('T3_US_MIT')
 
         local_listing = datatypes.DirectoryInfo(
-            '/store', to_merge=[
+            '/store', directories=[
                 datatypes.create_dirinfo('', subdir, my_ls) for \
                     subdir in config.config_dict().get('DirectoryList', [])
                 ])

@@ -81,7 +81,7 @@ class Lister(object):
             if pattern in path:
                 return True, [], []
 
-        if retries == self.tries:
+        if retries >= self.tries:
             self.log.error('Giving up on %s due to too many retries', path)
             return False, [], []
 
@@ -100,7 +100,7 @@ class Lister(object):
                 # Try to fall back on /cms
                 self.store_prefix = '/cms'
                 self.log.warning('Trying to fall back to using suffix %s', self.store_prefix)
-                okay, directories, files = self.list(path)
+                okay, directories, files = self.list(path, retries + 1)
 
             if not okay:
                 self.log.warning('Fallback did not work, reverting')
@@ -239,7 +239,6 @@ class XRootDLister(Lister):
 
         :param str path: The full path, starting with ``/store/``, of the directory to list.
         :returns: A bool indicating the success, a list of directories, and a list of files.
-                  See :py:func:`XRootDLister.list` for more details on the output.
         :rtype: bool, list, list
         """
 
