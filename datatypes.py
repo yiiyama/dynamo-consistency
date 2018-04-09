@@ -1,4 +1,4 @@
-# pylint: disable=bad-option-value, too-many-locals, too-many-branches, too-many-statements, too-complex
+# pylint: disable=too-many-locals, too-many-branches, too-many-statements, too-complex
 #
 # Here there be dragons
 #
@@ -17,7 +17,6 @@ import os
 import time
 import hashlib
 import cPickle
-import random
 import logging
 import multiprocessing
 

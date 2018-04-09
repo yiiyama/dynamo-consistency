@@ -1,5 +1,3 @@
-# pylint: disable=too-complex
-
 """
 Tool to get the files located at a site.
 
@@ -14,8 +12,6 @@ Tool to get the files located at a site.
 import os
 import re
 import logging
-import random
-import itertools
 import time
 import subprocess
 from datetime import datetime
@@ -38,6 +34,7 @@ class Lister(object):
     The protoype of the listing facility
     :param int thread_num: This optional parameter is only used to
                            Create a separate logger for this object
+    :param str site: Used for reading the correct configuration
     """
     def __init__(self, thread_num, site):
         config_dict = config.config_dict()
@@ -168,7 +165,7 @@ class GFalLister(Lister):
                                    bufsize=4096, shell=True)
         strout, error = process.communicate()
         if process.returncode != 0:
-            print error
+            self.log.error(error)
             return False, directories, files
 
         for line in strout.split('\n'):
@@ -195,7 +192,10 @@ class XRootDSubShell(Lister):
     def __init__(self, site, door, thread_num=None):
         super(XRootDSubShell, self).__init__(thread_num, site)
 
-        self.shell = subprocess.Popen(['xrdfs', door], stdout = subprocess.PIPE, stdin = subprocess.PIPE)
+        self.shell = subprocess.Popen(['xrdfs', door],
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT)
         self.uri = door
 
 
@@ -205,9 +205,44 @@ class XRootDSubShell(Lister):
 
     @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=True)
     def ls_directory(self, path):
+
+        self.log.debug('Directly listing %s with %s', path, self.uri)
+
         self.shell.stdin.write('ls -l %s\n' % path)
         self.shell.stdin.write('\n') # send one extra [ENTER] to make an empty prompt appear
         self.shell.stdin.flush()
+        self.shell.stdout.readline().strip() # Read out the original prompt line
+
+        directories = []
+        files = []
+        okay = True
+
+        while True:
+            line = self.shell.stdout.readline().strip()
+            if line.endswith('>'): # stop reading at the empty prompt (otherwise readline hangs)
+                break
+
+            # Parse the line
+            # First check that it matches the expected format
+            match = re.match( # (d)rwx (YYYY-MM-DD HH:MM:SS)     (size) (name)
+                r'(d|\-).{3}\s(\d{4}\-\d{2}\-\d{2}\s\d{2}:\d{2}:\d{2})\s*(\d*)\s([^\s]*)',
+                line)
+
+            if match:
+                # Get the timestamp
+                mtime = time.mktime(time.strptime(match.group(2), '%Y-%m-%d %H:%M:%S'))
+                # Get the relative name
+                name = match.group(4).split('/')[-1]
+                if match.group(1) == 'd':  # Directory
+                    directories.append((name, mtime))
+                else:                    # File
+                    files.append((name, int(match.group(3)), mtime))
+            else:
+                # Otherwise, we probably have an error on our hands
+                okay = False
+                self.log.error(line)
+
+        return okay, directories, files
 
 
 
@@ -219,8 +254,8 @@ class XRootDLister(Lister):
     This keeps the load of listing from hitting more than half
     of a site's doors at a time.
 
-    :param str primary_door: The URL of the door that will get the most load
     :param str site: The site that this connection is to.
+    :param str door: The URL of the door that will get the most load
     :param int thread_num: This optional parameter is only used to
                            Create a separate logger for this object
     """
