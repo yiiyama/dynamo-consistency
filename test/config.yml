@@ -69,10 +69,6 @@ AccessMethod:
 DirectoryList:
   - mc
   - data
-  - generator
-  - results
-  - hidata
-  - himc
 
 IgnoreDirectories:
   - /SAM

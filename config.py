@@ -184,7 +184,7 @@ def get_redirector(site, banned_doors=None):
     redirector = config.get('Redirectors', {}).get(site, '')
     redirs = []
 
-    domain = get_domain(site)
+    domain = get_domain(site) or redirector
 
     if not domain:
         LOG.error('Could not get domain for %s', site)

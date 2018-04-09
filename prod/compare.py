@@ -516,7 +516,8 @@ def main(site):
             REPLACE INTO stats VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?)
             """.format(5 - is_dst),
-            (site, time.time() - start, site_tree.get_num_files(), site_tree.count_nodes(),
+            (site, time.time() - start, site_tree.get_num_files(),
+             remover.get_removed_count() + site_tree.count_nodes(),
              remover.get_removed_count() + len(site_tree.empty_nodes_list()),
              config_dict.get('NumThreads', config_dict.get('MinThreads', 0)),
              len(missing), m_size, len(orphan), o_size, len(no_source_files),
@@ -536,7 +537,7 @@ def main(site):
                     'totalsize': 0,
                     'usedsize': node.get_directory_size()
                     } for node, subdir in [(site_tree.get_node(path), path) for path in
-                                           [''] + config_dict['DirectoryList']]
+                                           [''] + [d.name for d in site_tree.directories]]
                                   if node.get_num_files()]
                 }
             }

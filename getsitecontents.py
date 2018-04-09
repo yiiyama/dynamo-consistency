@@ -1,5 +1,3 @@
-# pylint: disable=too-complex
-
 """
 Tool to get the files located at a site.
 
@@ -14,8 +12,6 @@ Tool to get the files located at a site.
 import os
 import re
 import logging
-import random
-import itertools
 import time
 import subprocess
 from datetime import datetime
@@ -32,12 +28,95 @@ from . import cache_tree
 
 LOG = logging.getLogger(__name__)
 
+
+class Lister(object):
+    """
+    The protoype of the listing facility
+    :param int thread_num: This optional parameter is only used to
+                           Create a separate logger for this object
+    :param str site: Used for reading the correct configuration
+    """
+    def __init__(self, thread_num, site):
+        config_dict = config.config_dict()
+        self.log = logging.getLogger(__name__ if thread_num is None else \
+                                         '%s--thread%i' % (__name__, thread_num))
+        self.ignore_list = config_dict.get('IgnoreDirectories', [])
+        self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
+        self.tries = config_dict.get('Retries', 0) + 1
+
+
+    def ls_directory(self, path):
+        """
+        Prototype function that lists the directories
+        :param str path: The full path, starting with ``/store/``, of the directory to list.
+        """
+        pass
+
+
+    def reconnect(self):
+        """
+        A prototype for reconnecting to the remote servers
+        """
+        pass
+
+
+    def list(self, path, retries=0):
+        """
+        Return the directory contents at the given path.
+        The ``list`` member is expected of every object passed to :py:mod:`datatypes`.
+
+        :param str path: The full path, starting with ``/store/``, of the directory to list.
+        :param int retries: Number of attempts so far
+        :returns: A bool indicating the success, a list of directories, and a list of files.
+                  The list of directories consists of tuples of (directory name, mod time).
+                  The list of files consistents of tuples of (file name, size, mod time).
+                  The modification times are in seconds from epoch and the file size is in bytes.
+        :rtype: bool, list, list
+        """
+        # Skip over paths that include part of the list of ignored directories
+        for pattern in self.ignore_list:
+            if pattern in path:
+                return True, [], []
+
+        if retries >= self.tries:
+            self.log.error('Giving up on %s due to too many retries', path)
+            return False, [], []
+
+        if retries:
+            self.reconnect()
+
+        # FileSystem only works with ending slashes for some sites (not all, but let's be safe)
+        if path[-1] != '/':
+            path += '/'
+
+        try:
+            okay, directories, files = self.ls_directory(path)
+
+            if not okay and not self.store_prefix and len(path.strip('/').split('/')) < 4:
+
+                # Try to fall back on /cms
+                self.store_prefix = '/cms'
+                self.log.warning('Trying to fall back to using suffix %s', self.store_prefix)
+                okay, directories, files = self.list(path, retries + 1)
+
+            if not okay:
+                self.log.warning('Fallback did not work, reverting')
+                self.store_prefix = ''
+                okay, directories, files = self.list(path, retries + 1)
+
+        except timeout_decorator.TimeoutError:
+            self.log.warning('Directory %s timed out.', path)
+            okay, directories, files = self.list(path, retries + 1)
+
+        return okay, directories, files
+
+
 def ct_timestamp(line):
     """
     Takes a time string from gfal and extracts the time since epoch
 
     .. todo::
-      Make this more elegant and inline in the :py:func:`GFallDLister.ls_directory`
+      Make this more elegant and inline in the :py:func:`GFalLister.ls_directory`
 
     :param str line: The line from the gfal-ls call including month, day, and year
                      in some format with lots of hypens
@@ -54,24 +133,18 @@ def ct_timestamp(line):
     epoch = int(time.mktime(time.strptime(datestr, '%m-%d-%Y')))
     return epoch
 
-class GFallDLister(object):
+
+class GFalLister(Lister):
     """
     An object to list a site through ``gfal-ls`` calls
     """
 
-    def __init__(self, site):
-        config_dict = config.config_dict()
+    def __init__(self, site, thread_num=None):
+        super(GFalLister, self).__init__(thread_num, site)
+        mysql_reg = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
+        self.backend = mysql_reg.query('SELECT backend FROM sites WHERE name=%s', site)[0]
+        mysql_reg.close()
 
-        self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
-        self.tries = config_dict.get('Retries', 0) + 1
-        self.ignore_list = config_dict.get('IgnoreDirectories', [])
-        self.site = site
-
-        self.log = logging.getLogger(__name__)
-
-        self.mysql_reg = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
-        sqlline = "select backend from sites where name='" + site + "'"
-        self.backend = (self.mysql_reg.query(sqlline))[0]
 
     def ls_directory(self, path):
         """
@@ -92,7 +165,7 @@ class GFallDLister(object):
                                    bufsize=4096, shell=True)
         strout, error = process.communicate()
         if process.returncode != 0:
-            print error
+            self.log.error(error)
             return False, directories, files
 
         for line in strout.split('\n'):
@@ -110,43 +183,70 @@ class GFallDLister(object):
 
         return True, directories, files
 
-    def list(self, path, retries=1):
-        """
-        Return the directory contents at the given path.
-        The ``list`` member is expected of every object passed to :py:mod:`datatypes`.
 
-        :param str path: The full path, starting with ``/store/``, of the directory to list.
-        :param int retries: Number of attempts so far
-        :returns: A bool indicating the success, a list of directories, and a list of files.
-                  The list of directories consists of tuples of (directory name, mod time).
-                  The list of files consistents of tuples of (file name, size, mod time).
-                  The modification times are in seconds from epoch and the file size is in bytes.
-        :rtype: bool, list, list
-        """
+class XRootDSubShell(Lister):
+    """
+    Very similar to the :py:class:`XRootDLister`,
+    but uses a subshell through `pexpect`.
+    """
+    def __init__(self, site, door, thread_num=None):
+        super(XRootDSubShell, self).__init__(thread_num, site)
 
-        # Skip over paths that include part of the list of ignored directories
-        for pattern in self.ignore_list:
-            if pattern in path:
-                return True, [], []
+        self.shell = subprocess.Popen(['xrdfs', door],
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT)
+        self.uri = door
 
-        if retries == self.tries:
-            self.log.error('Giving up on %s due to too many retries', path)
-            return False, [], []
 
-        try:
-            okay, directories, files = self.ls_directory(path)
-             # We could add sleep, reconnecting and other error handling here, if desired
-            if not okay:
-                okay, directories, files = self.list(path, retries + 1)
+    def __del__(self):
+        self.shell.communicate('quit')
 
-        except timeout_decorator.TimeoutError:
-            self.log.warning('Directory %s timed out.', path)
-            okay, directories, files = self.list(path, retries + 1)
+
+    @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=True)
+    def ls_directory(self, path):
+
+        self.log.debug('Directly listing %s with %s', path, self.uri)
+
+        self.shell.stdin.write('ls -l %s\n' % path)
+        self.shell.stdin.write('\n') # send one extra [ENTER] to make an empty prompt appear
+        self.shell.stdin.flush()
+        self.shell.stdout.readline().strip() # Read out the original prompt line
+
+        directories = []
+        files = []
+        okay = True
+
+        while True:
+            line = self.shell.stdout.readline().strip()
+            if line.endswith('>'): # stop reading at the empty prompt (otherwise readline hangs)
+                break
+
+            # Parse the line
+            # First check that it matches the expected format
+            match = re.match( # (d)rwx (YYYY-MM-DD HH:MM:SS)     (size) (name)
+                r'(d|\-).{3}\s(\d{4}\-\d{2}\-\d{2}\s\d{2}:\d{2}:\d{2})\s*(\d*)\s([^\s]*)',
+                line)
+
+            if match:
+                # Get the timestamp
+                mtime = time.mktime(time.strptime(match.group(2), '%Y-%m-%d %H:%M:%S'))
+                # Get the relative name
+                name = match.group(4).split('/')[-1]
+                if match.group(1) == 'd':  # Directory
+                    directories.append((name, mtime))
+                else:                    # File
+                    files.append((name, int(match.group(3)), mtime))
+            else:
+                # Otherwise, we probably have an error on our hands
+                okay = False
+                self.log.error(line)
 
         return okay, directories, files
 
 
-class XRootDLister(object):
+
+class XRootDLister(Lister):
     """
     A class that holds two XRootD connections.
     If the primary connection fails to list a directory,
@@ -154,46 +254,26 @@ class XRootDLister(object):
     This keeps the load of listing from hitting more than half
     of a site's doors at a time.
 
-    :param str primary_door: The URL of the door that will get the most load
-    :param str backup_door: The URL of the door that will be used when
-                            the primary door fails
     :param str site: The site that this connection is to.
+    :param str door: The URL of the door that will get the most load
     :param int thread_num: This optional parameter is only used to
                            Create a separate logger for this object
-    :param bool do_both: If true, the primary and backup doors will both
-                         be used for every listing
     """
+    def __init__(self, site, door, thread_num=None):
+        super(XRootDLister, self).__init__(thread_num, site)
 
-    def __init__(self, primary_door, backup_door, site, thread_num=None, do_both=False):
-        config_dict = config.config_dict()
+        self.conn = XRootD.client.FileSystem(door)
 
-        self.primary_conn = XRootD.client.FileSystem(primary_door)
-        self.backup_conn = XRootD.client.FileSystem(backup_door)
-        self.do_both = do_both
+        self.log.info('Connection created at %s', door)
 
-        self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
-        self.access = config_dict.get('AccessMethod', {})
-        self.tries = config_dict.get('Retries', 0) + 1
-        self.ignore_list = config_dict.get('IgnoreDirectories', [])
-        self.site = site
-
-        if thread_num is None:
-            self.log = logging.getLogger(__name__)
-        else:
-            self.log = logging.getLogger('%s--thread%i' % (__name__, thread_num))
-
-        self.log.info('Connections created at %s (primary) and %s (backup)',
-                      primary_door, backup_door)
 
     @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=True)
-    def ls_directory(self, door, path):
+    def ls_directory(self, path):
         """
         Gets the contents of the previously defined redirector at a given path
 
-        :param XRootD.client.FileSystem door: The door server to use for the listing
         :param str path: The full path, starting with ``/store/``, of the directory to list.
         :returns: A bool indicating the success, a list of directories, and a list of files.
-                  See :py:func:`XRootDLister.list` for more details on the output.
         :rtype: bool, list, list
         """
 
@@ -201,17 +281,10 @@ class XRootDLister(object):
         if self.store_prefix:
             path = os.path.normpath(os.path.sep.join([self.store_prefix, path]))
 
-        # FileSystem only works with ending slashes for some sites (not all, but let's be safe)
-        if path[-1] != '/':
-            path += '/'
-
-        self.log.debug('Using door at %s to list directory %s', door.url, path)
-
-        if self.site in self.access and self.access[self.site] == 'directx':
-            return self.direct_list(door, path)
+        self.log.debug('Using door at %s to list directory %s', self.conn.url, path)
 
         # http://xrootd.org/doc/python/xrootd-python-0.1.0/modules/client/filesystem.html#XRootD.client.FileSystem.dirlist
-        status, dir_list = door.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
+        status, dir_list = self.conn.dirlist(path, flags=XRootD.client.flags.DirListFlags.STAT)
 
         directories = []
         files = []
@@ -241,134 +314,6 @@ class XRootDLister(object):
 
         return okay, directories, files
 
-    @staticmethod
-    def direct_list(door, path):
-        """
-        Do the listing using system calls
-
-        :param XRootD.client.FileSystem door: The door server to use for the listing
-        :param str path: The full path, starting with ``/store/``, of the directory to list.
-        :returns: A bool indicating the success, a list of directories, and a list of files.
-                  See :py:func:`XRootDLister.list` for more details on the output.
-        :rtype: bool, list, list
-        """
-
-        directories = []
-        files = []
-
-        doorname = str(door.url.hostname) + ':' + str(door.url.port)
-        cmd = 'xrdfs ' + doorname + ' ls -l ' + path
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   bufsize=4096, shell=True)
-        strout, error = process.communicate()
-        if process.returncode != 0:
-            print error
-            return False, directories, files
-
-        for line in strout.split('\n'):
-            fields = line.strip().split()
-            if len(fields) < 1:
-                continue
-            item_name = os.path.basename(fields[-1].rstrip('/'))
-            item_size = int(fields[3])
-            tstamp = int(time.mktime(time.strptime(fields[1], '%Y-%m-%d')))
-
-            if fields[0].startswith('d'):
-                directories.append((item_name, tstamp))
-            else:
-                files.append((item_name, item_size, tstamp))
-
-        return True, directories, files
-
-    def list(self, path, retries=0):
-        """
-        Return the directory contents at the given path.
-        The ``list`` member is expected of every object passed to :py:mod:`datatypes`.
-
-        :param str path: The full path, starting with ``/store/``, of the directory to list.
-        :param int retries: Number of attempts so far
-        :returns: A bool indicating the success, a list of directories, and a list of files.
-                  The list of directories consists of tuples of (directory name, mod time).
-                  The list of files consistents of tuples of (file name, size, mod time).
-                  The modification times are in seconds from epoch and the file size is in bytes.
-        :rtype: bool, list, list
-        """
-
-        # Skip over paths that include part of the list of ignored directories
-        for pattern in self.ignore_list:
-            if pattern in path:
-                return True, [], []
-
-        if retries == self.tries:
-            self.log.error('Giving up on %s due to too many retries', path)
-            return False, [], []
-
-        try:
-            # Try with primary door
-            okay, directories, files = self.ls_directory(self.primary_conn, path)
-
-            # We could add sleep, reconnecting and other error handling here, if desired
-            if not okay:
-                # Try with backup door
-                okay, directories, files = self.ls_directory(self.backup_conn, path)
-
-                okay &= (not self.do_both)
-            elif self.do_both:
-
-                okay_back, directories_back, files_back = \
-                    self.ls_directory(self.backup_conn, path)
-
-                okay &= okay_back
-                directories = list(set(directories + directories_back))
-                files = list(set(files + files_back))
-
-        except timeout_decorator.TimeoutError:
-            self.log.warning('Directory %s timed out.', path)
-
-            # Reconnect
-
-            # First try to get the list of doors that are not connected in this instance
-            _, door_list = config.get_redirector(
-                self.site,
-                list(
-                    itertools.chain.from_iterable(
-                        [re.search(r'root://((.*):\d*)/', str(conn.url)).group(1, 2) for conn in \
-                             [self.primary_conn, self.backup_conn]]
-                        )
-                    )
-                )
-
-            # If we get any, reconnect
-            if door_list:
-
-                if len(door_list) == 1:
-                    door_list.extend(door_list)
-
-                use_doors = random.sample(door_list, 2)
-
-                self.primary_conn = XRootD.client.FileSystem(use_doors[0])
-                self.backup_conn = XRootD.client.FileSystem(use_doors[1])
-
-            # Otherwise, swap urls
-            else:
-                backup_url = str(self.backup_conn.url)
-                self.primary_conn = XRootD.client.FileSystem(backup_url)
-                self.backup_conn = XRootD.client.FileSystem(str(self.primary_conn.url))
-
-            return self.list(path, retries + 1)
-
-        if not okay and not self.store_prefix and len(path.strip('/').split('/')) < 4:
-
-            # Try to fall back on /cms
-            self.store_prefix = '/cms'
-            self.log.warning('Trying to fall back to using suffix %s', self.store_prefix)
-            okay, directories, files = self.list(path)
-            if not okay:
-                self.log.warning('Fallback did not work, reverting')
-                self.store_prefix = ''
-
-        return okay, directories, files
-
 
 @cache_tree('ListAge', 'remotelisting')
 def get_site_tree(site, callback=None):
@@ -387,13 +332,12 @@ def get_site_tree(site, callback=None):
         num_threads = int(config_dict.get('GFALThreads'))
         LOG.info('threads = %i', num_threads)
         directories = [
-            datatypes.create_dirinfo('/store', directory, GFallDLister,
-                                     [[site]]*num_threads, callback) \
+            datatypes.create_dirinfo('/store', directory, GFalLister,
+                                     [(site, x) for x in xrange(num_threads)], callback) \
                 for directory in config.config_dict().get('DirectoryList', [])
         ]
         # Return the DirectoryInfo
         return datatypes.DirectoryInfo(name='/store', directories=directories)
-
 
     # Get the redirector for a site
     # The redirector can be used for a double check (not implemented yet...)
@@ -402,9 +346,6 @@ def get_site_tree(site, callback=None):
 
     balancer, door_list = config.get_redirector(site)
     LOG.debug('Full redirector list: %s', door_list)
-
-    # Bool to determine if using both doors in each connection
-    do_both = bool(site in config_dict.get('BothList', []))
 
     if site in config_dict.get('UseLoadBalancer', []) or \
             (balancer and not door_list):
@@ -415,18 +356,16 @@ def get_site_tree(site, callback=None):
         LOG.error('No doors found. Returning emtpy tree')
         return datatypes.DirectoryInfo(name='/store')
 
-    while num_threads > (len(door_list) + 1)/2:
-        if do_both or len(door_list) % 2:
+    while num_threads > len(door_list):
+        if len(door_list) % 2:
             door_list.extend(door_list)
         else:
             # If even number of redirectors and not using both, stagger them
             door_list.extend(door_list[1:])
             door_list.append(door_list[0])
 
-    # Add the first door to the end, in case we have an odd number of doors
-    door_list.append(door_list[0])
     # Strip off the extra threads
-    door_list = door_list[:num_threads * 2]
+    door_list = door_list[:num_threads]
 
     # Create DirectoryInfo for each directory to search (set in configuration file)
     # The search is done with XRootDLister objects that have two doors and the thread
@@ -434,11 +373,10 @@ def get_site_tree(site, callback=None):
 
     directories = [
         datatypes.create_dirinfo(
-            '/store/', directory, XRootDLister,
-            [(prim, back, site, thread_num, do_both) for prim, back, thread_num in \
-                 zip(door_list[0::2], door_list[1::2], range(len(door_list[1::2])))],
-            callback) \
-            for directory in config_dict.get('DirectoryList', [])
+            '/store/', directory,
+            XRootDSubShell if access.get(site) == 'directx' else XRootDLister,
+            [(site, door, thread_num) for thread_num, door in enumerate(door_list)],
+            callback) for directory in config_dict.get('DirectoryList', [])
         ]
 
     # Return the DirectoryInfo
