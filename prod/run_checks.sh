@@ -59,7 +59,7 @@ GOOD_SITES=$(echo "SELECT name FROM sites WHERE status = 'ready';" | mysql --def
 echo "UPDATE sites SET isrunning = 0 WHERE (site = '$(echo $GOOD_SITES | sed "s/ /' OR site = '/g")') AND isrunning = -1;" | sqlite3 $DATABASE
 
 # Check SAM tests
-./check_sam.py $DATABASE $GOOD_SITES
+./check_sam.py $DATABASE $GOOD_SITES >& /dev/null
 
 # Now get a list of sites to run on
 SITES=$(echo "
