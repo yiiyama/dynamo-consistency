@@ -581,7 +581,7 @@ class DirectoryInfo(object):
         :rtype: int
         """
 
-        if self.files is None or self.mtime is None:
+        if self.files is None:
             return int(place_new)
 
         num_files = len([fi for fi in self.files \
@@ -589,7 +589,7 @@ class DirectoryInfo(object):
         for directory in self.directories:
             num_files += directory.get_num_files(unlisted, place_new)
 
-        if place_new and not self.can_compare:
+        if place_new and (not self.can_compare or self.mtime is None):
             num_files += 1
 
         return num_files
@@ -715,23 +715,46 @@ class DirectoryInfo(object):
         count_this = 0 if self.files is None or (empty and self.get_num_files() != 0) else 1
         return sum([directory.count_nodes(empty) for directory in self.directories], count_this)
 
-    def empty_nodes_list(self):
+    def empty_nodes_set(self):
         """
-        :returns: The list of empty directories to delete
-        :rtype: list
+        This function recursively builds the entire list of empty  directories that can be deleted
+
+        :returns: The set of empty directories to delete
+        :rtype: set
         """
+
+        output = set()
 
         if not self.can_compare or \
                 (self.mtime is not None and self.mtime + IGNORE_AGE * 24 * 3600 > self.timestamp):
-            return []
+            return output
 
-        to_return = [os.path.join(self.name, empty) for empty in \
-                         sum([directory.empty_nodes_list() for directory in self.directories],
-                             [])]
+        # Count direct subdirectories that are removed
+        count_sub = 0
 
-        count_self = [] if self.get_num_files(place_new=True) or self.mtime is None else [self.name]
+        for directory in self.directories:
+            # Add all the elements from the other set
+            for sub in directory.empty_nodes_set():
+                if '/' not in sub:
+                    count_sub += 1
+                output.add(os.path.join(self.name, sub))
 
-        return to_return + count_self
+        if not (self.get_num_files(place_new=True) or self.mtime is None) and \
+                count_sub == len(self.directories):
+            output.add(self.name)
+
+        return output
+
+    def empty_nodes_list(self):
+        """
+        This function should be used to get the nodes to delete in
+        the proper order for non-recursive deletion
+
+        :returns: The list of empty directories to delete in the order to delete
+        :rtype: list
+        """
+        # Don't want to recursively sort, so we send this to a helpful set function
+        return sorted(self.empty_nodes_set(), reverse=True)
 
     def listdir(self, *args, **kwargs):
         """

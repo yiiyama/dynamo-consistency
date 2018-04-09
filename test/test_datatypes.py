@@ -517,8 +517,20 @@ class TestUnfilled(TestBase):
     def test_nontime_subdir(self):
         self.tree.get_node('mc/ttThings/empty/dir/a').mtime = None
         empties = self.tree.empty_nodes_list()
+        self.assertFalse('/store/mc/ttThings/empty/dir/a' in empties)
         self.assertFalse('/store/mc/ttThings/empty' in empties)
         self.assertTrue('/store/mc/ttThings/empty/dir/b' in empties)
+
+    def test_noself_stillempty(self):
+        # There's some bug that is giving empty nodes back when it shouldn't
+        # This is just me trying to hunt it down
+        self.tree.get_node('mc/ttThings/empty/dir/a').mtime = time.time()
+        self.tree.setup_hash()
+        empties = self.tree.empty_nodes_list()
+        self.assertFalse('/store/mc/ttThings/empty/dir/a' in empties)
+        self.assertFalse('/store/mc/ttThings/empty' in empties)
+        self.assertTrue('/store/mc/ttThings/empty/dir/b' in empties)
+
 
 if __name__ == '__main__':
 
