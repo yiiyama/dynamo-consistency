@@ -537,7 +537,7 @@ def main(site):
                     'totalsize': 0,
                     'usedsize': node.get_directory_size()
                     } for node, subdir in [(site_tree.get_node(path), path) for path in
-                                           [''] + config_dict['DirectoryList']]
+                                           [''] + [d.name for d in site_tree.directories]]
                                   if node.get_num_files()]
                 }
             }
