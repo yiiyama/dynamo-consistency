@@ -456,9 +456,6 @@ class DirectoryInfo(object):
                 self.can_compare = True
                 hasher.update('%s %s' % (file_info['name'], file_info['hash']))
 
-            LOG.debug('File included: %s size: %i can compare: %i',
-                      file_info['name'], file_info['size'], int(file_info['can_compare']))
-
         # Add empty directories that are not too new to comparison
         if not (self.directories or self.files) and self.mtime and \
                 self.mtime + IGNORE_AGE * 24 * 3600 < self.timestamp:
