@@ -9,7 +9,6 @@ Tool to get the files located at a site.
          Max Goncharov <maxi@mit.edu>
 """
 
-import os
 import re
 import logging
 import time
@@ -88,10 +87,7 @@ class Lister(object):
             self.reconnect()
 
         # FileSystem only works with ending slashes for some sites (not all, but let's be safe)
-        if path[-1] != '/':
-            path += '/'
-
-        path = self.store_prefix + path
+        path = self.store_prefix + path + ('/' if path[-1] != '/' else '')
 
         try:
             okay, directories, files = self.ls_directory(path)
@@ -112,7 +108,7 @@ class Lister(object):
 
         except timeout_decorator.TimeoutError:
             self.log.warning('Directory %s timed out.', path)
-            okay, directories, files = self.list(path, retries + 1)
+            okay = False
 
         if not okay:
             okay, directories, files = self.list(path, retries + 1)
