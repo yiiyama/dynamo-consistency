@@ -9,7 +9,6 @@ Tool to get the files located at a site.
          Max Goncharov <maxi@mit.edu>
 """
 
-import os
 import re
 import logging
 import time
@@ -43,6 +42,8 @@ class Lister(object):
         self.ignore_list = config_dict.get('IgnoreDirectories', [])
         self.store_prefix = config_dict.get('PathPrefix', {}).get(site, '')
         self.tries = config_dict.get('Retries', 0) + 1
+
+        self.fallback_tries = 5
 
 
     def ls_directory(self, path):
@@ -86,26 +87,30 @@ class Lister(object):
             self.reconnect()
 
         # FileSystem only works with ending slashes for some sites (not all, but let's be safe)
-        if path[-1] != '/':
-            path += '/'
+        path = self.store_prefix + path + ('/' if path[-1] != '/' else '')
 
         try:
             okay, directories, files = self.ls_directory(path)
 
-            if not okay and not self.store_prefix and len(path.strip('/').split('/')) < 4:
+            if not okay and self.fallback_tries and \
+                    not self.store_prefix and len(path.strip('/').split('/')) < 4:
+
+                self.fallback_tries -= 1
 
                 # Try to fall back on /cms
                 self.store_prefix = '/cms'
                 self.log.warning('Trying to fall back to using suffix %s', self.store_prefix)
-                okay, directories, files = self.list(path, retries + 1)
+                okay, directories, files = self.list(path, self.tries - 1)
 
-            if not okay:
-                self.log.warning('Fallback did not work, reverting')
-                self.store_prefix = ''
-                okay, directories, files = self.list(path, retries + 1)
+                if not okay:
+                    self.log.warning('Fallback did not work, reverting')
+                    self.store_prefix = ''
 
         except timeout_decorator.TimeoutError:
             self.log.warning('Directory %s timed out.', path)
+            okay = False
+
+        if not okay:
             okay, directories, files = self.list(path, retries + 1)
 
         return okay, directories, files
@@ -203,7 +208,7 @@ class XRootDSubShell(Lister):
         self.shell.communicate('quit')
 
 
-    @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=True)
+    @timeout_decorator.timeout(config.config_dict()['Timeout'])
     def ls_directory(self, path):
 
         self.log.debug('Directly listing %s with %s', path, self.uri)
@@ -219,6 +224,9 @@ class XRootDSubShell(Lister):
 
         while True:
             line = self.shell.stdout.readline().strip()
+
+            self.log.debug(line)
+
             if line.endswith('>'): # stop reading at the empty prompt (otherwise readline hangs)
                 break
 
@@ -237,7 +245,7 @@ class XRootDSubShell(Lister):
                     directories.append((name, mtime))
                 else:                    # File
                     files.append((name, int(match.group(3)), mtime))
-            else:
+            elif re.match(r'.*\[\d+\].*', line):
                 # Otherwise, we probably have an error on our hands
                 okay = False
                 self.log.error(line)
@@ -267,7 +275,7 @@ class XRootDLister(Lister):
         self.log.info('Connection created at %s', door)
 
 
-    @timeout_decorator.timeout(config.config_dict()['Timeout'], use_signals=True)
+    @timeout_decorator.timeout(config.config_dict()['Timeout'])
     def ls_directory(self, path):
         """
         Gets the contents of the previously defined redirector at a given path
@@ -276,10 +284,6 @@ class XRootDLister(Lister):
         :returns: A bool indicating the success, a list of directories, and a list of files.
         :rtype: bool, list, list
         """
-
-        # If there is a prefix, prepend that
-        if self.store_prefix:
-            path = os.path.normpath(os.path.sep.join([self.store_prefix, path]))
 
         self.log.debug('Using door at %s to list directory %s', self.conn.url, path)
 
