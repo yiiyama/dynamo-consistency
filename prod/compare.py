@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# pylint: disable=wrong-import-position, too-complex, too-many-locals, too-many-branches, maybe-no-member, too-many-statements
+# pylint: disable=wrong-import-position, too-complex, too-many-locals, too-many-branches, maybe-no-member, too-many-statements, unexpected-keyword-arg
 
 """
 .. Note::
@@ -61,6 +61,8 @@ import time
 import datetime
 
 from collections import defaultdict
+
+import ListDeletable
 
 from dynamo_consistency import config
 
@@ -157,6 +159,79 @@ class EmptyRemover(object):
         :rtype: int
         """
         return self.removed
+
+
+def clean_unmerged(site):
+    """
+    Lists the /store/unmerged area of a site, and then uses :ref:`unmerged-ref`
+    to list files to delete and adds them to the registry.
+
+    ..Warning::
+
+      This function has a number of side effects to various module configurations.
+      Definitely call this after running the main site consistency.
+
+    :param str site: The site to run the check over
+    :returns: The number of files entered into the register
+    :rtype: int
+    """
+
+    ## First, we do a bunch of hacky configuration changes for /store/unmerged
+
+    # Set the directory list to unmerged only
+    config.DIRECTORYLIST = ['unmerged']
+    # Set the IGNORE_AGE for directories to match the ListDeletable config
+    datatypes.IGNORE_AGE = ListDeletable.config.MIN_AGE
+
+    # Get the list of protected directories
+    ListDeletable.PROTECTED_LIST = ListDeletable.get_protected()
+
+    # Create a tree structure that will hold the protected directories
+    protected_tree = datatypes.DirectoryInfo()
+
+    for directory in ListDeletable.PROTECTED_LIST:
+        protected_tree.get_node(directory)
+
+    # And do a listing of unmerged
+    site_tree = getsitecontents.get_site_tree(
+        site, cache='unmerged',
+        callback=EmptyRemover(  # Remove while checking the protected_tree
+            site, lambda path: bool(protected_tree.get_node(path, make_new=False)))
+        )
+
+    # Setup the config a bit more
+    deletion_file = site + ListDeletable.config.DELETION_FILE
+    ListDeletable.config.DELETION_FILE = deletion_file
+
+    # Reset the protected list in case the listing took a long time
+    ListDeletable.PROTECTED_LIST = ListDeletable.get_protected()
+    ListDeletable.PROTECTED_LIST.sort()
+
+    # Only consider things older than four weeks
+    ListDeletable.get_unmerged_files = lambda: site_tree.get_files(ListDeletable.config.MIN_AGE)
+    # Do the cleaning
+    ListDeletable.main()
+
+    reg_sql = get_registry()
+
+    n_files = 0
+
+    # Clear out files listed in the deletion file
+    for line in open(deletion_file, 'r'):
+        n_files += 1
+        reg_sql.query(
+            """
+            INSERT IGNORE INTO `deletion_queue`
+            (`file`, `site`, `status`) VALUES
+            (%s, %s, 'new')
+            """,
+            line.strip(), site)
+
+
+    reg_sql.close()
+
+    return n_files
+
 
 def main(site):
     """
@@ -451,7 +526,8 @@ def main(site):
                    INNER JOIN block_replicas ON block_replicas.block_id = files.block_id
                    INNER JOIN sites ON block_replicas.site_id = sites.id
                    LEFT JOIN groups ON block_replicas.group_id = groups.id
-                   WHERE files.name = %s AND sites.name = %s """
+                   WHERE files.name = %s AND sites.name = %s
+                   """
 
     with open('%s_compare_missing.txt' % site, 'r') as input_file:
         for line in input_file:
@@ -502,6 +578,12 @@ def main(site):
     shutil.copy('%s_compare_missing.txt' % site, webdir)
     shutil.copy('%s_compare_orphan.txt' % site, webdir)
 
+    unmerged = 0
+    # Do the unmerged stuff
+    if not config_dict['Unmerged'] or site in config_dict['Unmerged']:
+        unmerged = clean_unmerged(site)
+        shutil.copy('%s_unmerged.txt' % site, webdir)
+
     if (os.environ.get('ListAge') is None) and (os.environ.get('InventoryAge') is None):
 
         # Update the runtime stats on the stats page if the listing settings are not changed
@@ -512,14 +594,14 @@ def main(site):
         curs.execute(
             """
             REPLACE INTO stats VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?, ?)
             """.format(5 - is_dst),
             (site, time.time() - start, site_tree.get_num_files(),
              remover.get_removed_count() + site_tree.count_nodes(),
              remover.get_removed_count() + len(site_tree.empty_nodes_list()),
              config_dict.get('NumThreads', config_dict.get('MinThreads', 0)),
              len(missing), m_size, len(orphan), o_size, len(no_source_files),
-             site_tree.get_num_files(unlisted=True)))
+             site_tree.get_num_files(unlisted=True)), unmerged)
 
         conn.commit()
         conn.close()
@@ -542,6 +624,7 @@ def main(site):
 
         with open(os.path.join(webdir, '%s_storage.json' % site), 'w') as storage_file:
             json.dump(storage, storage_file)
+
 
 if __name__ == '__main__':
 

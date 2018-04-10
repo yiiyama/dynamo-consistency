@@ -28,7 +28,7 @@ WHICH_LIST = 'files'
 # The list of directory or file PFNs to delete are placed this file.
 # The default is '/tmp/<WHICH_LIST>_to_delete.txt'.
 
-DELETION_FILE = '_to_delete.txt'
+DELETION_FILE = '_unmerged.txt'
 
 #---------------------------------------------------------------------------------------------------
 # This is the number of seconds between each deletion of a directory or file.

@@ -26,9 +26,6 @@
   ],
   "IgnoreDirectories": [
   ],
-  "BothList": [
-    "T1_US_FNAL"
-  ],
   "GlobalRedirectors": [
     "xrootd-redic.pi.infn.it",
     "cmsxrootd1.fnal.gov"
@@ -39,5 +36,8 @@
   ],
   "WebDir": "www",
   "MaxMissing": 100,
-  "MaxOrphan": 1000
+  "MaxOrphan": 1000,
+  "Unmerged": [
+    "T2_US_MIT"
+  ]
 }

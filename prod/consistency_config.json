@@ -1,4 +1,9 @@
 {
+  "CacheLocation": "/local/dynamo/consistency/cache",
+  "LogLocation": "/local/dynamo/consistency/logs",
+  "WebDir": "/home/dynamo/consistency/web",
+  "MaxMissing": 1000,
+  "MaxOrphan": 10000,
   "Timeout": 300,
   "Retries": 3,
   "NumThreads": 2,
@@ -7,8 +12,6 @@
   "ListAge": 0,
   "IgnoreAge": 5,
   "RedirectorAge": 0,
-  "CacheLocation": "/local/dynamo/consistency/cache",
-  "LogLocation": "/local/dynamo/consistency/logs",
   "Redirectors": {
     "T1_RU_JINR_Disk": "se-xrd01.jinr-t1.ru:1095",
     "T1_FR_CCIN2P3_Disk": "ccxrpli003.in2p3.fr:1095", 
@@ -52,9 +55,6 @@
     "/WGToLNuG_PtG-40_TuneCUETP8M1_14TeV-madgraphMLM-pythia8",
     "/TA_Tleptonic_kappa_aut_LO_madspin-pythia8"
   ],
-  "BothList": [
-    "T1_US_FNALLLL"
-  ],
   "AccessMethod": {
     "T1_UK_RAL_Disk": "SRM",
     "T2_ES_IFCA" : "SRM",
@@ -64,14 +64,13 @@
     "T1_US_FNAL_Disk": "directx"
   }, 
   "GlobalRedirectors": [
-    "xrootd-redic.pi.infn.it",
-    "cmsxrootd1.fnal.gov"
+    "cms-xrd-global.cern.ch"
   ],
   "SaveCache": 1,
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
   ],
-  "WebDir": "/home/dynamo/consistency/web",
-  "MaxMissing": 1000,
-  "MaxOrphan": 10000
+  "Unmerged": [
+    "T2_US_MIT"
+  ]
 }
