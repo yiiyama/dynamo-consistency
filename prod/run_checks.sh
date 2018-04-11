@@ -165,8 +165,8 @@ After that, priority is assigned by the sites that have gone the longest
 without getting a new summary entry in the summary webpage.
 Sites that are currently running are excluded.
 
-If any value for FLAG is given, only sites with more than 1000 missing
-or orphan files will be considered.
+If any value for FLAG is given, only sites with no files listed or
+more than 1000 missing or orphan files will be considered.
 
 =head1 Examples:
 

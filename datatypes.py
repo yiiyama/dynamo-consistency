@@ -326,6 +326,7 @@ class DirectoryInfo(object):
     def get_files(self, min_age=0, path=''):
         """
         Get the list of files that are older than some age
+
         :param int min_age: The minimum age, in seconds, of files to list
         :param str path: The path to this file. Used for recursive calls
         :returns: List of full file paths
@@ -818,6 +819,7 @@ class DirectoryInfo(object):
     def remove_node(self, path_name):
         """
         Remove an empty node from the DirectoryInfo
+
         :param str path_name: The path to the node, including the ``self.name`` at the beginning
         :returns: self for chaining
         :rtype: :py:class:`DirectoryInfo`

@@ -31,6 +31,7 @@ LOG = logging.getLogger(__name__)
 class Lister(object):
     """
     The protoype of the listing facility
+
     :param int thread_num: This optional parameter is only used to
                            Create a separate logger for this object
     :param str site: Used for reading the correct configuration
@@ -49,6 +50,7 @@ class Lister(object):
     def ls_directory(self, path):
         """
         Prototype function that lists the directories
+
         :param str path: The full path, starting with ``/store/``, of the directory to list.
         """
         pass
