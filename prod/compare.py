@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# pylint: disable=import-error, wrong-import-position, unexpected-keyword-arg, too-complex, too-many-locals, too-many-branches, too-many-statements
+# pylint: disable=import-error, wrong-import-position, unexpected-keyword-arg, too-complex, too-many-locals, too-many-branches, too-many-statements, maybe-no-member
 
 """
 .. Note::
