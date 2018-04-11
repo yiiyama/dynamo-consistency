@@ -1,10 +1,6 @@
 *~
-*.out
 *.pyc
-*.bak
 
 test/cache/*
-test/www/*
-prod/*/*
-prod/*.log*
+
 prod/*.txt

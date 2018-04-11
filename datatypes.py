@@ -276,7 +276,6 @@ def create_dirinfo(location, first_dir, filler,
     for proc in processes:
         proc.join()
 
-    #dir_info.setup_hash()
     return dir_info
 
 
@@ -322,6 +321,29 @@ class DirectoryInfo(object):
 
         if directories is not None or files is not None:
             self.add_files(files)
+
+
+    def get_files(self, min_age=0, path=''):
+        """
+        Get the list of files that are older than some age
+
+        :param int min_age: The minimum age, in seconds, of files to list
+        :param str path: The path to this file. Used for recursive calls
+        :returns: List of full file paths
+        :rtype: list
+        """
+
+        output = []
+        for fil in self.files:
+            # Only list old files
+            if (self.timestamp - fil['mtime']) > min_age:
+                output.append(os.path.join(path, self.name, fil['name']))
+
+        for directory in self.directories:
+            output.extend(directory.get_files(min_age, os.path.join(path, self.name)))
+
+        return output
+
 
     def add_files(self, files):
         """
@@ -797,6 +819,7 @@ class DirectoryInfo(object):
     def remove_node(self, path_name):
         """
         Remove an empty node from the DirectoryInfo
+
         :param str path_name: The path to the node, including the ``self.name`` at the beginning
         :returns: self for chaining
         :rtype: :py:class:`DirectoryInfo`
