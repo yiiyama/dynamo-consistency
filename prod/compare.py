@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# pylint: disable=import-error, wrong-import-position, too-complex, too-many-locals, too-many-branches, maybe-no-member, too-many-statements, unexpected-keyword-arg
+# pylint: disable=import-error, wrong-import-position, unexpected-keyword-arg, too-complex, too-many-locals, too-many-branches, too-many-statements
 
 """
 .. Note::
@@ -116,6 +116,30 @@ def get_registry():
                  db='dynamoregister', config_group='mysql-register-test')
 
 
+def deletion(site, files):
+    """
+    Enters files into the deletion queue for a site
+    :param str site: Site to execute deletion
+    :param list files: Full LFNs of files or directories to delete
+    :returns: Number of files deleted, in case ``files`` is an rvalue or something
+    :rtype: int
+    """
+
+    reg_sql = get_registry()
+    for path in files:
+        path = path.strip()
+        LOG.info('Deleting %s', path)
+        reg_sql.query(
+            """
+            INSERT IGNORE INTO `deletion_queue`
+            (`file`, `site`, `status`) VALUES
+            (%s, %s, 'new')
+            """, path, site)
+    reg_sql.close()
+
+    return len(files)
+
+
 class EmptyRemover(object):
     """
     This class handles the removal of empty directories from the tree
@@ -136,22 +160,13 @@ class EmptyRemover(object):
         :type tree: :py:class:`datatypes.DirectoryInfo`
         """
         tree.setup_hash()
-        reg_sql = get_registry()
-        for empty in tree.empty_nodes_list():
-            full = '/store/' + empty
-            # We can prevent most warnings just by checking the length
-            if len(full.split('/')) > 6 and not self.check(full):
-                self.removed += 1
-                LOG.info('Removing directory %s', full)
-                tree.remove_node(empty)
-                reg_sql.query(
-                    """
-                    INSERT IGNORE INTO `deletion_queue`
-                    (`file`, `site`, `status`) VALUES
-                    (%s, %s, 'new')
-                    """, full, self.site)
+        empties = ['/store/' + empty for empty in tree.empty_nodes_list() if \
+                       empty.split('/') > 4 and not self.check('/store/' + empty)]
 
-        reg_sql.close()
+        for path in empties:
+            tree.remove_node(path[7:])
+
+        self.removed += deletion(self.site, empties)
 
     def get_removed_count(self):
         """
@@ -181,10 +196,11 @@ def clean_unmerged(site):
     # Set the directory list to unmerged only
     config.DIRECTORYLIST = ['unmerged']
     # Set the IGNORE_AGE for directories to match the ListDeletable config
-    datatypes.IGNORE_AGE = ListDeletable.config.MIN_AGE
+    datatypes.IGNORE_AGE = ListDeletable.config.MIN_AGE/(24 * 3600)
 
     # Get the list of protected directories
     ListDeletable.PROTECTED_LIST = ListDeletable.get_protected()
+    ListDeletable.PROTECTED_LIST.sort()
 
     # Create a tree structure that will hold the protected directories
     protected_tree = datatypes.DirectoryInfo()
@@ -192,12 +208,33 @@ def clean_unmerged(site):
     for directory in ListDeletable.PROTECTED_LIST:
         protected_tree.get_node(directory)
 
+    def check_protected(path):
+        """
+        Determine if the path should be protected or not
+        :param str path: full path of directory
+        :returns: If the path should be protected
+        :rtype: bool
+        """
+
+        # If the directory is explicitly protected, of course don't delete it
+        if bool(protected_tree.get_node(path, make_new=False)):
+            return True
+
+        for protected in ListDeletable.PROTECTED_LIST:
+            # If a subdirectory, don't delete
+            if path.startswith(protected):
+                return True
+            # We sorted the protected list, so we don't have to check all of them
+            if path < protected:
+                break
+
+        return False
+
+
     # And do a listing of unmerged
     site_tree = getsitecontents.get_site_tree(
         site, cache='unmerged',
-        callback=EmptyRemover(  # Remove while checking the protected_tree
-            site, lambda path: bool(protected_tree.get_node(path, make_new=False)))
-        )
+        callback=EmptyRemover(site, check_protected))
 
     # Setup the config a bit more
     deletion_file = site + ListDeletable.config.DELETION_FILE
@@ -212,25 +249,7 @@ def clean_unmerged(site):
     # Do the cleaning
     ListDeletable.main()
 
-    reg_sql = get_registry()
-
-    n_files = 0
-
-    # Clear out files listed in the deletion file
-    for line in open(deletion_file, 'r'):
-        n_files += 1
-        reg_sql.query(
-            """
-            INSERT IGNORE INTO `deletion_queue`
-            (`file`, `site`, `status`) VALUES
-            (%s, %s, 'new')
-            """,
-            line.strip(), site)
-
-
-    reg_sql.close()
-
-    return n_files
+    return deletion(site, list(open(deletion_file, 'r')))
 
 
 def main(site):
@@ -277,31 +296,6 @@ def main(site):
 
     # All of the files and summary will be dumped here
     webdir = config_dict['WebDir']
-
-    # Open a connection temporarily to make sure we only list good sites
-    status_check = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
-    status = status_check.query('SELECT status FROM sites WHERE name = %s', site)[0]
-
-    if status != 'ready':
-        LOG.error('Site %s status is %s', site, status)
-
-        # Note the attempt to do listing
-        conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
-        curs = conn.cursor()
-        curs.query(
-            """
-            REPLACE INTO stats VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?)
-            """.format(5 - is_dst),
-            (site, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
-
-        conn.commit()
-        conn.close()
-
-        exit(0)
-
-    # Close the connection while we are getting the trees together
-    status_check.close()
 
     inv_tree = getinventorycontents.get_db_listing(site)
 
@@ -389,9 +383,6 @@ def main(site):
 
     inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
 
-    # Enter things for site in registry
-    reg_sql = get_registry()
-
     # Determine if files should be entered into the registry
 
     many_missing = len(missing) > int(config_dict['MaxMissing'])
@@ -404,21 +395,59 @@ def main(site):
     is_debugged = curs.fetchone()[0]
     conn.close()
 
+    # Track files with no sources
+    no_source_files = []
+
     if is_debugged and not many_missing and not many_orphans:
-        def execute(query, *args):
-            """
-            Executes the query on the registry and outputs a log message depending on query
+        # Only get the empty nodes that are not in the inventory tree
+        deletion(site,
+                 orphan + [empty_node for empty_node in site_tree.empty_nodes_list() \
+                               if not inv_tree.get_node('/'.join(empty_node.split('/')[2:]),
+                                                        make_new=False)]
+                )
 
-            :param str query: The SQL query to execute
-            :param args: The arguments to the SQL query
-            """
+        # Enter things for site in registry
+        reg_sql = get_registry()
 
-            reg_sql.query(query, *args)
+        # Setup a query for sites, with added condition at the end
+        site_query = """
+                     SELECT sites.name FROM sites
+                     INNER JOIN block_replicas ON sites.id = block_replicas.site_id
+                     INNER JOIN files ON block_replicas.block_id = files.block_id
+                     WHERE files.name = %s AND sites.name != %s
+                     AND sites.status = 'ready'
+                     AND block_replicas.is_complete = 1
+                     AND group_id != 0
+                     {0}
+                     """
 
-            if 'transfer_queue' in query:
-                LOG.info('Copying %s from %s', args[0], args[1])
-            elif 'deletion_queue' in query:
-                LOG.info('Deleting %s', args[0])
+        for line in missing:
+
+            # Get sites that are not tape
+            sites = inv_sql.query(
+                site_query.format('AND sites.storage_type != "mss"'),
+                line, site)
+
+            if not sites:
+                no_source_files.append(line)
+                sites = inv_sql.query(
+                    site_query.format('AND sites.storage_type = "mss"'),
+                    line, site)
+
+            # Don't add transfers if too many missing files
+            if line in prev_set or not prev_set:
+                for location in sites:
+                    reg_sql.query(
+                        """
+                        INSERT IGNORE INTO `transfer_queue`
+                        (`file`, `site_from`, `site_to`, `status`, `reqid`)
+                        VALUES (%s, %s, %s, 'new', 0)
+                        """,
+                        line, location, site)
+
+                    LOG.info('Copying %s from %s', line, location)
+
+        reg_sql.close()
 
     else:
         if many_missing:
@@ -428,84 +457,6 @@ def main(site):
             LOG.error('Too many orphan files: %i out of %i, you should investigate.',
                       len(orphan), site_tree.get_num_files())
 
-        execute = lambda *_: 0
-
-    # Then do entries, if the site is in the debugged status
-
-    def add_transfers(line, sites):
-        """
-        Add the file into the transfer queue for multiple sites.
-
-        :param str line: The file LFN to transfer
-        :param list sites: Sites to try to transfer from
-        :returns: Whether or not the entry was a success
-        :rtype: bool
-        """
-
-        # Don't add transfers if too many missing files
-        if line in prev_set or not prev_set:
-            for location in sites:
-                execute(
-                    """
-                    INSERT IGNORE INTO `transfer_queue`
-                    (`file`, `site_from`, `site_to`, `status`, `reqid`)
-                    VALUES (%s, %s, %s, 'new', 0)
-                    """,
-                    line, location, site)
-
-        return bool(sites)
-
-
-    # Setup a query for sites, with added condition at the end
-    site_query = """
-                 SELECT sites.name FROM sites
-                 INNER JOIN block_replicas ON sites.id = block_replicas.site_id
-                 INNER JOIN files ON block_replicas.block_id = files.block_id
-                 WHERE files.name = %s AND sites.name != %s
-                 AND sites.status = 'ready'
-                 AND block_replicas.is_complete = 1
-                 AND group_id != 0
-                 {0}
-                 """
-
-    # Track files with no sources
-    no_source_files = []
-
-    for line in missing:
-
-        # Get sites that are not tape
-        sites = inv_sql.query(
-            site_query.format('AND sites.storage_type != "mss"'),
-            line, site)
-
-        if not add_transfers(line, sites):
-            # Track files without disk source
-            no_source_files.append(line)
-
-            # Get sites that are tape
-            sites = inv_sql.query(
-                site_query.format('AND sites.storage_type = "mss"'),
-                line, site)
-
-            add_transfers(line, sites)
-
-
-
-    # Only get the empty nodes that are not in the inventory tree
-    for line in orphan + \
-            [empty_node for empty_node in site_tree.empty_nodes_list() \
-                 if not inv_tree.get_node('/'.join(empty_node.split('/')[2:]),
-                                          make_new=False)]:
-        execute(
-            """
-            INSERT IGNORE INTO `deletion_queue`
-            (`file`, `site`, `status`) VALUES
-            (%s, %s, 'new')
-            """,
-            line, site)
-
-
-    reg_sql.close()
 
 
     with open('%s_missing_nosite.txt' % site, 'w') as nosite:
@@ -601,7 +552,7 @@ def main(site):
              remover.get_removed_count() + len(site_tree.empty_nodes_list()),
              config_dict.get('NumThreads', config_dict.get('MinThreads', 0)),
              len(missing), m_size, len(orphan), o_size, len(no_source_files),
-             site_tree.get_num_files(unlisted=True)), unmerged)
+             site_tree.get_num_files(unlisted=True), unmerged))
 
         conn.commit()
         conn.close()

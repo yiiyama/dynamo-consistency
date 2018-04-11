@@ -276,7 +276,6 @@ def create_dirinfo(location, first_dir, filler,
     for proc in processes:
         proc.join()
 
-    #dir_info.setup_hash()
     return dir_info
 
 

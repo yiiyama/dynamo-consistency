@@ -11,5 +11,5 @@ DELETION_FILE = '_unmerged.txt'
 SLEEP_TIME = 0.5
 DIRS_TO_AVOID = ['SAM', 'logs']
 # The default (1209600) corresponds to two weeks.
-MIN_AGE = 1209600 * 2
+MIN_AGE = 1209600
 STORAGE_TYPE = 'posix'
