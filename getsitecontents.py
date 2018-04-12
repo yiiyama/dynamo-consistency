@@ -79,7 +79,8 @@ class Lister(object):
         # Skip over paths that include part of the list of ignored directories
         for pattern in self.ignore_list:
             if pattern in path:
-                return True, [], []
+                LOG.warning('Ignoring %s because of ignored pattern %s', path, pattern)
+                return False, [], []
 
         if retries >= self.tries:
             self.log.error('Giving up on %s due to too many retries', path)

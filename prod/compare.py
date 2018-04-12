@@ -162,12 +162,14 @@ class EmptyRemover(object):
     This class handles the removal of empty directories from the tree
     by behaving as a callback.
     :param str site: Site name
-    :param function check: The function to check against orphans to not delete
+    :param function check: The function to check against orphans to not delete.
+                           The full path name is passed to the function.
+                           If it returns ``True``, the directory is not deleted.
     """
 
-    def __init__(self, site, check):
+    def __init__(self, site, check=None):
         self.site = site
-        self.check = check
+        self.check = check or (lambda _: False)
         self.removed = 0
 
     def __call__(self, tree):
@@ -177,11 +179,20 @@ class EmptyRemover(object):
         :type tree: :py:class:`datatypes.DirectoryInfo`
         """
         tree.setup_hash()
-        empties = ['/store/' + empty for empty in tree.empty_nodes_list() if \
-                       empty.split('/') > 4 and not self.check('/store/' + empty)]
+        empties = ['/store/' + empty for empty in tree.empty_nodes_list() \
+                       if not self.check('/store/' + empty)]
+
+        not_empty = []
 
         for path in empties:
-            tree.remove_node(path[7:])
+            try:
+                tree.remove_node(path[7:])
+            except datatypes.NotEmpty as msg:
+                LOG.warning('While removing %s: %s', path, msg)
+                not_empty.append(path)
+
+        for path in not_empty:
+            empties.remove(path)
 
         self.removed += deletion(self.site, empties)
 
@@ -386,7 +397,8 @@ def main(site):
     # Reset the DirectoryList for the XRootDLister to run on
     config.DIRECTORYLIST = [directory.name for directory in inv_tree.directories]
 
-    remover = EmptyRemover(site, check_orphans)
+    # Directories too short to be checked shouldn't be deleted yet
+    remover = EmptyRemover(site)
     site_tree = getsitecontents.get_site_tree(site, remover)
 
     # Do the comparison

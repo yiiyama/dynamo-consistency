@@ -46,6 +46,7 @@
   "IgnoreDirectories": [
     "/SAM",
     "/HCTest",
+    "/HCtest",
     "/GenericTTbar",
     "/EWKWPlus2Jets_WToLNu_M-50_14TeV-madgraph-pythia8",
     "/VBFToHHTo4B_SM_14TeV-madgraph-pythia8",
