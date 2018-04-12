@@ -393,8 +393,7 @@ def main(site):
     config.DIRECTORYLIST = [directory.name for directory in inv_tree.directories]
 
     # Directories too short to be checked shouldn't be deleted yet
-    remover = EmptyRemover(
-        site, lambda path: True in [d in path for d in config_dict['IgnoreDirectories']])
+    remover = EmptyRemover(site)
     site_tree = getsitecontents.get_site_tree(site, remover)
 
     # Do the comparison
