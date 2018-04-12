@@ -182,12 +182,17 @@ class EmptyRemover(object):
         empties = ['/store/' + empty for empty in tree.empty_nodes_list() \
                        if not self.check('/store/' + empty)]
 
+        not_empty = []
+
         for path in empties:
             try:
                 tree.remove_node(path[7:])
             except datatypes.NotEmpty as msg:
                 LOG.warning('While removing %s: %s', path, msg)
-                empties.remove(path)
+                not_empty.append(path)
+
+        for path in not_empty:
+            empties.remove(path)
 
         self.removed += deletion(self.site, empties)
 
