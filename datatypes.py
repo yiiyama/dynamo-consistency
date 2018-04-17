@@ -556,6 +556,19 @@ class DirectoryInfo(object):
         return sum([di.get_directory_size() for di in self.directories],
                    sum([fi['size'] for fi in self.files]))
 
+    def get_unlisted(self, path=''):
+        """
+        :param str path: Path to prepend to the name, used in recursive calls
+        :returns: List of directories that were unlisted
+        :rtype: list
+        """
+        here = os.path.join(path, self.name)
+        output = [name for d in self.directories for name in d.get_unlisted(here)]
+        if '_unlisted_' in [f['name'] for f in self.files]:
+            output.append(here)
+
+        return output
+
     def get_num_files(self, unlisted=False, place_new=False):
         """ Report the total number of files stored.
 

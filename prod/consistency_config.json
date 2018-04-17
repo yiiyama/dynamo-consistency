@@ -2,7 +2,7 @@
   "CacheLocation": "/local/dynamo/consistency/cache",
   "LogLocation": "/local/dynamo/consistency/logs",
   "WebDir": "/home/dynamo/consistency/web",
-  "MaxMissing": 1000,
+  "MaxMissing": 10000,
   "MaxOrphan": 10000,
   "Timeout": 300,
   "Retries": 3,
