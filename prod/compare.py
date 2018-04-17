@@ -568,18 +568,27 @@ def main(site):
         conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
         curs = conn.cursor()
 
+        unlisted = site_tree.get_num_files(unlisted=True)
+
         curs.execute('INSERT INTO stats_history SELECT * FROM stats WHERE site=?', (site, ))
         curs.execute(
             """
-            REPLACE INTO stats VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?, ?)
+            REPLACE INTO stats
+            (`site`, `time`, `files`, `nodes`, `emtpy`, `cores`, `missing`, `m_size`,
+             `orphan`, `o_size`, `entered`, `nosource`, `unlisted`, `unmerged`, `unlisted_bad`)
+            VALUES
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?, ?, ?)
             """.format(5 - is_dst),
             (site, time.time() - start, site_tree.get_num_files(),
              remover.get_removed_count() + site_tree.count_nodes(),
              remover.get_removed_count() + len(site_tree.empty_nodes_list()),
              config_dict.get('NumThreads', config_dict.get('MinThreads', 0)),
              len(missing), m_size, len(orphan), o_size, len(no_source_files),
-             site_tree.get_num_files(unlisted=True), unmerged))
+             len(unlisted), unmerged,
+             len([d for d in unlisted \
+                      if True not in [i in d for i in config_dict['IgnoreDirectories']]])
+            )
+        )
 
         conn.commit()
         conn.close()
