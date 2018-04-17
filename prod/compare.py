@@ -571,7 +571,10 @@ def main(site):
         curs.execute('INSERT INTO stats_history SELECT * FROM stats WHERE site=?', (site, ))
         curs.execute(
             """
-            REPLACE INTO stats VALUES
+            REPLACE INTO stats
+            (`site`, `time`, `files`, `nodes`, `emtpy`, `cores`, `missing`, `m_size`,
+             `orphan`, `o_size`, `entered`, `nosource`, `unlisted`, `unmerged`)
+            VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?, ?)
             """.format(5 - is_dst),
             (site, time.time() - start, site_tree.get_num_files(),
