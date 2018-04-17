@@ -327,6 +327,13 @@ def main(site):
 
     inv_tree = getinventorycontents.get_db_listing(site)
 
+    # Reset the DirectoryList for the XRootDLister to run on
+    config.DIRECTORYLIST = [directory.name for directory in inv_tree.directories]
+
+    # Directories too short to be checked shouldn't be deleted yet
+    remover = EmptyRemover(site)
+    site_tree = getsitecontents.get_site_tree(site, remover)
+
     # Create the function to check orphans and missing
 
     # First, datasets in the deletions queue can be missing
@@ -393,13 +400,6 @@ def main(site):
     check_missing = lambda x: double_check(x, acceptable_missing)
 
     inv_sql.close()
-
-    # Reset the DirectoryList for the XRootDLister to run on
-    config.DIRECTORYLIST = [directory.name for directory in inv_tree.directories]
-
-    # Directories too short to be checked shouldn't be deleted yet
-    remover = EmptyRemover(site)
-    site_tree = getsitecontents.get_site_tree(site, remover)
 
     # Do the comparison
     missing, m_size, orphan, o_size = datatypes.compare(
