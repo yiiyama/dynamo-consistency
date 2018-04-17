@@ -568,7 +568,7 @@ def main(site):
         conn = sqlite3.connect(os.path.join(webdir, 'stats.db'))
         curs = conn.cursor()
 
-        unlisted = site_tree.get_num_files(unlisted=True)
+        unlisted = site_tree.get_unlisted()
 
         curs.execute('INSERT INTO stats_history SELECT * FROM stats WHERE site=?', (site, ))
         curs.execute(
