@@ -336,7 +336,7 @@ class DirectoryInfo(object):
         output = []
         for fil in self.files:
             # Only list old files
-            if (self.timestamp - fil['mtime']) > min_age:
+            if (self.timestamp - fil['mtime']) > min_age and fil['name'] != '_unlisted_':
                 output.append(os.path.join(path, self.name, fil['name']))
 
         for directory in self.directories:
