@@ -446,6 +446,13 @@ class TestUnlisted(TestBase):
         self.assertEqual(len(self.unlisted_tree.get_unlisted()),
                          self.unlisted_tree.get_num_files(unlisted=True))
 
+    def test_file_list(self):
+        files = self.unlisted_tree.get_files()
+        self.assertTrue('/store/mc/ttThings/0001/zxcvb.root' in files)
+        self.assertFalse('/store/mc/ttThings/0000/_unlisted_' in files)
+        self.assertFalse(False in [f.endswith('.root') for f in files])
+        self.assertEqual(len(files), 3)
+
 
 class TestUnfilled(TestBase):
     # This is for testing the tree behavior when some of the DirectoryInfo.files is None
