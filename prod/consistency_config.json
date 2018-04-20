@@ -71,7 +71,5 @@
   "UseLoadBalancer": [
     "T2_US_Vanderbilt"
   ],
-  "Unmerged": [
-    "T2_US_MIT"
-  ]
+  "Unmerged": []
 }

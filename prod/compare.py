@@ -262,7 +262,7 @@ def clean_unmerged(site):
     # And do a listing of unmerged
     site_tree = getsitecontents.get_site_tree(
         site, cache='unmerged',
-        callback=EmptyRemover(site, check_protected))
+        callback=EmptyRemover(site, check_protected) if site == 'T2_US_MIT' else None)
 
     # Setup the config a bit more
     deletion_file = site + ListDeletable.config.DELETION_FILE
@@ -277,7 +277,12 @@ def clean_unmerged(site):
     # Do the cleaning
     ListDeletable.main()
 
-    return deletion(site, list(open(deletion_file, 'r')))
+    to_delete = list(open(deletion_file, 'r'))
+
+    if site != 'T2_US_MIT':
+        to_delete = to_delete[:10]
+
+    return deletion(site, to_delete)
 
 
 def main(site):
