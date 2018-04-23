@@ -161,7 +161,8 @@ class EmptyRemover(object):
     """
     This class handles the removal of empty directories from the tree
     by behaving as a callback.
-    :param str site: Site name
+    :param str site: Site name. If value is ``None``, then don't enter deletions
+                     into the registry, but still remove node from tree
     :param function check: The function to check against orphans to not delete.
                            The full path name is passed to the function.
                            If it returns ``True``, the directory is not deleted.
@@ -194,7 +195,7 @@ class EmptyRemover(object):
         for path in not_empty:
             empties.remove(path)
 
-        self.removed += deletion(self.site, empties)
+        self.removed += deletion(self.site, empties) if self.site else len(empties)
 
     def get_removed_count(self):
         """
