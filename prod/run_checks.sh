@@ -18,7 +18,7 @@ else
 fi
 
 # Make sure we have enough memory free or cached (6 GBi)
-test $(perl -nae 'if (/^(MemFree|Cached):/) { $sum += $F[1] } } END { print "$sum"' /proc/meminfo) -gt 6000000 || exit 0
+test $(perl -nae 'if (/^(MemFree|Cached):/) { $sum += $F[1] } } END { print "$sum"' /proc/meminfo) -gt 20000000 || exit 0
 
 # Add jq to the system path
 PATH=$PATH:/home/dabercro/bin

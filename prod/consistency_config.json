@@ -23,7 +23,6 @@
     "T2_FR_CCIN2P3": "ccxrpli003.in2p3.fr:1094",
     "T2_FR_GRIF_LLR": "llrpp01.in2p3.fr:11001",
     "T2_FR_GRIF_IRFU": "node12.datagrid.cea.fr:11001",
-    "T2_KR_KNU":  "cluster142.knu.ac.kr:1094",
     "T2_IT_Bari": "ss-01.recas.ba.infn.it:8080",
     "T2_IT_Rome": "cmsrm-xrootd02.roma1.infn.it:7070",
     "T2_PK_NCP" : "pcncp22.ncp.edu.pk:11001",
@@ -33,7 +32,8 @@
   },
   "PathPrefix": {
     "T2_UK_London_Brunel": "/cms",
-    "T2_FR_IPHC": "/cms/phedex"
+    "T2_FR_IPHC": "/cms/phedex",
+    "T2_KR_KISTI": "/pnfs/sdfarm.kr/data/cms"
   },
   "DirectoryList": [
     "mc",
