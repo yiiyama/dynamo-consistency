@@ -449,9 +449,17 @@ class TestUnlisted(TestBase):
     def test_file_list(self):
         files = self.unlisted_tree.get_files()
         self.assertTrue('/store/mc/ttThings/0001/zxcvb.root' in files)
+        self.assertTrue('/store/data/runB/earlyfile.root' in files)
         self.assertFalse('/store/mc/ttThings/0000/_unlisted_' in files)
         self.assertFalse(False in [f.endswith('.root') for f in files])
         self.assertEqual(len(files), 3)
+        # Make sure that the min age for file list is working
+        self.assertFalse(self.unlisted_tree.get_files(time.time() + 100))
+
+        # Path behavior: Add name automatically, path parent directory to path argument
+        subdir = self.unlisted_tree.get_node('mc').get_files(path='/store')
+        self.assertTrue('/store/mc/ttThings/0001/zxcvb.root' in subdir)
+        self.assertFalse('/store/data/runB/earlyfile.root' in subdir)
 
 
 class TestUnfilled(TestBase):
