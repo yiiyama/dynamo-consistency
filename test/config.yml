@@ -31,6 +31,7 @@
 #   on a single directory before it times out.
 # - **Unmerged** - A list of sites to handle cleaning of ``/store/unmerged`` on.
 #   If the list is empty, all the sites are managed centrally
+# - **UnmergedLogsAge** - The minimum age of the unmerged logs to be deleted, in days
 # - **UseLoadBalancer** - A list of sites where the main redirector of the site is used
 # - **WebDir** - The directory where text files and the sqlite3 database live
 #
@@ -94,3 +95,5 @@ MaxOrphan: 1000
 
 Unmerged:
   - T2_US_MIT
+
+UnmergedLogsAge: 60

@@ -161,7 +161,8 @@ class EmptyRemover(object):
     """
     This class handles the removal of empty directories from the tree
     by behaving as a callback.
-    :param str site: Site name
+    :param str site: Site name. If value is ``None``, then don't enter deletions
+                     into the registry, but still remove node from tree
     :param function check: The function to check against orphans to not delete.
                            The full path name is passed to the function.
                            If it returns ``True``, the directory is not deleted.
@@ -194,7 +195,7 @@ class EmptyRemover(object):
         for path in not_empty:
             empties.remove(path)
 
-        self.removed += deletion(self.site, empties)
+        self.removed += deletion(self.site, empties) if self.site else len(empties)
 
     def get_removed_count(self):
         """
@@ -277,7 +278,16 @@ def clean_unmerged(site):
     # Do the cleaning
     ListDeletable.main()
 
-    return deletion(site, list(open(deletion_file, 'r')))
+    # Delete the contents of the deletion file and the contents of the log directory that are old
+    with open(deletion_file, 'a') as d_file:
+        d_file.write('\n'.join(
+            site_tree.get_node('unmerged/logs').get_files(
+                min_age=(int(config.config_dict()['UnmergedLogsAge']) * 24 * 3600),
+                path='/store/unmerged')))
+
+    to_delete = list(open(deletion_file, 'r'))
+
+    return deletion(site, to_delete)
 
 
 def main(site):
@@ -558,7 +568,8 @@ def main(site):
 
     unmerged = 0
     # Do the unmerged stuff
-    if not config_dict['Unmerged'] or site in config_dict['Unmerged']:
+    if (not config_dict['Unmerged'] or site in config_dict['Unmerged']) and \
+            (os.environ.get('ListAge') is None) and (os.environ.get('InventoryAge') is None):
         unmerged = clean_unmerged(site)
         shutil.copy('%s_unmerged.txt' % site, webdir)
 
