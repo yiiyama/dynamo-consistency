@@ -278,6 +278,13 @@ def clean_unmerged(site):
     # Do the cleaning
     ListDeletable.main()
 
+    # Delete the contents of the deletion file and the contents of the log directory that are old
+    with open(deletion_file, 'a') as d_file:
+        d_file.write('\n'.join(
+                site_tree.get_node('unmerged/logs').get_files(
+                    min_age=(int(config.config_dict()['UnmergedLogsAge']) * 24 * 3600),
+                    path='/store/unmerged')))
+
     to_delete = list(open(deletion_file, 'r'))
 
     return deletion(site, to_delete)

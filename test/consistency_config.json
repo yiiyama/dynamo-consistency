@@ -39,5 +39,6 @@
   "MaxOrphan": 1000,
   "Unmerged": [
     "T2_US_MIT"
-  ]
+  ],
+  "UnmergedLogsAge": 60
 }

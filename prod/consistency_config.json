@@ -134,5 +134,6 @@
   "T2_US_UCSD",
   "T2_US_Vanderbilt",
   "T2_US_Wisconsin"
-  ]
+  ],
+  "UnmergedLogsAge": 60
 }
