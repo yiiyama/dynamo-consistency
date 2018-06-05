@@ -561,7 +561,8 @@ def main(site):
 
     unmerged = 0
     # Do the unmerged stuff
-    if not config_dict['Unmerged'] or site in config_dict['Unmerged']:
+    if (not config_dict['Unmerged'] or site in config_dict['Unmerged']) and \
+            (os.environ.get('ListAge') is None) and (os.environ.get('InventoryAge') is None):
         unmerged = clean_unmerged(site)
         shutil.copy('%s_unmerged.txt' % site, webdir)
 
