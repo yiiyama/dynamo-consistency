@@ -216,8 +216,8 @@ def clean_unmerged(site):
       Definitely call this after running the main site consistency.
 
     :param str site: The site to run the check over
-    :returns: The number of files entered into the register
-    :rtype: int
+    :returns: The number of files entered into the register and the number that are logs
+    :rtype: (int, int)
     """
 
     ## First, we do a bunch of hacky configuration changes for /store/unmerged
@@ -288,7 +288,7 @@ def clean_unmerged(site):
 
     to_delete = list(open(deletion_file, 'r'))
 
-    return deletion(site, to_delete)
+    return deletion(site, to_delete), len([f for f in to_delete if f.endswith('.tar.gz')])
 
 
 def main(site):
@@ -435,6 +435,7 @@ def main(site):
 
     # Track files with no sources
     no_source_files = []
+    unrecoverable = []
 
     if is_debugged and not many_missing and not many_orphans:
         # Only get the empty nodes that are not in the inventory tree
@@ -471,6 +472,9 @@ def main(site):
                 sites = inv_sql.query(
                     site_query.format('AND sites.storage_type = "mss"'),
                     line, site)
+                # If still no sites, we are not getting this file back
+                if not sites:
+                    unrecoverable.append(line)
 
             # Don't add transfers if too many missing files
             if line in prev_set or not prev_set:
@@ -560,18 +564,23 @@ def main(site):
                                       (block['errors'], block['group'],
                                        dataset, block_name))
 
+    with open('%s_unrecoverable.txt' % site, 'w') as output_file:
+        output_file.write('\n'.join(unrecoverable))
+
     # If there were permissions or connection issues, no files would be listed
     # Otherwise, copy the output files to the web directory
     shutil.copy('%s_missing_datasets.txt' % site, webdir)
     shutil.copy('%s_missing_nosite.txt' % site, webdir)
     shutil.copy('%s_compare_missing.txt' % site, webdir)
     shutil.copy('%s_compare_orphan.txt' % site, webdir)
+    shutil.copy('%s_unrecoverable.txt' % site, webdir)
 
     unmerged = 0
+    unmergedlogs = 0
     # Do the unmerged stuff
     if (not config_dict['Unmerged'] or site in config_dict['Unmerged']) and \
             (os.environ.get('ListAge') is None) and (os.environ.get('InventoryAge') is None):
-        unmerged = clean_unmerged(site)
+        unmerged, unmergedlogs = clean_unmerged(site)
         shutil.copy('%s_unmerged.txt' % site, webdir)
 
     if (os.environ.get('ListAge') is None) and (os.environ.get('InventoryAge') is None):
@@ -587,9 +596,10 @@ def main(site):
             """
             REPLACE INTO stats
             (`site`, `time`, `files`, `nodes`, `emtpy`, `cores`, `missing`, `m_size`,
-             `orphan`, `o_size`, `entered`, `nosource`, `unlisted`, `unmerged`, `unlisted_bad`)
+             `orphan`, `o_size`, `entered`, `nosource`, `unlisted`, `unmerged`, `unlisted_bad`,
+             `unrecoverable`, `unmergedlogs`)
             VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME(DATETIME(), "-{0} hours"), ?, ?, ?, ?, ?, ?)
             """.format(5 - is_dst),
             (site, time.time() - start, site_tree.get_num_files(),
              remover.get_removed_count() + site_tree.count_nodes(),
@@ -598,7 +608,8 @@ def main(site):
              len(missing), m_size, len(orphan), o_size, len(no_source_files),
              len(unlisted), unmerged,
              len([d for d in unlisted \
-                      if True not in [i in d for i in config_dict['IgnoreDirectories']]])
+                      if True not in [i in d for i in config_dict['IgnoreDirectories']]]),
+             len(unrecoverable), unmergedlogs
             )
         )
 
