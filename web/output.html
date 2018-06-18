@@ -48,7 +48,7 @@
             Num Missing
           </th>
           <th onclick="sorttable(9)">
-            No Source
+            No Disk
           </th>
           <th onclick="sorttable(10)">
             Size [TB]
@@ -72,7 +72,7 @@
            $long_background = ' style="background-color:#ffff66;"';
 
            $background_missing = ($row['missing'] > $config['MaxMissing']) ? $bad_background : '';
-           $background_nosource = ($row['nosource'] > $config['MaxMissing']) ? $bad_background : '';
+           $background_nosource = ($row['unrecoverable'] != 0) ? $bad_background : '';
            $background_orphan = ($row['orphan'] > $config['MaxOrphan']) ? $bad_background : '';
            $background_files = ($row['files'] == 0) ? $bad_background : '';
            $background_unlisted = ($row['unlisted_bad'] != 0) ? $bad_background : '';
@@ -104,14 +104,14 @@
            $background_time = ((strtotime($row['entered']) + 24 * 3600) > time()) ? $good_background : '';
 
            $html_row = sprintf(
-             '<td%s><a href="?history=%s">%s</a></td><td%s><a href="%s.log">%s</a>%s</td><td>%.0f</td><td%s><a href="%s_storage.json">%d</a></td><td>%d</td><td%s><a href="%s_unlisted.txt">%d</a> [%d bad]</td><td>%d</td><td%s><a href="%s_compare_missing.txt">%d</a> [<a href="%s_missing_datasets.txt">blocks</a>]</td><td%s><a href="%s_missing_nosite.txt">%d</a></td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td><td><a href="%s_unmerged.txt">%d</a></td>',
+             '<td%s><a href="?history=%s">%s</a></td><td%s><a href="%s.log">%s</a>%s</td><td>%.0f</td><td%s><a href="%s_storage.json">%d</a></td><td>%d</td><td%s><a href="%s_unlisted.txt">%d</a> [%d bad]</td><td>%d</td><td%s><a href="%s_compare_missing.txt">%d</a> [<a href="%s_missing_datasets.txt">blocks</a>]</td><td%s><a href="%s_missing_nosite.txt">%d</a> [<a href="%s_unrecoverable.txt">%d</a> no tape]</td><td>%.2f</td><td%s><a href="%s_compare_orphan.txt">%d</a></td><td>%.2f</td><td><a href="%s_unmerged.txt">%d [%d logs]</a></td>',
              $background_time, $row['site'], $row['entered'],
              $background_site, $row['site'], $row['site'], $tooltip, $row['time']/60.,
              $background_files, $row['site'], $row['files'], $row['nodes'], 
              $background_unlisted, $row['site'], $row['unlisted'], $row['unlisted_bad'], $row['emtpy'],
              $background_missing, $row['site'], $row['missing'], $row['site'],
-             $background_nosource, $row['site'], $row['nosource'], $row['m_size']/pow(1024.,4),
-             $background_orphan, $row['site'], $row['orphan'], $row['o_size']/pow(1024.,4), $row['site'], $row['unmerged']);
+             $background_nosource, $row['site'], $row['nosource'], $row['site'], $row['unrecoverable'], $row['m_size']/pow(1024.,4),
+             $background_orphan, $row['site'], $row['orphan'], $row['o_size']/pow(1024.,4), $row['site'], $row['unmerged'], $row['unmergedlogs']);
 
            if (isset($_GET['history'])) {
              $html_row = strip_tags($html_row, '<td>');

@@ -288,7 +288,7 @@ def clean_unmerged(site):
 
     to_delete = list(open(deletion_file, 'r'))
 
-    return deletion(site, to_delete), len([f for f in to_delete if f.endswith('.tar.gz')])
+    return deletion(site, to_delete), len([f for f in to_delete if f.strip().endswith('.tar.gz')])
 
 
 def main(site):
