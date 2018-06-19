@@ -278,15 +278,62 @@ def clean_unmerged(site):
     # Do the cleaning
     ListDeletable.main()
 
+    config_dict = config.config_dict()
+
     # Delete the contents of the deletion file and the contents of the log directory that are old
     if site_tree.get_node('unmerged/logs', make_new=False):
         with open(deletion_file, 'a') as d_file:
             d_file.write('\n'.join(
                 site_tree.get_node('unmerged/logs').get_files(
-                    min_age=(int(config.config_dict()['UnmergedLogsAge']) * 24 * 3600),
+                    min_age=(int(config_dict['UnmergedLogsAge']) * 24 * 3600),
                     path='/store/unmerged')))
 
-    to_delete = list(open(deletion_file, 'r'))
+    to_delete = set()
+    with open(deletion_file, 'r') as d_file:
+        to_delete.update([l.strip() for l in d_file])
+
+    # dump undeleted unmerged files into an SQL database
+    conn = sqlite3.connect('%s_protected.db' % site)
+    curs = conn.cursor()
+    currdir = 'fake_start'
+    dirid = 1
+    currcontents = []
+    curs.execute('CREATE TABLE timestamp (timestamp DATETIME);')
+    curs.execute('CREATE TABLE directories (id INT PRIMARY KEY, dirname VARCHAR(511));')
+    curs.execute("""
+                 CREATE TABLE files (dir INT, file CHAR(63),
+                                     FOREIGN KEY(dir) REFERENCES directories(id));
+                 """)
+    curs.execute("""
+                 INSERT INTO timestamp (`timestamp`) VALUES (DATETIME({0}, 'unixepoch'));
+                 """.format(site_tree.timestamp))
+    for fname in site_tree.get_files():
+        if fname in to_delete:
+            continue
+        if fname.startswith(currdir):
+            currcontents.append(os.path.basename(fname))
+        else:
+            if currcontents:
+                curs.execute('INSERT INTO directories (`id`, `dirname`) VALUES (?, ?);',
+                             (dirid, currdir))
+                curs.executemany('INSERT INTO files (`dir`, `file`) VALUES (?, ?);',
+                                 [(dirid, f) for f in currcontents])
+                dirid += 1
+
+            currdir = os.path.dirname(fname)
+            currcontents = [os.path.basename(fname)]
+
+    if currcontents:
+        curs.execute('INSERT INTO directories (`id`, `dirname`) VALUES (?, ?);',
+                     (dirid, currdir))
+        curs.executemany('INSERT INTO files (`dir`, `file`) VALUES (?, ?);',
+                         [(dirid, f) for f in currcontents])
+
+    conn.commit()
+    conn.close()
+
+    # Move this over to the web directory
+    shutil.move('%s_protected.db' % site, config_dict['WebDir'])
 
     return deletion(site, to_delete), len([f for f in to_delete if f.strip().endswith('.tar.gz')])
 
