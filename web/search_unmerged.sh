@@ -5,7 +5,7 @@ directory=$2
 
 if [ -z $directory ]
 then
-    echo "USEAGE: $0 SITE DIRECTORY"
+    echo "USAGE: $0 SITE DIRECTORY"
     echo ""
     echo "Prints the time the last complete unmerged listing started for SITE"
     echo "and the files that were protected from deletion in DIRECTORY"
@@ -35,8 +35,8 @@ download_file consistency_config.json
 if perl -e '
 $/ = undef; my $fc = <>;                      # Read in config file as one string
 $fc =~ /IgnoreDir.*?\[\s*"([^\]]*)/;          # Turn the IgnoreDirectories
-my $expr = join(")|(", split(/[\s",]+/, $1)); #   into a regex
-"'$directory'" =~ qr"($expr)" || die' consistency_config.json &> /dev/null
+my $expr = join("|", split(/[\s",]+/, $1));   #   into a regex
+"'$directory'" =~ qr"$expr" || die' consistency_config.json &> /dev/null
 then
     echo ""
     echo "Unfortunately, the directory you are asking for is one of the ones we ignore."
