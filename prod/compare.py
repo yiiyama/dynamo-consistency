@@ -293,17 +293,20 @@ def clean_unmerged(site):
         to_delete.update([l.strip() for l in d_file])
 
     # dump undeleted unmerged files into an SQL database
-    conn = sqlite3.connect('%s_protected.sql' % site)
+    conn = sqlite3.connect('%s_protected.db' % site)
     curs = conn.cursor()
     currdir = 'fake_start'
     dirid = 1
     currcontents = []
+    curs.execute('CREATE TABLE timestamp (timestamp DATETIME);')
+    curs.execute('CREATE TABLE directories (id INT PRIMARY KEY, dirname VARCHAR(511));')
     curs.execute("""
-      CREATE TABLE timestamp (timestamp DATETIME);
-      CREATE TABLE directories (id INT PRIMARY KEY, dirname VARCHAR(511));
-      CREATE TABLE files (dir INT, file VARCHAR(127), FOREIGN KEY(dir) REFERENCES directories(id));
-      INSERT INTO timestamp (`timestamp`) VALUES (DATETIME({0}, 'unixepoch'));
-      """.format(site_tree.timestamp))
+                 CREATE TABLE files (dir INT, file CHAR(63),
+                                     FOREIGN KEY(dir) REFERENCES directories(id));
+                 """)
+    curs.execute("""
+                 INSERT INTO timestamp (`timestamp`) VALUES (DATETIME({0}, 'unixepoch'));
+                 """.format(site_tree.timestamp))
     for fname in site_tree.get_files():
         if fname in to_delete:
             continue
@@ -312,7 +315,7 @@ def clean_unmerged(site):
         else:
             if currcontents:
                 curs.execute('INSERT INTO directories (`id`, `dirname`) VALUES (?, ?);',
-                             dirid, currdir)
+                             (dirid, currdir))
                 curs.executemany('INSERT INTO files (`dir`, `file`) VALUES (?, ?);',
                                  [(dirid, f) for f in currcontents])
                 dirid += 1
@@ -322,7 +325,7 @@ def clean_unmerged(site):
 
     if currcontents:
         curs.execute('INSERT INTO directories (`id`, `dirname`) VALUES (?, ?);',
-                     dirid, currdir)
+                     (dirid, currdir))
         curs.executemany('INSERT INTO files (`dir`, `file`) VALUES (?, ?);',
                          [(dirid, f) for f in currcontents])
 
@@ -330,7 +333,7 @@ def clean_unmerged(site):
     conn.close()
 
     # Move this over to the web directory
-    shutil.move('%s_protected.sql' % site, config_dict['WebDir'])
+    shutil.move('%s_protected.db' % site, config_dict['WebDir'])
 
     return deletion(site, to_delete), len([f for f in to_delete if f.strip().endswith('.tar.gz')])
 
