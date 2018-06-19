@@ -15,7 +15,7 @@ fi
 download_file () {
     target=$1
 
-    # If file does not exist, or it is not more than 15 minutes old, try to download again
+    # If file does not exist, or it is more than 15 minutes old, try to download again
     if printf $target | perl -ne '! -f $_ || time - (stat $_)[9] > 900 || die' &> /dev/null
     then
         # Get current timestamp to avoid race conditions if modifying time
