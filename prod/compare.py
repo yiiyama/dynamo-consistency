@@ -25,7 +25,7 @@ goes through the following steps for each site.
   #. It creates a list of datasets to not report orphans in.
      This list consists of the following.
 
-     - Datasets that have any files on the site, as listed by the dynamo MySQL database
+     - Datasets that have any files on the site, as listed by the dynamo inventory
      - Deletion requests fetched from PhEDEx (same list as datasets to skip in missing)
      - Any datasets that have the status flag set to ``'IGNORED'`` in the dynamo database
      - Merging datasets that are
@@ -115,22 +115,11 @@ from dynamo_consistency import datatypes
 from dynamo_consistency import checkphedex
 
 from CMSToolBox.webtools import get_json
-from common.interface.mysql import MySQL
+from dynamo.core.executable import inventory
+from dynamo.dataformat import Dataset
+from dynamo.registry.registry import RegistryDatabase
 
 LOG = logging.getLogger(__name__)
-
-
-def get_registry():
-    """
-    The connection returned by this must be closed by the caller
-    :returns: A connection to the registry database.
-    :rtype: :py:class:`common.interface.mysql.MySQL`
-    """
-    if os.environ['USER'] == 'dynamo':
-        return MySQL(config_file='/etc/my.cnf',
-                     db='dynamoregister', config_group='mysql-dynamo')
-    return MySQL(config_file=os.path.join(os.environ['HOME'], 'my.cnf'),
-                 db='dynamoregister', config_group='mysql-register-test')
 
 
 def deletion(site, files):
@@ -142,17 +131,16 @@ def deletion(site, files):
     :rtype: int
     """
 
-    reg_sql = get_registry()
+    reg_sql = RegistryDatabase()
     for path in files:
         path = path.strip()
         LOG.info('Deleting %s', path)
-        reg_sql.query(
+        reg_sql.db.query(
             """
             INSERT IGNORE INTO `deletion_queue`
             (`file`, `site`, `status`) VALUES
             (%s, %s, 'new')
             """, path, site)
-    reg_sql.close()
 
     return len(files)
 
@@ -180,8 +168,8 @@ class EmptyRemover(object):
         :type tree: :py:class:`datatypes.DirectoryInfo`
         """
         tree.setup_hash()
-        empties = ['/store/' + empty for empty in tree.empty_nodes_list() \
-                       if not self.check('/store/' + empty)]
+        empties = [empty for empty in tree.empty_nodes_list() \
+                       if not self.check(empty)]
 
         not_empty = []
 
@@ -398,25 +386,13 @@ def main(site):
     acceptable_missing = checkphedex.set_of_deletions(site)
 
     # Orphan files cannot belong to any dataset that should be at the site
-    inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
-    acceptable_orphans = set(
-        inv_sql.query(
-            """
-            SELECT datasets.name FROM sites
-            INNER JOIN dataset_replicas ON dataset_replicas.site_id=sites.id
-            INNER JOIN datasets ON dataset_replicas.dataset_id=datasets.id
-            WHERE sites.name=%s
-            """,
-            site)
-        )
+    acceptable_orphans = set(dr.dataset.name for dr in inventory.sites[site].dataset_replicas())
 
     # Orphan files may be a result of deletion requests
     acceptable_orphans.update(acceptable_missing)
 
     # Ignored datasets will not give a full listing, so they can't be accused of having orphans
-    acceptable_orphans.update(
-        inv_sql.query('SELECT name FROM datasets WHERE status=%s', 'IGNORED')
-        )
+    acceptable_orphans.update(d.name for d in inventory.datasets.itervalues() if d.status == Dataset.ST_IGNORED)
 
     # Do not delete anything that is protected by Unified
     protected_unmerged = get_json('cmst2.web.cern.ch', '/cmst2/unified/listProtectedLFN.txt')
@@ -457,16 +433,12 @@ def main(site):
     check_orphans = lambda x: double_check(x, acceptable_orphans)
     check_missing = lambda x: double_check(x, acceptable_missing)
 
-    inv_sql.close()
-
     # Do the comparison
     missing, m_size, orphan, o_size = datatypes.compare(
         inv_tree, site_tree, '%s_compare' % site,
         orphan_check=check_orphans, missing_check=check_missing)
 
     LOG.debug('Missing size: %i, Orphan size: %i', m_size, o_size)
-
-    inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
 
     # Determine if files should be entered into the registry
 
@@ -493,7 +465,7 @@ def main(site):
                 )
 
         # Enter things for site in registry
-        reg_sql = get_registry()
+        reg_sql = RegistryDatabase()
 
         # Setup a query for sites, with added condition at the end
         site_query = """
@@ -509,16 +481,22 @@ def main(site):
 
         for line in missing:
 
+            sites = []
+            tape_sites = []
+
             # Get sites that are not tape
-            sites = inv_sql.query(
-                site_query.format('AND sites.storage_type != "mss"'),
-                line, site)
+            lfile = inventory.find_file(line)
+            for replica in lfile.block.replicas:
+                if replica.site.name != site and replica.site.status == Site.STAT_READY and \
+                        replica.group.name is not None and lfile.id in replica.file_ids:
+                    if replica.site.storage_type == Site.TYPE_DISK:
+                        sites.append(replica.site)
+                    elif replica.site.storage_type == Site.TYPE_MSS:
+                        tape_sites.append(replica.site)
 
             if not sites:
-                no_source_files.append(line)
-                sites = inv_sql.query(
-                    site_query.format('AND sites.storage_type = "mss"'),
-                    line, site)
+                sites = tape_sites
+
                 # If still no sites, we are not getting this file back
                 if not sites:
                     unrecoverable.append(line)
@@ -526,7 +504,7 @@ def main(site):
             # Don't add transfers if too many missing files
             if line in prev_set or not prev_set:
                 for location in sites:
-                    reg_sql.query(
+                    reg_sql.db.query(
                         """
                         INSERT IGNORE INTO `transfer_queue`
                         (`file`, `site_from`, `site_to`, `status`, `reqid`)
@@ -535,8 +513,6 @@ def main(site):
                         line, location, site)
 
                     LOG.info('Copying %s from %s', line, location)
-
-        reg_sql.close()
 
     else:
         if many_missing:
@@ -560,44 +536,46 @@ def main(site):
                                       )
                 })
 
-    blocks_query = """
-                   SELECT blocks.name, IFNULL(groups.name, 'Unsubscribed') FROM blocks
-                   INNER JOIN files ON files.block_id = blocks.id
-                   INNER JOIN block_replicas ON block_replicas.block_id = files.block_id
-                   INNER JOIN sites ON block_replicas.site_id = sites.id
-                   LEFT JOIN groups ON block_replicas.group_id = groups.id
-                   WHERE files.name = %s AND sites.name = %s
-                   """
-
     with open('%s_compare_missing.txt' % site, 'r') as input_file:
         for line in input_file:
+            line = line.strip()
+
             split_name = line.split('/')
             dataset = '/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5])
 
-            output = inv_sql.query(blocks_query, line.strip(), site)
+            block = None
+            group = None
 
-            if not output:
-                LOG.warning('The following SQL statement failed: %s',
-                            blocks_query % (line.strip(), site))
-                LOG.warning('Most likely cause is dynamo update between the listing and now')
+            lfile = inventory.find_file(line)
+            if lfile is None:
+                LOG.warning('Lost track of file %s in Dynamo: Most likely cause is dynamo update between the listing and now', line)
+            else:
+                block = lfile.block.real_name()
+                replica = lfile.block.find_replica(site)
+                if replica is None:
+                    LOG.warning('Lost track of block replica %s:%s in Dynamo: Most likely cause is dynamo update between the listing and now', site, lfile.block.full_name())
+                else:
+                    group = replica.group.name
+                    if group is None:
+                        group = 'Unsubscribed'
+
+            if block is None or group is None:
                 from_phedex = get_json('cmsweb.cern.ch', '/phedex/datasvc/json/prod/filereplicas',
-                                       params={'node': site, 'LFN': line.strip()}, use_cert=True)
+                                       params={'node': site, 'LFN': line}, use_cert=True)
 
                 try:
-                    output = [(from_phedex['phedex']['block'][0]['name'].split('#')[1],
-                               from_phedex['phedex']['block'][0]['replica'][0]['group'])]
+                    block = from_phedex['phedex']['block'][0]['name'].split('#')[1]
+                    group = from_phedex['phedex']['block'][0]['replica'][0]['group']
+                    if group is None:
+                        group = 'Unsubscribed'
                 except IndexError:
                     LOG.error('File replica not in PhEDEx either!')
                     LOG.error('Skipping block level report for this file.')
                     continue
 
-            block, group = output[0]
-
             track_missing_blocks[dataset]['errors'] += 1
             track_missing_blocks[dataset]['blocks'][block]['errors'] += 1
             track_missing_blocks[dataset]['blocks'][block]['group'] = group
-
-    inv_sql.close()
 
     # Output file with the missing datasets
     with open('%s_missing_datasets.txt' % site, 'w') as output_file:
@@ -669,7 +647,7 @@ def main(site):
             'storeageservice': {
                 'storageshares': [{
                     'numberoffiles': node.get_num_files(),
-                    'path': [os.path.normpath('/store/%s' % subdir)],
+                    'path': [os.path.normpath('/%s' % subdir)],
                     'timestamp': str(int(time.time())),
                     'totalsize': 0,
                     'usedsize': node.get_directory_size()

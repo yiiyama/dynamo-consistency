@@ -7,12 +7,11 @@ This module gets the information from the inventory about a site's contents
 """
 
 import time
+import bisect
 import logging
 
-from common.inventory import InventoryManager
-from common.dataformat import File
-from common.dataformat import Dataset
-from common.interface.mysql import MySQL
+from dynamo.core.executable import inventory
+from dynamo.dataformat import Dataset
 
 from . import datatypes
 from . import config
@@ -20,33 +19,7 @@ from . import cache_tree
 
 LOG = logging.getLogger(__name__)
 
-class InvLoader(object):
-    """
-    Creates an InventoryManager object, if needed,
-    and stores it globally for the module.
-    It also holds a list of datasets in the deletion queue.
-    """
-    def __init__(self):
-        """Initializer for the object"""
-        self.inv = None
-        self.deletions = None
-
-    def get_inventory(self):
-        """
-        Make an inventory, if needed, and return it.
-
-        :returns: Any InventoryManager in the vicinity.
-        :rtype: common.inventory.InventoryManager
-        """
-        if self.inv is None:
-            self.inv = InventoryManager()
-
-        return self.inv
-
-
-INV = InvLoader()
-
-
+# NOTE Is this function used anywhere?
 @cache_tree('InventoryAge', 'inventorylisting')
 def get_site_inventory(site):
     """ Loads the contents of a site, based on the dynamo inventory
@@ -56,27 +29,28 @@ def get_site_inventory(site):
     :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
 
-    tree = datatypes.DirectoryInfo('/store')
-
-    inventory = INV.get_inventory()
-    replicas = inventory.sites[site].dataset_replicas
+    tree = datatypes.DirectoryInfo('')
 
     # Only look in directories in the configuration file
-    dirs_to_look = config.config_dict()['DirectoryList']
+    # Use a sorted list + bisect to reduce the number of comparisons we need to make
+    dirs_to_look = sorted(config.config_dict()['DirectoryList'])
 
-    for replica in replicas:
+    def in_dirs_to_look(lfn):
+        i = bisect.bisect_right(dirs_to_look, lfn)
+        return lfn.startswith(dirs_to_look[i - 1])
+
+    for replica in inventory.sites[site].dataset_replicas():
         add_list = []
-        inventory.store.load_files(replica.dataset)
-        blocks_at_site = [brep.block for brep in replica.block_replicas]
-        for file_at_site in replica.dataset.files:
-            if file_at_site.block not in blocks_at_site:
-                continue
-            # Make sure we don't waste time/space on directories we don't compare
-            if File.directories[file_at_site.directory_id].split('/')[2] in dirs_to_look:
 
-                last_created = replica.last_block_created if replica.is_complete \
+        for block_replica in replica.block_replicas:
+            for file_at_site in block_replica.files():
+                # Make sure we don't waste time/space on directories we don't compare
+                if not in_dirs_to_look(file_at_site.lfn):
+                    continue
+
+                last_created = replica.last_block_created if replica.is_complete() \
                               else int(time.time())
-                add_list.append((file_at_site.fullpath(), file_at_site.size,
+                add_list.append((file_at_site.lfn, file_at_site.size,
                                  last_created, file_at_site.block.real_name()))
 
         tree.add_file_list(add_list)
@@ -107,73 +81,31 @@ def get_db_listing(site):
     :returns: The file replicas that are supposed to be at a site
     :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
+    LOG.info('About to get the list of for files at %s', site)
 
-    inv_sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
+    dirs_to_look = sorted(config.config_dict()['DirectoryList'])
 
-    # Get list of files
-    curs = inv_sql._connection.cursor()
+    def in_dirs_to_look(lfn):
+        i = bisect.bisect_right(dirs_to_look, lfn)
+        return lfn.startswith(dirs_to_look[i - 1])
 
-    LOG.info('About to make MySQL query for files at %s', site)
+    tree = datatypes.DirectoryInfo('')
 
-    tree = datatypes.DirectoryInfo('/store')
+    for replica in inventory.sites[site].dataset_replicas():
+        # files in a block are typically under a common directory tree - add them to directory info by bulk
+        dataset_file_list = []
 
-    def add_to_tree(curs):
-        """
-        Add cursor contents to the dynamo listing tree
+        for block_replica in replica.block_replicas:
+            if block_replica.is_complete() and block_replica.group.name != None:
+                timestamp = 0
+            else:
+                timestamp = int(time.time())
 
-        :param MySQLdb.cursor curs: The cursor which just completed a query to fetch
-        """
-        dirs_to_look = iter(sorted(config.config_dict()['DirectoryList']))
+            for file_at_site in block_replica.files():
+                lfn = file_at_site.lfn
+                if in_dirs_to_look(lfn):
+                    dataset_file_list.append((lfn, file_at_site.size, timestamp))
 
-        files_to_add = []
-        look_dir = ''
-        row = curs.fetchone()
-
-        while row:
-            name, size = row[0:2]
-            timestamp = time.mktime(row[2].timetuple()) if len(row) == 3 else 0
-
-            current_directory = name.split('/')[2]
-            try:
-                while look_dir < current_directory:
-                    look_dir = next(dirs_to_look)
-            except StopIteration:
-                break
-
-            if current_directory == look_dir:
-                files_to_add.append((name, size, timestamp))
-
-            row = curs.fetchone()
-
-        tree.add_file_list(files_to_add)
-
-    curs.execute(
-        """
-        SELECT files.name, files.size
-        FROM block_replicas
-        INNER JOIN sites ON block_replicas.site_id = sites.id
-        INNER JOIN files ON block_replicas.block_id = files.block_id
-        WHERE block_replicas.is_complete = 1 AND sites.name = %s
-        AND group_id != 0
-        ORDER BY files.name ASC
-        """,
-        (site,))
-
-    add_to_tree(curs)
-
-    curs.execute(
-        """
-        SELECT files.name, files.size, NOW()
-        FROM block_replicas
-        INNER JOIN sites ON block_replicas.site_id = sites.id
-        INNER JOIN files ON block_replicas.block_id = files.block_id
-        WHERE (block_replicas.is_complete = 0 OR group_id = 0) AND sites.name = %s
-        ORDER BY files.name ASC
-        """,
-        (site,))
-
-    add_to_tree(curs)
-
-    LOG.info('MySQL query returned')
+        tree.add_file_list(dataset_file_list)
 
     return tree

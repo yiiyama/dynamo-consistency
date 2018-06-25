@@ -360,7 +360,7 @@ class DirectoryInfo(object):
             self.files = []
 
         # Get the list of new files
-        existing_names = [fi['name'] for fi in self.files]
+        existing_names = set(fi['name'] for fi in self.files)
         sorted_files = [fi for fi in sorted(files or []) \
                             if fi[0] not in existing_names]
 

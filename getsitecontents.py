@@ -15,10 +15,11 @@ import time
 import subprocess
 from datetime import datetime
 
+from dynamo.core.executable import inventory
+
 import timeout_decorator
 
 import XRootD.client
-from common.interface.mysql import MySQL
 
 from . import config
 from . import datatypes
@@ -149,9 +150,7 @@ class GFalLister(Lister):
 
     def __init__(self, site, thread_num=None):
         super(GFalLister, self).__init__(thread_num, site)
-        mysql_reg = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
-        self.backend = mysql_reg.query('SELECT backend FROM sites WHERE name=%s', site)[0]
-        mysql_reg.close()
+        self.backend = inventory.sites[site].backend
 
 
     def ls_directory(self, path):
@@ -339,12 +338,12 @@ def get_site_tree(site, callback=None):
         num_threads = int(config_dict.get('GFALThreads'))
         LOG.info('threads = %i', num_threads)
         directories = [
-            datatypes.create_dirinfo('/store', directory, GFalLister,
+            datatypes.create_dirinfo('', directory, GFalLister,
                                      [(site, x) for x in xrange(num_threads)], callback) \
                 for directory in config.config_dict().get('DirectoryList', [])
         ]
         # Return the DirectoryInfo
-        return datatypes.DirectoryInfo(name='/store', directories=directories)
+        return datatypes.DirectoryInfo(name='', directories=directories)
 
     # Get the redirector for a site
     # The redirector can be used for a double check (not implemented yet...)
@@ -361,7 +360,7 @@ def get_site_tree(site, callback=None):
 
     if not door_list:
         LOG.error('No doors found. Returning emtpy tree')
-        return datatypes.DirectoryInfo(name='/store')
+        return datatypes.DirectoryInfo(name='')
 
     while num_threads > len(door_list):
         if len(door_list) % 2:
@@ -380,11 +379,11 @@ def get_site_tree(site, callback=None):
 
     directories = [
         datatypes.create_dirinfo(
-            '/store/', directory,
+            '/', directory,
             XRootDSubShell if access.get(site) == 'directx' else XRootDLister,
             [(site, door, thread_num) for thread_num, door in enumerate(door_list)],
             callback) for directory in config_dict.get('DirectoryList', [])
         ]
 
     # Return the DirectoryInfo
-    return datatypes.DirectoryInfo(name='/store', directories=directories)
+    return datatypes.DirectoryInfo(name='', directories=directories)

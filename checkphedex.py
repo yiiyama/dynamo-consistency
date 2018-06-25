@@ -8,9 +8,10 @@ the list of files and deletions in PhEDEx.
 """
 
 import time
+import bisect
 import logging
 
-from common.interface.mysql import MySQL
+from dynamo.core.executable import inventory
 
 from CMSToolBox.webtools import get_json
 from . import config
@@ -66,15 +67,13 @@ def get_phedex_tree(site):
     :rtype: dynamo_consistency.datatypes.DirectoryInfo
     """
 
-    tree = datatypes.DirectoryInfo('/store')
+    tree = datatypes.DirectoryInfo('')
 
-    valid_list = config.config_dict().get('DirectoryList', [])
+    valid_list = sorted(config.config_dict().get('DirectoryList', []))
 
-    sql = MySQL(config_file='/etc/my.cnf', db='dynamo', config_group='mysql-dynamo')
-    datasets = sql.query('SELECT datasets.name '
-                         'FROM sites INNER JOIN dataset_replicas INNER JOIN datasets '
-                         'WHERE dataset_replicas.dataset_id=datasets.id AND '
-                         'dataset_replicas.site_id=sites.id and sites.name=%s', site)
+    def in_valid_list(lfn):
+        i = bisect.bisect_right(valid_list, lfn)
+        return lfn.startswith(valid_list[i - 1])
 
     def add_files(dataset, retries):
         """
@@ -104,7 +103,7 @@ def get_phedex_tree(site):
                              int(replica['replica'][0]['time_create'] or time.time()),
                              block['name']) \
                                 for replica in block['file'] \
-                                if replica['name'].split('/')[2] in valid_list]
+                                if in_valid_list(replica['name'])]
 
             report += len(replica_list)
 
@@ -115,7 +114,10 @@ def get_phedex_tree(site):
 
     separate = []
 
-    for primary in set([d.split('/')[1][:3] for d in datasets]):
+    datasets = [dr.dataset.name for dr in inventory.sites[site].dataset_replicas()]
+
+    # Query the entire site contents in small chunks (organize by the first three characters of the PD)
+    for primary in set(d.split('/')[1][:3] for d in datasets):
         success = add_files('/%s*/*/*' % primary, 0)
         if not success:
             separate.append(primary)

@@ -3,7 +3,7 @@
 # - **AccessMethod** - A dictionary of access methods for sites. Sites default to XRootD,
 #   but setting a value of ``SRM`` causes the site to be listed by ``gfal-ls`` commands.
 # - **CacheLocation** - The directory where all cached information is stored
-# - **DirectoryList** - A list of directories inside of ``/store/`` to check consistency.
+# - **DirectoryList** - A list of directories to check consistency.
 # - **GFALThreads** - The number of threads used by the GFAL listers
 # - **GlobalRedirectors** - The redirectors to start all locate calls from, unless looking
 #   for a site that is listed in the **Redirectors** configuration.
@@ -17,7 +17,7 @@
 # - **MaxOrphan** - If more than files than this number are orphan files at a site,
 #   then there will be no automatic entry into the register
 # - **NumThreads** - The number of threads used by the XRootD listers
-# - **PathPrefix** - A dictionary of prefixes to place before ``/store/`` in the XRootD call.
+# - **PathPrefix** - A dictionary of prefixes in the XRootD call.
 #   If the prefix is not set for a site, and it fails to list ``/store``, it tries ``/cms/store``
 #   (prefix ``'/cms'``) by default.
 # - **RedirectorAge** - The age, in days, of how old the information on doors from redirectors can be.
@@ -68,8 +68,8 @@ AccessMethod:
   T2_FR_GRIF_LLR: SRM
 
 DirectoryList:
-  - mc
-  - data
+  - /store/mc
+  - /store/data
 
 IgnoreDirectories:
   - /SAM

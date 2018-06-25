@@ -36,12 +36,12 @@
     "T2_KR_KISTI": "/pnfs/sdfarm.kr/data/cms"
   },
   "DirectoryList": [
-    "mc",
-    "data",
-    "generator",
-    "results",
-    "hidata",
-    "himc"
+    "/store/mc",
+    "/store/data",
+    "/store/generator",
+    "/store/results",
+    "/store/hidata",
+    "/store/himc"
   ],
   "IgnoreDirectories": [
     "/SAM",
