@@ -283,7 +283,7 @@ def clean_unmerged(site):
     # Delete the contents of the deletion file and the contents of the log directory that are old
     if site_tree.get_node('unmerged/logs', make_new=False):
         with open(deletion_file, 'a') as d_file:
-            d_file.write('\n'.join(
+            d_file.write('\n' + '\n'.join(
                 site_tree.get_node('unmerged/logs').get_files(
                     min_age=(int(config_dict['UnmergedLogsAge']) * 24 * 3600),
                     path='/store/unmerged')))
@@ -332,6 +332,9 @@ def clean_unmerged(site):
     conn.commit()
     conn.close()
 
+    db_dest = os.path.join(config_dict['WebDir'], '%s_protected.db' % site)
+    if os.path.exists(db_dest):
+        os.remove(db_dest)
     # Move this over to the web directory
     shutil.move('%s_protected.db' % site, config_dict['WebDir'])
 
