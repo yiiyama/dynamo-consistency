@@ -117,6 +117,8 @@ checkphedex.py
 .. automodule:: dynamo_consistency.checkphedex
    :members:
 
+.. _config-ref:
+
 config.py
 ---------
 
