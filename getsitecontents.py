@@ -123,9 +123,6 @@ def ct_timestamp(line):
     """
     Takes a time string from gfal and extracts the time since epoch
 
-    .. todo::
-      Make this more elegant and inline in the :py:func:`GFalLister.ls_directory`
-
     :param str line: The line from the gfal-ls call including month, day, and year
                      in some format with lots of hypens
     :returns: Timestamp's time since epoch

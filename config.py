@@ -219,8 +219,8 @@ def get_redirector(site, banned_doors=None):
 
     # Get the list of doors
     with open(list_name, 'r') as list_file:
-        local_list = list(set([line.strip() for line in list_file \
-                                   if line.strip() not in banned_doors and domain in line]))
+        local_list = [line.strip() for line in list_file \
+                          if line.strip() not in banned_doors and domain in line]
 
     LOG.info('From %s, got doors %s', redirector, local_list)
     LOG.info('Full list from global redirectors: %s', redirs)

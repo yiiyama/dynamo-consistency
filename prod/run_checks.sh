@@ -177,7 +177,7 @@ more than 1000 missing or orphan files will be considered.
 
 =head1 Author
 
-Daniel Abercrmbie <dabercro@mit.edu>
+Daniel Abercrombie <dabercro@mit.edu>
 
 =cut
 
