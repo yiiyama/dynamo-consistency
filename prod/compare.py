@@ -10,7 +10,7 @@ The production script,
 located at ``dynamo_consistency/prod/compare.py`` at the time of writing,
 goes through the following steps for each site.
 
-  #. Points :py:module:`dynamo_consistency.config` to the local ``consistency_config.json`` file
+  #. Points :ref:`config-ref` to the local ``consistency_config.json`` file
   #. Notes the time, and if it's daylight savings time for entry into the summary database
   #. Reads the list of previous missing files, since it requires a file to be missing on multiple
      runs before registering it to be copied
@@ -59,8 +59,11 @@ goes through the following steps for each site.
      - Empty directories that are not too new nor
        `protected by Unified <https://cmst2.web.cern.ch/cmst2/unified/listProtectedLFN.txt>`_
        are entered into the deletion queue
-     - The list of files is passed through :ref:`unmerged-ref`
-     - The list of files to delete from :ref:`unmerged-ref` are entered in the deletion queue
+     - The list of files is passed through the `Unmerged Cleaner
+       <http://cms-comp-ops-tools.readthedocs.io/en/latest/siteadmintoolkit.html#unmerged-cleaner>`_
+     - The list of files to delete from `Unmerged Cleaner
+       <http://cms-comp-ops-tools.readthedocs.io/en/latest/siteadmintoolkit.html#unmerged-cleaner>`_
+       are entered in the deletion queue
 
   #. The summary database is updated to show the last update on the website
 
