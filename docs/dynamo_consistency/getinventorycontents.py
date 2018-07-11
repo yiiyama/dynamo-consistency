@@ -1,0 +1,1 @@
+../../getinventorycontents.py
