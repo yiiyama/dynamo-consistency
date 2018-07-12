@@ -28,4 +28,4 @@ then
 fi
 
 tput sgr0 2> /dev/null
-exit "$errorcode"
+exit "$exitcode"
