@@ -14,17 +14,17 @@ Clicking on the link will give a history of the site.
 Site Name
 ---------
 
-Name of the site as stored in PhEDEx and DDM.
+Name of the site as stored in dynamo.
 The cell might be one of the following colors:
 
 - **Blue** -- the site is queued to be listed.
 - **Green** -- the site is in the process of being listed.
 - **Yellow** -- the site has been in the process of being listed for over 24 hours.
 - **Gray** -- the site listing has either been disabled for that site or
-              the SAM tests of the last 24 hours have failed more than 15% of the time.
+  the SAM tests of the last 24 hours have failed more than 15% of the time.
 - **Red** -- none of the above conditions are met, and the previous listing returned zero files.
-             The number of files cell will remain red regardless of its running status
-             if it had a bad listing completed most recently.
+  The number of files cell will remain red regardless of its running status
+  if it had a bad listing completed most recently.
 
 Clicking on the link will display the latest log file of an attempted listing for the site.
 This log file may not correspond to the summary entry if there was an error before the rest of the webpage was updated.
@@ -80,7 +80,7 @@ The links labels "blocks" shows a summary of the number of files missing from ea
 No Disk
 -------
 
-Number of missing files that are not supposed to be on disk at any other site, according to PhEDEx.
+Number of missing files that are not supposed to be on disk at any other site, according to dynamo.
 These files must be recovered using tape copies.
 The link is a list of file LFNs that are missing.
 The number in parenthesis gives the number of files that do not seem to be on tape either.
@@ -89,7 +89,7 @@ That link gives the corresponding list.
 Num Orphan
 ----------
 
-The number of files that exist at a site that PhEDEx does not know about.
+The number of files that exist at a site that dynamo does not know about.
 These files can be deleted.
 The link is a list of file LFNs that are orphans.
 
