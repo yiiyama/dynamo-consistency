@@ -18,4 +18,6 @@ install:
   - if [ "$PYLINTER" = "old" ]; then pip install "astroid<1.3" "pylint<1.4"; fi
   - git clone https://github.com/CMSCompOps/OpsSpace.git
 
-script: OpsSpace/test/package_test.sh
+script:
+  - if [ "$CHECKDOC" = "true" ]; then test/build_standalone_docs.sh; fi
+  - OpsSpace/test/package_test.sh

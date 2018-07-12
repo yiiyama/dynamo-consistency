@@ -21,7 +21,7 @@ my @maxsite = ("", 0);
 
 for (@sites) {
     chomp;
-    my @colcontents = `echo 'SELECT $column FROM stats_history WHERE site = "$_" AND STRFTIME("%Y", entered) = "2018";' | sqlite3 $db`;
+    my @colcontents = `echo 'SELECT $column FROM stats_history WHERE site = "$_" AND STRFTIME("%Y", entered) = "2018" AND files != 0;' | sqlite3 $db`;
     my $prev = 0;
     my $site_diff = 0;
     for (@colcontents) {
