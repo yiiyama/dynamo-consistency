@@ -430,6 +430,20 @@ def main(site):
         ['/%s/%s-%s/%s' % (split_name[4], split_name[3], split_name[6], split_name[5]) \
              for split_name in [name.split('/') for name in protected_unmerged['protected']]])
 
+    # Do not delete files being transferred by Dynamo
+    acceptable_orphans.update(
+        inv_sql.query(
+            """
+            SELECT DISTINCT d.`name` FROM `file_subscriptions` AS u
+            INNER JOIN `files` AS f ON f.`id` = u.`file_id`
+            INNER JOIN `blocks` AS b ON b.`id` = f.`block_id`
+            INNER JOIN `datasets` AS d ON d.`id` = b.`dataset_id`
+            INNER JOIN `sites` AS s ON s.`id` = u.`site_id`
+            WHERE s.`name` = %s AND u.`delete` = 0
+            """
+        )
+    )
+
     LOG.debug('Acceptable orphans: \n%s\n', '\n'.join(acceptable_orphans))
 
     ignore_list = config_dict.get('IgnoreDirectories', [])
