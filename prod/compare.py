@@ -440,7 +440,8 @@ def main(site):
             INNER JOIN `datasets` AS d ON d.`id` = b.`dataset_id`
             INNER JOIN `sites` AS s ON s.`id` = u.`site_id`
             WHERE s.`name` = %s AND u.`delete` = 0
-            """
+            """,
+            site
         )
     )
 
